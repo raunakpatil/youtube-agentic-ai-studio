@@ -46,6 +46,19 @@
 
 ---
 
+## 🎬 Live Example — Built With This Tool
+
+This repo powers **[Fractured Timelines](https://www.youtube.com/@TheFracturedTimelines)** — a real YouTube channel running entirely on this pipeline.
+
+[![Fractured Timelines](https://img.shields.io/badge/YouTube-Fractured%20Timelines-red?style=flat-square&logo=youtube)](https://www.youtube.com/@TheFracturedTimelines)
+
+> "What if Napoleon had nukes? What if Earth was flat... and spinning?"
+> Every video on this channel was researched, scripted, narrated, and uploaded using exactly this code.
+
+**[→ See what this tool can actually produce](https://www.youtube.com/@TheFracturedTimelines)**
+
+---
+
 ## ⚡ Quick Start
 
 ```bash
@@ -282,6 +295,13 @@ Pull requests are welcome! Please open an issue first to discuss major changes.
 3. Commit: `git commit -m 'Add my feature'`
 4. Push: `git push origin feature/my-feature`
 5. Open a Pull Request
+
+---
+
+## 🌍 Made With This Tool
+
+**[Fractured Timelines](https://www.youtube.com/@TheFracturedTimelines)** — science, history, and "what if" scenarios.
+Running 100% on this pipeline. Subscribe to see it in action.
 
 ---
 
