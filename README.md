@@ -10,7 +10,7 @@
 [![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?style=flat-square&logo=google&logoColor=white)](https://aistudio.google.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Free Tier](https://img.shields.io/badge/Cost-$0%20per%20video-brightgreen?style=flat-square)](SETUP.md)
-[![Stars](https://img.shields.io/github/stars/yourusername/youtube-ai-agent?style=flat-square)](https://github.com/yourusername/youtube-ai-agent/stargazers)
+[![Stars](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=flat-square)](https://github.com/raunakpatil/youtube-agentic-ai-studio/stargazers)
 
 [**Quick Start**](#-quick-start) · [**Features**](#-features) · [**Pipeline**](#️-how-it-works) · [**Setup Guide**](SETUP.md) · [**FAQ**](#-faq)
 
@@ -37,16 +37,12 @@
 
 ## 🖥️ Screenshots
 
-<table>
-  <tr>
-    <td><img src="docs/screenshots/gui_main.png" alt="Main GUI" width="100%"><br><sub>Main dashboard — generate videos with one click</sub></td>
-    <td><img src="docs/screenshots/gui_settings.png" alt="Settings" width="100%"><br><sub>Settings panel — configure every aspect</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/review_dashboard.png" alt="Review Dashboard" width="100%"><br><sub>Review dashboard — watch before you publish</sub></td>
-    <td><img src="docs/screenshots/video_preview.png" alt="Video Output" width="100%"><br><sub>Sample video output with animated captions</sub></td>
-  </tr>
-</table>
+| | |
+|---|---|
+| ![Main GUI](docs/screenshots/gui_main.png) | ![Settings](docs/screenshots/gui_settings.png) |
+| **Main dashboard** — generate videos with one click | **Settings panel** — configure every aspect |
+| ![Review Dashboard](docs/screenshots/review_dashboard.png) | ![Banner](docs/screenshots/banner.png) |
+| **Review dashboard** — watch before you publish | **Pipeline overview** |
 
 ---
 
@@ -54,8 +50,8 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/yourusername/youtube-ai-agent.git
-cd youtube-ai-agent
+git clone https://github.com/raunakpatil/youtube-agentic-ai-studio.git
+cd youtube-agentic-ai-studio
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -299,6 +295,4 @@ Pull requests are welcome! Please open an issue first to discuss major changes.
 
 If this project saves you time, please **star the repo** — it helps others find it.
 
-[![Star on GitHub](https://img.shields.io/github/stars/yourusername/youtube-ai-agent?style=social)](https://github.com/yourusername/youtube-ai-agent)
-
-</div>
+[![Star on GitHub](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=social)](https://github.com/raunakpatil/youtube-agentic-ai-studio)
