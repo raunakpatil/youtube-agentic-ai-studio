@@ -1,0 +1,4 @@
+# One banned topic per line. Lines starting with # are comments.
+# Built-in banned: The Boltzmann Brain, Simulation Theory, Quantum Immortality
+# Add topics here after you make a video about them.
+

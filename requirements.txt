@@ -1,0 +1,24 @@
+# YouTube AI Agent — Free Edition
+# IMPORTANT: Do NOT upgrade moviepy or numpy — see README for why
+
+# AI Brain — NEW SDK (replaces deprecated google-generativeai)
+google-genai>=1.0.0
+
+# HTTP requests (Pexels image downloads)
+requests>=2.31.0
+
+# Voiceover — 100% free, no API key needed
+edge-tts>=6.1.9
+
+# Video rendering — pin these exactly, they have breaking changes
+moviepy==1.0.3
+numpy>=1.24.0,<2.0.0
+Pillow>=10.0.0
+
+# Review dashboard
+flask>=3.0.0
+
+# YouTube upload
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.0

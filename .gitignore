@@ -1,0 +1,51 @@
+# ── Python ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Virtual environments ─────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Secrets — NEVER commit these ─────────
+# Add your real client_secret.json here after copying from Google Cloud
+# The placeholder client_secret.json in the repo is safe to commit
+youtube_token.pickle
+.env
+*.pickle
+*.pkl
+
+# ── Generated output — large files ───────
+output/
+output/images/
+*.mp4
+*.mp3
+*.wav
+*.jpg
+*.jpeg
+*.png
+!docs/screenshots/*.png    # allow docs screenshots
+
+# ── OS junk ──────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────
+*.log

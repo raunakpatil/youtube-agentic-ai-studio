@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Review Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0c0c1c;
+    --surface:  #18183a;
+    --border:   #2e2e5a;
+    --indigo:   #6366f1;
+    --purple:   #a78bfa;
+    --amber:    #fbbf24;
+    --emerald:  #34d399;
+    --red:      #f87171;
+    --text:     #e2e8f0;
+    --muted:    #94a3b8;
+    --radius:   12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  header .logo {
+    width: 40px; height: 40px;
+    background: var(--indigo);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  header h1 { font-size: 22px; font-weight: 600; }
+  header .badge {
+    margin-left: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-body { padding: 20px; }
+
+  /* Video player */
+  .video-wrap {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16/9;
+  }
+  .video-wrap video {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Research strip */
+  .research-strip {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .tag {
+    background: rgba(99,102,241,.18);
+    color: var(--purple);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Right panel */
+  .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Info card */
+  .info-title { font-size: 18px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+  .info-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  .why-box {
+    background: rgba(251,191,36,.08);
+    border: 1px solid rgba(251,191,36,.25);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #fde68a;
+    line-height: 1.5;
+  }
+  .why-box strong { color: var(--amber); }
+
+  /* Script sections */
+  .script-list { max-height: 360px; overflow-y: auto; }
+  .script-list::-webkit-scrollbar { width: 4px; }
+  .script-list::-webkit-scrollbar-track { background: transparent; }
+  .script-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .section-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .section-item:last-child { border-bottom: none; }
+  .section-item:hover .section-narr { color: var(--text); }
+
+  .section-meta {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  }
+  .section-num {
+    width: 22px; height: 22px;
+    background: var(--indigo);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-title { font-size: 13px; font-weight: 600; }
+  .section-type {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 8px;
+    text-transform: uppercase;
+  }
+  .section-narr {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    padding-left: 30px;
+  }
+
+  /* Action buttons */
+  .action-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px 0;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn:hover  { opacity: .88; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .btn-approve {
+    background: var(--emerald);
+    color: #052e16;
+  }
+  .btn-reject {
+    background: rgba(248,113,113,.12);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,.35);
+  }
+
+  .decision-banner {
+    display: none;
+    padding: 18px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .decision-banner.approved {
+    background: rgba(52,211,153,.12);
+    border: 1px solid rgba(52,211,153,.35);
+    color: var(--emerald);
+  }
+  .decision-banner.rejected {
+    background: rgba(248,113,113,.1);
+    border: 1px solid rgba(248,113,113,.3);
+    color: var(--red);
+  }
+
+  /* Loading */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--indigo);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #main { display: none; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p style="color:var(--muted);font-size:14px">Loading review data…</p>
+</div>
+
+<div id="main">
+  <header>
+    <div class="logo">🎬</div>
+    <h1>Video Review</h1>
+    <span class="badge" id="status-badge">Awaiting decision</span>
+  </header>
+
+  <div class="layout">
+
+    <!-- Left: video + tags -->
+    <div>
+      <div class="card">
+        <div class="video-wrap">
+          <video id="player" controls>
+            <source src="/video" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="research-strip" id="tags-strip"></div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="right-panel">
+
+      <!-- Info -->
+      <div class="card">
+        <div class="card-header">📋 Video info</div>
+        <div class="card-body">
+          <div class="info-title" id="vid-title"></div>
+          <div class="info-desc"  id="vid-desc"></div>
+          <div class="why-box"><strong>Why now?</strong> <span id="why-now"></span></div>
+        </div>
+      </div>
+
+      <!-- Script -->
+      <div class="card">
+        <div class="card-header">📝 Script sections</div>
+        <div class="card-body" style="padding:0 16px">
+          <div class="script-list" id="script-list"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card action-card">
+        <div class="card-header">✅ Your decision</div>
+        <div class="card-body">
+          <button class="btn btn-approve" id="btn-approve" onclick="decide('approve')">
+            ✅ Looks great — upload to YouTube
+          </button>
+          <button class="btn btn-reject" id="btn-reject" onclick="decide('reject')">
+            ❌ Reject — don't upload
+          </button>
+          <div class="decision-banner" id="decision-banner"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+async function load() {
+  const res  = await fetch('/api/data');
+  const data = await res.json();
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display    = 'block';
+
+  const script   = data.script   || {};
+  const research = data.research || {};
+
+  // Title & description
+  document.getElementById('vid-title').textContent = script.title || research.video_title || '—';
+  document.getElementById('vid-desc').textContent  = script.description || research.description || '';
+  document.getElementById('why-now').textContent   = research.why_now || '';
+
+  // Tags
+  const strip = document.getElementById('tags-strip');
+  (research.tags || script.tags || []).forEach(tag => {
+    const el = document.createElement('span');
+    el.className = 'tag';
+    el.textContent = '#' + tag;
+    strip.appendChild(el);
+  });
+
+  // Script sections
+  const list = document.getElementById('script-list');
+  (script.sections || []).forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'section-item';
+    item.innerHTML = `
+      <div class="section-meta">
+        <span class="section-num">${s.id}</span>
+        <span class="section-title">${s.title}</span>
+        <span class="section-type">${s.section_type}</span>
+      </div>
+      <div class="section-narr">${s.narration.substring(0, 120)}${s.narration.length > 120 ? '…' : ''}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+async function decide(action) {
+  document.getElementById('btn-approve').disabled = true;
+  document.getElementById('btn-reject').disabled  = true;
+
+  const res = await fetch('/api/' + action, { method: 'POST' });
+  const { status } = await res.json();
+
+  const banner = document.getElementById('decision-banner');
+  const badge  = document.getElementById('status-badge');
+
+  if (status === 'approved') {
+    banner.className = 'decision-banner approved';
+    banner.textContent = '✅ Approved! Uploading to YouTube now…\nThis window will close shortly.';
+    badge.textContent = '✅ Approved';
+    badge.style.color = 'var(--emerald)';
+  } else {
+    banner.className = 'decision-banner rejected';
+    banner.textContent = '❌ Rejected. The pipeline has stopped.';
+    badge.textContent = '❌ Rejected';
+    badge.style.color = 'var(--red)';
+  }
+  banner.style.display = 'block';
+}
+
+load();
+</script>
+</body>
+</html>

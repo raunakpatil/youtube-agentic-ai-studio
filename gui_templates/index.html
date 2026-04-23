@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube AI Agent Studio</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090f;--surface:#111120;--surface2:#181830;--border:#1f1f40;
+  --primary:#6366f1;--accent:#a78bfa;--amber:#fbbf24;
+  --green:#34d399;--red:#f87171;--blue:#60a5fa;
+  --text:#e2e8f0;--muted:#64748b;--dim:#94a3b8;
+  --r:10px;--r-sm:6px;
+}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-columns:230px 1fr;grid-template-rows:52px 1fr;height:100vh}
+.topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;padding:0 20px;z-index:10}
+.topbar .logo{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.topbar .logo span{color:var(--primary)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;padding-top:8px}
+.main{overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%}
+
+/* ── Sidebar stages ── */
+.section-label{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);
+  padding:12px 16px 6px;text-transform:uppercase}
+.stage{display:flex;align-items:center;gap:10px;padding:8px 16px;
+  border-radius:var(--r-sm);margin:1px 8px;cursor:default;transition:background .15s}
+.stage:hover{background:rgba(255,255,255,.04)}
+.stage-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;flex-shrink:0;border:1.5px solid var(--border)}
+.stage-name{font-size:13px;color:var(--dim)}
+.stage.pending .stage-icon{background:var(--surface2);color:var(--muted)}
+.stage.running .stage-icon{background:rgba(99,102,241,.2);border-color:var(--primary);
+  color:var(--primary);animation:pulse 1s infinite}
+.stage.done .stage-icon{background:rgba(52,211,153,.15);border-color:var(--green);color:var(--green)}
+.stage.error .stage-icon{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.yt-panel{margin:auto 8px 8px;padding:12px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--r)}
+.yt-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+.yt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.yt-dot.ok{background:var(--green)}.yt-dot.bad{background:var(--red)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;padding:10px 16px 0;background:var(--surface);
+  border-bottom:1px solid var(--border)}
+.tab{padding:8px 18px;border-radius:var(--r-sm) var(--r-sm) 0 0;cursor:pointer;
+  font-size:13px;font-weight:500;color:var(--muted);border:1px solid transparent;
+  border-bottom:none;transition:all .15s}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.active{color:var(--text);background:var(--bg);border-color:var(--border);
+  border-bottom-color:var(--bg)}
+.tab-content{display:none;flex:1;overflow:hidden;min-height:0}
+.tab-content.active{display:flex;flex-direction:column;min-height:0}
+/* Settings tab: let the inner .settings-scroll div actually scroll */
+#tab-settings{overflow:hidden;}
+
+/* ── Generate tab ── */
+.gen-layout{display:grid;grid-template-columns:320px 1fr;gap:0;height:100%;overflow:hidden}
+.gen-options{padding:18px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.gen-console{display:flex;flex-direction:column;overflow:hidden}
+
+.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+input[type=text],textarea,select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r-sm);color:var(--text);padding:8px 10px;font-size:13px;
+  font-family:inherit;transition:border-color .15s;outline:none;resize:vertical}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--primary)}
+input[type=range]{width:100%;accent-color:var(--primary)}
+
+.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.step-check{display:flex;align-items:center;gap:7px;padding:7px 10px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);
+  cursor:pointer;font-size:12px;transition:border-color .15s}
+.step-check:hover{border-color:var(--primary)}
+.step-check input{accent-color:var(--primary);cursor:pointer}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 18px;border:none;border-radius:var(--r-sm);font-size:13px;
+  font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;
+  font-family:inherit;white-space:nowrap}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--green);color:#052e16}
+.btn-danger{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
+.btn-amber{background:var(--amber);color:#451a03}
+.btn-full{width:100%}
+
+.console-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.console-body{flex:1;overflow-y:auto;padding:10px 14px;font-size:12px;
+  font-family:"Consolas","Courier New",monospace;line-height:1.7;background:#050509}
+.console-body::-webkit-scrollbar{width:4px}
+.console-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.log-info{color:#94a3b8}
+.log-warn{color:var(--amber)}
+.log-error{color:var(--red)}
+.log-success{color:var(--green)}
+.log-stage{color:var(--accent);font-weight:600}
+
+/* ── Review tab ── */
+.review-layout{display:grid;grid-template-columns:1fr 380px;height:100%;overflow:hidden}
+.review-left{display:flex;flex-direction:column;padding:16px;gap:12px;overflow-y:auto}
+.review-right{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+
+.video-wrap{position:relative;background:#000;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9}
+.video-wrap video{width:100%;height:100%;display:block}
+.no-video{display:flex;align-items:center;justify-content:center;
+  height:100%;color:var(--muted);font-size:13px;flex-direction:column;gap:8px}
+
+.thumb-wrap{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;
+  background:var(--surface2);border:1px solid var(--border)}
+.thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb-wrap .no-thumb{display:flex;align-items:center;justify-content:center;
+  height:100%;color:var(--muted);font-size:12px}
+
+.edit-panel{display:flex;flex-direction:column;overflow-y:auto;padding:16px;gap:14px}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{background:rgba(99,102,241,.15);color:var(--accent);border:1px solid rgba(99,102,241,.3);
+  border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer}
+.tag:hover{background:rgba(99,102,241,.3)}
+
+.upload-section{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface)}
+.upload-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+.upload-mode-btn{padding:5px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s;font-family:inherit}
+.upload-mode-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.upload-mode-btn:hover:not(.active){color:var(--text);background:rgba(255,255,255,.06)}
+.progress-bar-wrap{height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:8px}
+.progress-bar-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .3s}
+
+/* ── Settings tab ── */
+.settings-scroll{
+  /* flex:1 + height:0 is the reliable way to make a flex child scrollable */
+  flex:1;height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:16px 20px 32px;
+  display:flex;flex-direction:column;gap:16px;
+  /* Smooth scrolling and prevent layout blowout */
+  min-height:0;
+  -webkit-overflow-scrolling:touch;
+}
+/* Readable inputs at any zoom level */
+.settings-field input,.settings-field select,.settings-field textarea{
+  font-size:14px;
+  min-height:34px;
+  width:100%;
+}
+.settings-section{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;flex-shrink:0;
+}
+.settings-header{
+  padding:11px 16px;background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;
+  display:flex;align-items:center;gap:8px;
+  cursor:pointer;user-select:none;
+}
+.settings-header:hover{color:var(--dim)}
+.settings-header .caret{margin-left:auto;transition:transform .2s;font-size:10px;opacity:.5}
+.settings-section.collapsed .caret{transform:rotate(-90deg)}
+.settings-section.collapsed .settings-body{display:none}
+.settings-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+/* Single-column field layout — label above input */
+.settings-field{display:flex;flex-direction:column;gap:5px}
+.settings-field .field-label{margin-bottom:0}
+/* Two-column layout for compact pairs (speed+pitch, zoom start+end) */
+.settings-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Inline row for range slider + live value */
+.range-row{display:flex;align-items:center;gap:10px}
+.range-row input[type=range]{flex:1}
+.range-val{font-size:12px;font-weight:600;color:var(--primary);min-width:38px;text-align:right}
+.voice-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ── Status chips ── */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:600}
+.chip-running{background:rgba(99,102,241,.2);color:var(--primary)}
+.chip-done{background:rgba(52,211,153,.15);color:var(--green)}
+.chip-idle{background:rgba(255,255,255,.06);color:var(--muted)}
+.chip-error{background:rgba(248,113,113,.15);color:var(--red)}
+
+/* ── Format selector buttons ── */
+.fmt-btn{display:flex;align-items:center;gap:10px;flex:1;padding:10px 12px;
+  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);
+  cursor:pointer;text-align:left;color:var(--text);font-family:inherit;transition:all .15s}
+.fmt-btn:hover{border-color:var(--primary);background:rgba(99,102,241,.08)}
+.fmt-btn.fmt-active{border-color:var(--primary);background:rgba(99,102,241,.15)}
+.fmt-btn.fmt-active div:first-child{color:var(--primary)}
+
+/* ── Misc ── */
+.divider{height:1px;background:var(--border);margin:4px 0}
+.help-text{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5}
+.url-link{color:var(--primary);text-decoration:none;font-size:12px;word-break:break-all}
+.url-link:hover{text-decoration:underline}
+.badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;
+  background:rgba(99,102,241,.2);color:var(--primary)}
+.flex-row{display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── Top bar ── -->
+  <header class="topbar">
+    <div class="logo">🎬 <span>Fractured</span> Timelines Studio</div>
+    <div class="topbar-right">
+      <span id="status-chip" class="chip chip-idle">● Idle</span>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="section-label">Pipeline</div>
+
+    <div class="stage pending" id="stage-research">
+      <div class="stage-icon">1</div>
+      <div>
+        <div class="stage-name">Research</div>
+      </div>
+    </div>
+    <div class="stage pending" id="stage-script">
+      <div class="stage-icon">2</div>
+      <div class="stage-name">Script</div>
+    </div>
+    <div class="stage pending" id="stage-images">
+      <div class="stage-icon">3</div>
+      <div class="stage-name">Images</div>
+    </div>
+    <div class="stage pending" id="stage-narration">
+      <div class="stage-icon">4</div>
+      <div class="stage-name">Narration</div>
+    </div>
+    <div class="stage pending" id="stage-video">
+      <div class="stage-icon">5</div>
+      <div class="stage-name">Video</div>
+    </div>
+
+    <div class="divider" style="margin:8px"></div>
+
+    <div class="yt-panel">
+      <div class="section-label" style="padding:0 0 8px">YouTube</div>
+      <div class="yt-row">
+        <div class="yt-dot bad" id="yt-secret-dot"></div>
+        <span id="yt-secret-label">client_secret.json</span>
+      </div>
+      <div class="yt-row" style="margin-bottom:0">
+        <div class="yt-dot bad" id="yt-token-dot"></div>
+        <span id="yt-token-label">Auth token</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('generate')">🚀 Generate</div>
+      <div class="tab" onclick="switchTab('review')">🎬 Review & Edit</div>
+      <div class="tab" onclick="switchTab('settings')">⚙️ Settings</div>
+    </div>
+
+    <!-- ════ GENERATE TAB ════ -->
+    <div class="tab-content active" id="tab-generate">
+      <div class="gen-layout">
+
+        <!-- Options panel -->
+        <div class="gen-options">
+          <!-- ══ Topic / Focus selector ══ -->
+          <div id="topic-section">
+
+            <!-- Mode toggle -->
+            <div class="field-label" style="margin-bottom:8px">Topic Mode</div>
+            <div style="display:flex;gap:0;border:1px solid var(--border,#333);border-radius:8px;overflow:hidden;margin-bottom:12px">
+              <button id="mode-ai" onclick="setTopicMode('ai')"
+                style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;cursor:pointer;
+                       background:var(--primary,#6366f1);color:#fff;transition:background .2s">
+                🤖 AI Picks
+              </button>
+              <button id="mode-manual" onclick="setTopicMode('manual')"
+                style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;cursor:pointer;
+                       background:var(--surface,#1a1a2e);color:var(--muted,#888);transition:background .2s">
+                ✏️ I Pick
+              </button>
+            </div>
+
+            <!-- AI mode panel -->
+            <div id="panel-ai">
+              <div class="field-label" style="margin-bottom:4px">Focus Theme</div>
+              <select id="focus-angle-select" style="margin-bottom:6px"
+                      onchange="document.getElementById('focus-angle-custom').style.display=this.value==='__custom__'?'block':'none'">
+                <option value="">🎲 Random (AI surprises you)</option>
+                <option value="Theoretical Physics &amp; Time Travel">⏱ Theoretical Physics &amp; Time Travel</option>
+                <option value="The Dark Forest Theory &amp; Aliens">👽 Dark Forest Theory &amp; Aliens</option>
+                <option value="Existential Human Psychology &amp; Illusions">🧠 Existential Psychology &amp; Illusions</option>
+                <option value="Frightening AI Futures &amp; Simulation Theory">🤖 Frightening AI Futures</option>
+                <option value="Mind-bending Mathematical Paradoxes">♾ Mathematical Paradoxes</option>
+                <option value="The limits of Human Biology &amp; Immortality">🧬 Human Biology &amp; Immortality</option>
+                <option value="Quantum Mechanics &amp; Alternate Realities">⚛ Quantum Mechanics &amp; Alternate Realities</option>
+                <option value="Cosmic scale, Black Holes, and the end of the Universe">🌌 Black Holes &amp; End of Universe</option>
+                <option value="Neuroscience &amp; the Mystery of Consciousness">🔬 Neuroscience &amp; Consciousness</option>
+                <option value="Ancient Civilisations &amp; Lost History">🏛 Ancient Civilisations &amp; Lost History</option>
+                <option value="Cutting-edge Biotechnology &amp; Genetic Engineering">🧪 Biotech &amp; Genetic Engineering</option>
+                <option value="The Future of Space Colonisation">🚀 Future of Space Colonisation</option>
+                <option value="__custom__">✏️ Custom theme…</option>
+              </select>
+              <input type="text" id="focus-angle-custom"
+                     placeholder="Describe your custom theme…"
+                     style="display:none;margin-bottom:6px">
+              <div class="help-text">AI will pick the best specific topic within this theme, avoiding banned topics.</div>
+            </div>
+
+            <!-- Manual mode panel -->
+            <div id="panel-manual" style="display:none">
+              <div class="field-label" style="margin-bottom:4px">Exact Topic</div>
+              <input type="text" id="topic-input"
+                     placeholder="e.g. Why black holes might be the key to time travel">
+              <div class="help-text">Gemini will write a script about <strong>this exact topic</strong> — no creative substitution.</div>
+            </div>
+
+          </div>
+
+          <div>
+            <div class="field-label">Steps to run</div>
+            <div class="steps-grid">
+              <label class="step-check"><input type="checkbox" id="step-research" checked> 🔍 Research</label>
+              <label class="step-check"><input type="checkbox" id="step-script" checked> ✍️ Script</label>
+              <label class="step-check"><input type="checkbox" id="step-images" checked> 🖼 Images</label>
+              <label class="step-check"><input type="checkbox" id="step-narration" checked> 🎙 Narration</label>
+              <label class="step-check"><input type="checkbox" id="step-music" checked> 🎵 Music <span style="font-size:10px;opacity:0.6">(library)</span></label>
+              <label class="step-check"><input type="checkbox" id="step-video" checked> 🎞 Render Video</label>
+            </div>
+            <div class="help-text" style="margin-top:8px">Uncheck steps to skip and reuse previous output. Useful after rejecting a video to just re-render a different section.</div>
+          </div>
+
+          <div>
+            <div class="field-label">Voice<br><span style="font-size:10px;font-weight:400;color:var(--success,#4ade80)">✓ = word-synced captions</span></div>
+            <select id="quick-voice" onchange="applyQuickVoice(this.value)">
+              <option value="en-US-AndrewNeural">Andrew (US, Warm) ✓</option>
+              <option value="en-US-BrianNeural">Brian (US, Calm)</option>
+              <option value="en-GB-LibbyNeural">Libby (UK, Clear) ✓</option>
+              <option value="en-US-GuyNeural">Guy (US, Neutral)</option>
+              <option value="en-GB-RyanNeural">Ryan (UK, Warm)</option>
+              <option value="en-US-AriaNeural">Aria (US, Female)</option>
+              <option value="en-GB-SoniaNeural">Sonia (UK, Female)</option>
+              <option value="en-US-ChristopherNeural">Christopher (US, Deep)</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="field-label">Video privacy</div>
+            <select id="quick-privacy">
+              <option value="public">Public</option>
+              <option value="unlisted">Unlisted</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="field-label">Video Format</div>
+            <div style="display:flex;gap:8px">
+              <button id="fmt-normal" class="fmt-btn fmt-active" onclick="setFormat('normal')">
+                <span style="font-size:16px">📺</span>
+                <span>
+                  <div style="font-weight:700;font-size:12px">Normal Video</div>
+                  <div style="font-size:10px;color:var(--muted)">16:9 · 6-8 min · 1920×1080</div>
+                </span>
+              </button>
+              <button id="fmt-shorts" class="fmt-btn" onclick="setFormat('shorts')">
+                <span style="font-size:16px">📱</span>
+                <span>
+                  <div style="font-weight:700;font-size:12px">YouTube Shorts</div>
+                  <div style="font-size:10px;color:var(--muted)">9:16 · ~60 sec · 1080×1920</div>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+            <button class="btn btn-primary btn-full" id="gen-btn" onclick="startGeneration()" style="padding:13px">
+              🚀 Generate Full Video
+            </button>
+            <button class="btn btn-danger" id="stop-btn" onclick="stopPipeline()"
+                    style="padding:13px 16px;display:none" title="Stop after current step">
+              ⏹ Stop
+            </button>
+          </div>
+          <button class="btn btn-ghost btn-full" onclick="clearConsole()">Clear Console</button>
+        </div>
+
+        <!-- Console -->
+        <div class="gen-console">
+          <div class="console-bar">
+            <span>Console</span>
+            <span id="console-status" class="chip chip-idle">Idle</span>
+          </div>
+          <div class="console-body" id="console"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ REVIEW TAB ════ -->
+    <div class="tab-content" id="tab-review">
+      <div class="review-layout">
+
+        <!-- Left: video + thumbnail -->
+        <div class="review-left">
+          <div>
+            <div class="field-label" style="margin-bottom:8px">Video Preview</div>
+            <div class="video-wrap" id="video-wrap">
+              <div class="no-video">
+                <span style="font-size:32px">🎬</span>
+                <span>Generate a video first</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex-row" style="margin-bottom:8px">
+              <div class="field-label" style="margin:0">Thumbnail</div>
+              <button class="btn btn-ghost" style="padding:5px 12px;font-size:11px" onclick="regenThumbnail()">↻ Regenerate</button>
+            </div>
+            <div class="thumb-wrap" id="thumb-wrap">
+              <div class="no-thumb">No thumbnail yet</div>
+            </div>
+            <div class="help-text" style="margin-top:6px">Thumbnail is auto-generated from your title + stock image. Edit the title on the right and click ↻ Regenerate to update it.</div>
+          </div>
+
+          <div id="video-info" style="display:none">
+            <div class="field-label" style="margin-bottom:6px">Video info</div>
+            <div style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">
+              <div>Topic: <span id="info-topic" style="color:var(--dim)"></span></div>
+              <div>Hook: <span id="info-hook" style="color:var(--dim)"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: edit panel + upload -->
+        <div class="review-right">
+          <div class="edit-panel">
+            <div class="field-label" style="margin-bottom:4px">Video Title</div>
+            <input type="text" id="edit-title" placeholder="Video title…" oninput="markDirty()">
+            <div class="help-text">Keep under 70 characters for best YouTube display.</div>
+
+            <div>
+              <div class="flex-row" style="margin-bottom:6px">
+                <div class="field-label" style="margin:0">Description</div>
+                <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="regenDescription()">✨ AI Rewrite</button>
+              </div>
+              <textarea id="edit-desc" rows="12" style="font-size:12px" placeholder="Video description…" oninput="markDirty()"></textarea>
+            </div>
+
+            <div>
+              <div class="field-label" style="margin-bottom:6px">Tags <span style="color:var(--muted);font-weight:400">(click to remove)</span></div>
+              <div class="tag-list" id="tag-list"></div>
+              <input type="text" id="new-tag" placeholder="Add tag, press Enter" style="margin-top:8px"
+                     onkeydown="if(event.key==='Enter')addTag(this.value.trim())&&(this.value='')">
+            </div>
+
+            <button class="btn btn-primary btn-full" id="save-btn" onclick="saveEdits()" disabled>Save Changes</button>
+
+            <div id="sections-list">
+              <div class="field-label" style="margin-bottom:6px">Script Sections</div>
+              <div id="sections-inner" style="display:flex;flex-direction:column;gap:4px"></div>
+            </div>
+          </div>
+
+          <div class="upload-section">
+            <div style="font-size:12px;font-weight:600;color:var(--dim);margin-bottom:10px">Upload to YouTube</div>
+
+            <!-- Tab switcher -->
+            <div style="display:flex;gap:4px;margin-bottom:10px">
+              <button class="upload-mode-btn active" id="utab-now" onclick="switchUploadMode('now')">Upload Now</button>
+              <button class="upload-mode-btn" id="utab-schedule" onclick="switchUploadMode('schedule')">📅 Schedule</button>
+            </div>
+
+            <!-- Upload Now pane -->
+            <div id="upane-now">
+              <div class="upload-row">
+                <select id="upload-privacy" style="flex:1">
+                  <option value="public">Public</option>
+                  <option value="unlisted">Unlisted</option>
+                  <option value="private">Private</option>
+                </select>
+                <button class="btn btn-success" id="upload-btn" onclick="uploadToYouTube()">
+                  ▲ Upload
+                </button>
+              </div>
+            </div>
+
+            <!-- Schedule pane -->
+            <div id="upane-schedule" style="display:none">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">
+                Video uploads immediately but goes public at the chosen date &amp; time.<br>
+                Requires a <strong style="color:var(--dim)">verified YouTube channel</strong>.
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <input type="datetime-local" id="schedule-datetime" style="font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);padding:7px 10px;outline:none;width:100%;color-scheme:dark">
+                <div class="upload-row">
+                  <select id="schedule-privacy" style="flex:1">
+                    <option value="public">Public at scheduled time</option>
+                    <option value="unlisted">Unlisted at scheduled time</option>
+                  </select>
+                  <button class="btn btn-amber" id="schedule-btn" onclick="scheduleUpload()">
+                    📅 Schedule
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="progress-bar-wrap" id="upload-progress-wrap" style="display:none">
+              <div class="progress-bar-fill" id="upload-progress-fill" style="width:0%"></div>
+            </div>
+            <div id="upload-status" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+            <div id="yt-url-wrap" style="display:none;margin-top:6px">
+              <a id="yt-url-link" class="url-link" target="_blank"></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SETTINGS TAB ════ -->
+    <div class="tab-content" id="tab-settings">
+      <div class="settings-scroll">
+
+        <!-- ── API Keys ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">🔑 API Keys <span class="caret">▾</span></div>
+          <div class="settings-body">
+            <div class="settings-field">
+              <div class="field-label">Gemini API Key</div>
+              <input type="text" id="s-gemini" placeholder="Your Gemini API key">
+            </div>
+            <div class="settings-field">
+              <div class="field-label">Pexels API Key</div>
+              <input type="text" id="s-pexels" placeholder="Your Pexels API key">
+            </div>
+            <div class="help-text">Keys are saved to config.py. Get Gemini free at <strong>aistudio.google.com</strong>, Pexels at <strong>pexels.com/api</strong>.</div>
+          </div>
+        </div>
+
+        <!-- ── Channel ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">📺 Channel <span class="caret">▾</span></div>
+          <div class="settings-body">
+            <div class="settings-field">
+              <div class="field-label">Channel Name</div>
+              <input type="text" id="s-channel-name">
+            </div>
+            <div class="settings-field">
+              <div class="field-label">Channel Description</div>
+              <textarea id="s-channel-desc" rows="5" style="font-size:12px"></textarea>
+              <div class="help-text">Tells the AI what kind of videos to make. Be specific about topics, style, and audience.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Voice ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">🎙 Voice (Edge TTS — Free) <span class="caret">▾</span></div>
+          <div class="settings-body">
+            <div class="settings-field">
+              <div class="field-label">Voice</div>
+              <select id="s-voice">
+                <optgroup label="✓ Word-synced captions (best quality)">
+                  <option value="en-US-AndrewNeural">Andrew (US, Warm male)</option>
+                  <option value="en-GB-LibbyNeural">Libby (UK, Clear female)</option>
+                </optgroup>
+                <optgroup label="Sentence-level captions (good quality)">
+                  <option value="en-US-BrianNeural">Brian (US, Calm male)</option>
+                  <option value="en-US-GuyNeural">Guy (US, Neutral male)</option>
+                  <option value="en-GB-RyanNeural">Ryan (UK, Warm male)</option>
+                  <option value="en-US-ChristopherNeural">Christopher (US, Deep male)</option>
+                  <option value="en-US-AriaNeural">Aria (US, Expressive female)</option>
+                  <option value="en-GB-SoniaNeural">Sonia (UK, Clear female)</option>
+                  <option value="en-AU-NatashaNeural">Natasha (AU, female)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="settings-cols">
+              <div class="settings-field">
+                <div class="field-label">Speed</div>
+                <div class="range-row">
+                  <input type="range" id="s-voice-rate-range" min="-20" max="20" value="-5"
+                         oninput="document.getElementById('s-voice-rate').value=this.value+'%';document.getElementById('s-voice-rate-val').textContent=this.value+'%'">
+                  <span class="range-val" id="s-voice-rate-val">-5%</span>
+                </div>
+                <input type="hidden" id="s-voice-rate" value="-5%">
+              </div>
+              <div class="settings-field">
+                <div class="field-label">Pitch</div>
+                <div class="range-row">
+                  <input type="range" id="s-voice-pitch-range" min="-10" max="10" value="-3"
+                         oninput="document.getElementById('s-voice-pitch').value=this.value+'Hz';document.getElementById('s-voice-pitch-val').textContent=this.value+'Hz'">
+                  <span class="range-val" id="s-voice-pitch-val">-3Hz</span>
+                </div>
+                <input type="hidden" id="s-voice-pitch" value="-3Hz">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AI Model ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">🤖 AI Model <span class="caret">▾</span></div>
+          <div class="settings-body">
+            <div class="settings-field">
+              <div class="field-label">Starting Model</div>
+              <select id="s-model">
+                <option value="gemini-2.5-flash">gemini-2.5-flash — highest quality (500 req/day free)</option>
+                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — fast + smart</option>
+                <option value="gemma-4-31b-it">gemma-4-31b-it — Gemma 4 31B (strong reasoning, free)</option>
+                <option value="gemini-2.0-flash" selected>gemini-2.0-flash — recommended (1500 req/day free)</option>
+                <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite — fastest (1500 req/day free)</option>
+                <option value="gemma-3-27b-it">gemma-3-27b-it — Gemma 3 27B</option>
+                <option value="gemini-1.5-flash-001">gemini-1.5-flash-001 — reliable fallback</option>
+                <option value="gemini-1.5-pro-001">gemini-1.5-pro-001 — pro quality fallback</option>
+              </select>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
+                The chain starts here and automatically falls back through all remaining models
+                if quota or errors are hit — so generation always completes.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Video Style ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">🎨 Video Style <span class="caret">▾</span></div>
+          <div class="settings-body">
+
+            <div class="settings-field">
+              <div class="field-label">Overlay Opacity</div>
+              <div class="range-row">
+                <input type="range" id="s-overlay" min="0" max="100" value="62"
+                       oninput="document.getElementById('s-overlay-val').textContent=this.value+'%'">
+                <span class="range-val" id="s-overlay-val">62%</span>
+              </div>
+              <div class="help-text">Higher = darker overlay = easier to read text but less image visible.</div>
+            </div>
+
+            <div class="settings-field">
+              <div class="field-label">Render Quality</div>
+              <select id="s-render-preset">
+                <option value="ultrafast">⚡ Fast (ultrafast) — quickest, larger file</option>
+                <option value="veryfast">⚖️ Balanced (veryfast) — recommended</option>
+                <option value="medium">🎬 High Quality (medium) — best quality, ~3× slower</option>
+              </select>
+            </div>
+
+            <div class="settings-cols">
+              <div class="settings-field">
+                <div class="field-label">Ken Burns Zoom Start</div>
+                <input type="text" id="s-kb-start" value="1.00">
+              </div>
+              <div class="settings-field">
+                <div class="field-label">Ken Burns Zoom End</div>
+                <input type="text" id="s-kb-end" value="1.10">
+              </div>
+            </div>
+
+            <div class="settings-field">
+              <div class="field-label">B-roll Interval</div>
+              <div class="range-row">
+                <input type="range" id="s-broll-interval" min="4" max="30" step="1" value="10"
+                       oninput="document.getElementById('s-broll-interval-val').textContent=this.value+'s'">
+                <span class="range-val" id="s-broll-interval-val">10s</span>
+              </div>
+              <div class="help-text">How long each background image stays on screen before crossfading. Lower = more dynamic.</div>
+            </div>
+
+            <div class="settings-field">
+              <div class="field-label">B-roll Crossfade Duration</div>
+              <div class="range-row">
+                <input type="range" id="s-broll-xfade" min="2" max="20" step="1" value="12"
+                       oninput="document.getElementById('s-broll-xfade-val').textContent=(this.value/10).toFixed(1)+'s'">
+                <span class="range-val" id="s-broll-xfade-val">1.2s</span>
+              </div>
+              <div class="help-text">Must be less than the interval above.</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Background Music ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">🎵 Background Music <span style="font-size:10px;font-weight:400;color:var(--muted);margin-left:4px">(local library)</span> <span class="caret">▾</span></div>
+          <div class="settings-body">
+            <div class="settings-field">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                <input type="checkbox" id="s-music-enabled" checked style="accent-color:var(--primary);width:16px;height:16px;flex-shrink:0">
+                <span style="font-size:13px">Add background music from local library</span>
+              </label>
+            </div>
+            <div class="settings-field">
+              <div class="field-label">Volume</div>
+              <div class="range-row">
+                <input type="range" id="s-music-vol" min="0" max="100" value="12"
+                       oninput="document.getElementById('s-music-vol-val').textContent=this.value+'%'">
+                <span class="range-val" id="s-music-vol-val">12%</span>
+              </div>
+              <div class="help-text">
+                <span style="color:var(--green)">0–15%</span> subtle &nbsp;·&nbsp;
+                <span style="color:#f59e0b">16–35%</span> noticeable &nbsp;·&nbsp;
+                <span style="color:var(--red)">36–100%</span> prominent
+              </div>
+            </div>
+            <div class="help-text">Drop MP3 or WAV files into the <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">music library/</code> folder. Tracks are shuffled and looped to match video length exactly.</div>
+          </div>
+        </div>
+
+        <!-- ── Banned Topics ── -->
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSection(this)">🚫 Banned Topics <span class="caret">▾</span></div>
+          <div class="settings-body">
+            <div class="help-text" style="margin-bottom:4px">
+              Topics listed here are excluded from AI research. Add a topic after you make a video so you never repeat yourself.<br>
+              Built-in banned: <em>Boltzmann Brain, Simulation Theory, Quantum Immortality</em> — always applied, don't list them again.
+            </div>
+            <textarea id="s-banned-topics" rows="6" style="font-size:12px;font-family:monospace"
+                      placeholder="One topic per line, e.g:&#10;The Fermi Paradox&#10;Dark Matter&#10;String Theory"></textarea>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="saveBannedTopics()">💾 Save Banned Topics</button>
+              <span id="banned-msg" style="font-size:12px;color:var(--green);display:none">✓ Saved</span>
+            </div>
+            <div class="help-text">You can also directly edit <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">banned_topics.txt</code>. Changes take effect on the next Research run.</div>
+          </div>
+        </div>
+
+        <!-- ── Save ── -->
+        <div style="display:flex;gap:10px;padding-bottom:8px">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button>
+          <button class="btn btn-ghost" onclick="loadSettings()">↺ Reload</button>
+        </div>
+        <div id="settings-msg" style="font-size:12px;color:var(--green);display:none">✓ Settings saved</div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['generate','review','settings'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'review') {
+    loadReviewData();
+    // Pre-fill schedule datetime to tomorrow 9am if blank
+    const dtEl = document.getElementById('schedule-datetime');
+    if (dtEl && !dtEl.value) {
+      const t = new Date(); t.setDate(t.getDate()+1); t.setHours(9,0,0,0);
+      dtEl.value = t.toISOString().slice(0,16);
+    }
+  }
+  if (name === 'settings') loadSettings();
+}
+
+// ══════════════════════════════════════════════════════════
+//  CONSOLE HELPERS
+// ══════════════════════════════════════════════════════════
+const cons = document.getElementById('console');
+function _log(msg, cls='log-info') {
+  const el = document.createElement('div');
+  el.className = cls;
+  // Pretty-format known prefixes
+  if (msg.startsWith('[ERROR]'))  el.className = 'log-error';
+  else if (msg.startsWith('[WARN]')) el.className = 'log-warn';
+  else if (msg.includes('✅') || msg.includes('done') || msg.includes('saved'))
+    el.className = 'log-success';
+  else if (msg.startsWith('[STAGE]')) {
+    el.className = 'log-stage';
+    const [name, status] = msg.replace('[STAGE] ','').split(':');
+    msg = `Stage: ${name} → ${status}`;
+  }
+  el.textContent = msg;
+  cons.appendChild(el);
+  cons.scrollTop = cons.scrollHeight;
+}
+function clearConsole() { cons.innerHTML = ''; }
+
+// ══════════════════════════════════════════════════════════
+//  PIPELINE
+// ══════════════════════════════════════════════════════════
+let _es = null;
+let _pollInterval = null;
+
+// ── Video format toggle ───────────────────────────────────
+let _videoType = 'normal';
+
+function setTopicMode(mode) {
+  const isAI = mode === 'ai';
+  // Toggle button styles
+  document.getElementById('mode-ai').style.background     = isAI ? 'var(--primary,#6366f1)' : 'var(--surface,#1a1a2e)';
+  document.getElementById('mode-ai').style.color          = isAI ? '#fff' : 'var(--muted,#888)';
+  document.getElementById('mode-manual').style.background = isAI ? 'var(--surface,#1a1a2e)' : 'var(--primary,#6366f1)';
+  document.getElementById('mode-manual').style.color      = isAI ? 'var(--muted,#888)' : '#fff';
+  // Show correct panel
+  document.getElementById('panel-ai').style.display     = isAI ? 'block' : 'none';
+  document.getElementById('panel-manual').style.display = isAI ? 'none'  : 'block';
+}
+
+function setFormat(type) {
+  _videoType = type;
+  document.getElementById('fmt-normal').classList.toggle('fmt-active', type === 'normal');
+  document.getElementById('fmt-shorts').classList.toggle('fmt-active', type === 'shorts');
+  // Update generate button label
+  document.getElementById('gen-btn').textContent =
+    type === 'shorts' ? '📱 Generate YouTube Short' : '🚀 Generate Full Video';
+  // Update manual mode placeholder for Shorts vs Normal
+  const manualInput = document.getElementById('topic-input');
+  if (manualInput) {
+    manualInput.placeholder = type === 'shorts'
+      ? 'e.g. Why the universe has no centre'
+      : 'e.g. Why black holes might be the key to time travel';
+  }
+}
+
+function startGeneration() {
+  const steps = [];
+  if (document.getElementById('step-research').checked)  steps.push('research');
+  if (document.getElementById('step-script').checked)    steps.push('script');
+  if (document.getElementById('step-images').checked)    steps.push('images');
+  if (document.getElementById('step-narration').checked) steps.push('narration');
+  if (document.getElementById('step-music').checked)     steps.push('music');
+  if (document.getElementById('step-video').checked)     steps.push('video');
+
+  // Build topic payload from whichever mode is active
+  let topic       = '';
+  let focus_angle = '';
+  const mode = document.getElementById('panel-manual').style.display === 'none' ? 'ai' : 'manual';
+  if (mode === 'manual') {
+    topic = (document.getElementById('topic-input').value || '').trim();
+  } else {
+    const sel = document.getElementById('focus-angle-select').value;
+    if (sel === '__custom__') {
+      focus_angle = (document.getElementById('focus-angle-custom').value || '').trim();
+    } else {
+      focus_angle = sel;   // empty string = random; named string = specific angle
+    }
+  }
+
+  clearConsole();
+  setRunning(true);
+
+  fetch('/api/run', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({steps, topic, focus_angle, video_type: _videoType})
+  }).then(r => r.json()).then(d => {
+    if (!d.ok) { _log('Error: '+d.error, 'log-error'); setRunning(false); return; }
+    _log('Pipeline started…');
+    startSSE();
+  });
+}
+
+function startSSE() {
+  if (_es) _es.close();
+  _es = new EventSource('/api/stream');
+  _es.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.kind === 'ping') return;
+    if (d.kind === 'stage') {
+      const [name, status] = d.msg.split(':');
+      updateStage(name, status);
+      _log(`[STAGE] ${name}:${status}`, 'log-stage');
+    } else if (d.kind === 'log') {
+      _log(d.msg);
+    } else if (d.kind === 'done') {
+      setRunning(false);
+      _log('✅ All done! Switch to Review & Edit tab.', 'log-success');
+      _es.close();
+      pollStatus();
+    } else if (d.kind === 'stopped') {
+      setRunning(false);
+      document.getElementById('stop-btn').disabled = false;
+      document.getElementById('stop-btn').textContent = '⏹ Stop';
+      _log('⏹ Pipeline stopped.', 'log-warn');
+      _es.close();
+    } else if (d.kind === 'error') {
+      setRunning(false);
+      _log('❌ '+d.msg, 'log-error');
+      _es.close();
+    }
+  };
+  _es.onerror = () => { _es.close(); setRunning(false); };
+}
+
+function setRunning(running) {
+  document.getElementById('gen-btn').disabled = running;
+  document.getElementById('stop-btn').style.display = running ? '' : 'none';
+  document.getElementById('console-status').className = 
+    running ? 'chip chip-running' : 'chip chip-idle';
+  document.getElementById('console-status').textContent = 
+    running ? '⟳ Running' : 'Idle';
+  document.getElementById('status-chip').className =
+    running ? 'chip chip-running' : 'chip chip-idle';
+  document.getElementById('status-chip').textContent =
+    running ? '⟳ Running' : '● Idle';
+}
+
+function stopPipeline() {
+  const btn = document.getElementById('stop-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Stopping…';
+  fetch('/api/stop', {method: 'POST'})
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) { btn.disabled = false; btn.textContent = '⏹ Stop'; }
+    });
+}
+
+function updateStage(name, status) {
+  const el = document.getElementById('stage-'+name);
+  if (!el) return;
+  el.className = 'stage '+status;
+  const icons = {pending:'○', running:'⟳', done:'✓', error:'✗'};
+  el.querySelector('.stage-icon').textContent = icons[status] || status[0];
+}
+
+// ══════════════════════════════════════════════════════════
+//  STATUS POLL
+// ══════════════════════════════════════════════════════════
+function pollStatus() {
+  fetch('/api/status').then(r => r.json()).then(d => {
+    // Update all stages
+    for (const [name, status] of Object.entries(d.stages)) updateStage(name, status);
+    // Upload progress
+    if (d.uploading) {
+      document.getElementById('upload-progress-wrap').style.display = 'block';
+      document.getElementById('upload-progress-fill').style.width = d.upload_pct+'%';
+      document.getElementById('upload-status').textContent = `Uploading… ${d.upload_pct}%`;
+      setTimeout(pollStatus, 800);
+    } else if (d.upload_pct === 100 && d.yt_url) {
+      document.getElementById('upload-progress-fill').style.width = '100%';
+      document.getElementById('upload-status').textContent = 'Uploaded!';
+      document.getElementById('yt-url-wrap').style.display = 'block';
+      const link = document.getElementById('yt-url-link');
+      link.href = d.yt_url; link.textContent = d.yt_url;
+    }
+  });
+}
+
+setInterval(pollStatus, 3000);
+
+// ══════════════════════════════════════════════════════════
+//  YOUTUBE STATUS
+// ══════════════════════════════════════════════════════════
+function checkYtStatus() {
+  fetch('/api/yt-status').then(r=>r.json()).then(d => {
+    const sd = document.getElementById('yt-secret-dot');
+    const sl = document.getElementById('yt-secret-label');
+    const td = document.getElementById('yt-token-dot');
+    const tl = document.getElementById('yt-token-label');
+    sd.className = 'yt-dot '+(d.secret?'ok':'bad');
+    sl.textContent = d.secret ? 'client_secret.json ✓' : 'client_secret.json missing';
+    td.className = 'yt-dot '+(d.token?'ok':'bad');
+    tl.textContent = d.token ? 'Auth token ✓' : 'Not authenticated';
+  });
+}
+checkYtStatus();
+setInterval(checkYtStatus, 10000);
+
+// ══════════════════════════════════════════════════════════
+//  REVIEW & EDIT
+// ══════════════════════════════════════════════════════════
+let _currentTags = [];
+let _dirty = false;
+
+function loadReviewData() {
+  // Video
+  fetch('/api/status').then(r=>r.json()).then(d => {
+    const vw = document.getElementById('video-wrap');
+    const tw = document.getElementById('thumb-wrap');
+    // Adapt aspect ratio for Shorts vs Normal
+    const isShorts = d.video_type === 'shorts';
+    if (vw) {
+      vw.style.aspectRatio = isShorts ? '9/16' : '16/9';
+      vw.style.maxWidth    = isShorts ? '340px' : '';
+      vw.style.margin      = isShorts ? '0 auto' : '';
+    }
+    if (tw) {
+      tw.style.aspectRatio = isShorts ? '9/16' : '16/9';
+      tw.style.maxWidth    = isShorts ? '340px' : '';
+      tw.style.margin      = isShorts ? '0 auto' : '';
+    }
+    if (d.has_video) {
+      vw.innerHTML = `<video controls><source src="/video?t=${Date.now()}" type="video/mp4"></video>`;
+    }
+    if (d.has_thumb) {
+      tw.innerHTML = `<img id="thumb-img" src="/thumbnail/${Date.now()}" alt="Thumbnail">`;
+    }
+  });
+  // Script data
+  fetch('/api/output').then(r=>r.json()).then(d => {
+    document.getElementById('edit-title').value  = d.title  || '';
+    document.getElementById('edit-desc').value   = d.description || '';
+    _currentTags = d.tags || [];
+    renderTags();
+    // Info
+    if (d.topic) {
+      document.getElementById('video-info').style.display = 'block';
+      document.getElementById('info-topic').textContent = d.topic;
+      document.getElementById('info-hook').textContent  = d.hook;
+    }
+    // Sections
+    const si = document.getElementById('sections-inner');
+    si.innerHTML = '';
+    (d.sections||[]).forEach(s => {
+      const el = document.createElement('div');
+      el.style.cssText='padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px';
+      el.innerHTML = `<span style="color:var(--accent);font-weight:600">[${s.id}]</span> <span style="color:var(--text)">${s.title||''}</span><div style="color:var(--muted);margin-top:2px;font-size:11px">${(s.narration||'').substring(0,80)}…</div>`;
+      si.appendChild(el);
+    });
+    _dirty = false;
+    document.getElementById('save-btn').disabled = true;
+  });
+}
+
+function renderTags() {
+  const tl = document.getElementById('tag-list');
+  tl.innerHTML = '';
+  _currentTags.forEach((tag, i) => {
+    const el = document.createElement('span');
+    el.className = 'tag';
+    el.textContent = '#'+tag;
+    el.onclick = () => { _currentTags.splice(i,1); renderTags(); markDirty(); };
+    tl.appendChild(el);
+  });
+}
+
+function addTag(val) {
+  if (!val) return false;
+  _currentTags.push(val.replace('#',''));
+  renderTags(); markDirty();
+  return true;
+}
+
+function markDirty() {
+  _dirty = true;
+  document.getElementById('save-btn').disabled = false;
+}
+
+function saveEdits() {
+  const title = document.getElementById('edit-title').value.trim();
+  const desc  = document.getElementById('edit-desc').value;
+  fetch('/api/save-output', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({title, description: desc, tags: _currentTags})
+  }).then(r=>r.json()).then(d => {
+    if (d.ok) {
+      document.getElementById('save-btn').disabled = true;
+      document.getElementById('save-btn').textContent = '✓ Saved';
+      setTimeout(()=>{document.getElementById('save-btn').textContent='Save Changes';},1500);
+      _dirty = false;
+    }
+  });
+}
+
+function regenDescription() {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⟳ Rewriting…';
+  fetch('/api/regenerate-description', {method:'POST'}).then(r=>r.json()).then(d => {
+    btn.disabled = false; btn.textContent = '✨ AI Rewrite';
+    if (d.ok) {
+      document.getElementById('edit-desc').value = d.description;
+      markDirty();
+    } else alert('Error: '+d.error);
+  });
+}
+
+function regenThumbnail() {
+  const title = document.getElementById('edit-title').value.trim();
+  fetch('/api/regenerate-thumbnail', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({title})
+  }).then(r=>r.json()).then(d => {
+    if (d.ok) {
+      const tw = document.getElementById('thumb-wrap');
+      const ts = d.ts || Date.now();
+      tw.innerHTML = `<img src="/thumbnail/${ts}" alt="Thumbnail" style="width:100%;height:100%;object-fit:cover">`;
+    } else alert('Thumbnail error: '+d.error);
+  });
+}
+
+function switchUploadMode(mode) {
+  document.querySelectorAll('.upload-mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('utab-'+mode).classList.add('active');
+  document.getElementById('upane-now').style.display      = mode==='now'      ? '' : 'none';
+  document.getElementById('upane-schedule').style.display = mode==='schedule' ? '' : 'none';
+}
+
+function scheduleUpload() {
+  const dt = document.getElementById('schedule-datetime').value;
+  if (!dt) { alert('Please pick a date and time.'); return; }
+  // Convert local datetime to RFC 3339 (UTC) as YouTube requires
+  const publishAt = new Date(dt).toISOString();
+  const privacy   = document.getElementById('schedule-privacy').value;
+  const btn = document.getElementById('schedule-btn');
+  btn.disabled = true; btn.textContent = '⏳ Uploading…';
+  document.getElementById('upload-progress-wrap').style.display = 'block';
+  document.getElementById('upload-status').textContent = 'Uploading (will go public at scheduled time)…';
+  fetch('/api/upload', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({privacy, publish_at: publishAt})
+  }).then(r => r.json()).then(d => {
+    btn.disabled = false; btn.textContent = '📅 Schedule';
+    if (!d.ok) {
+      document.getElementById('upload-status').textContent = 'Error: '+d.error;
+      return;
+    }
+    pollStatus();
+  });
+}
+
+function uploadToYouTube() {
+  const btn = document.getElementById('upload-btn');
+  const privacy = document.getElementById('upload-privacy').value;
+  btn.disabled = true;
+  document.getElementById('upload-progress-wrap').style.display = 'block';
+  document.getElementById('upload-status').textContent = 'Starting upload…';
+  fetch('/api/upload', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({privacy})
+  }).then(r=>r.json()).then(d => {
+    if (!d.ok) {
+      btn.disabled = false;
+      document.getElementById('upload-status').textContent = 'Error: '+d.error;
+      return;
+    }
+    pollStatus();
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════════
+// ── Collapsible settings sections ────────────────────────
+function toggleSection(header) {
+  header.closest('.settings-section').classList.toggle('collapsed');
+}
+
+function loadSettings() {
+  fetch('/api/settings').then(r=>r.json()).then(d => {
+    document.getElementById('s-gemini').value       = d.gemini_key  || '';
+    document.getElementById('s-pexels').value       = d.pexels_key  || '';
+    document.getElementById('s-channel-name').value = d.channel_name|| '';
+    document.getElementById('s-channel-desc').value = d.channel_desc|| '';
+    document.getElementById('s-voice').value        = d.voice_id    || 'en-US-AndrewNeural';
+    // Rate: sync hidden input, range slider, and display span
+    const rate = d.voice_rate || '-5%';
+    const rateNum = parseInt(rate) || -5;
+    document.getElementById('s-voice-rate').value          = rate;
+    document.getElementById('s-voice-rate-range').value    = rateNum;
+    document.getElementById('s-voice-rate-val').textContent = rate;
+    // Pitch: sync hidden input, range slider, and display span
+    const pitch = d.voice_pitch || '-3Hz';
+    const pitchNum = parseInt(pitch) || -3;
+    document.getElementById('s-voice-pitch').value           = pitch;
+    document.getElementById('s-voice-pitch-range').value     = pitchNum;
+    document.getElementById('s-voice-pitch-val').textContent = pitch;
+    document.getElementById('s-model').value        = d.gemini_model|| 'gemini-2.0-flash';
+    const ov = Math.round((parseFloat(d.overlay)||0.62)*100);
+    document.getElementById('s-overlay').value      = ov;
+    document.getElementById('s-overlay-val').textContent = ov+'%';
+    document.getElementById('s-kb-start').value     = d.kb_start || '1.00';
+    document.getElementById('s-kb-end').value       = d.kb_end   || '1.10';
+    // Music settings
+    document.getElementById('s-music-enabled').checked = d.music_enabled !== false;
+    const mvol = Math.round((parseFloat(d.music_volume) || 0.12) * 100);
+    document.getElementById('s-music-vol').value = mvol;
+    document.getElementById('s-music-vol-val').textContent = mvol + '%';
+    // Sync quick-voice dropdown
+    document.getElementById('quick-voice').value = d.voice_id || 'en-US-AndrewNeural';
+    document.getElementById('quick-privacy').value = d.privacy || 'public';
+    document.getElementById('upload-privacy').value = d.privacy || 'public';
+
+    // Render preset
+    if (d.render_preset) document.getElementById('s-render-preset').value = d.render_preset;
+
+    // B-roll interval (stored as float seconds, slider is integer seconds)
+    const bri = Math.round(parseFloat(d.broll_interval) || 10);
+    document.getElementById('s-broll-interval').value = bri;
+    document.getElementById('s-broll-interval-val').textContent = bri + 's';
+
+    // B-roll crossfade (stored as float, slider is tenths of a second * 10)
+    const brx = Math.round((parseFloat(d.broll_xfade) || 1.2) * 10);
+    document.getElementById('s-broll-xfade').value = brx;
+    document.getElementById('s-broll-xfade-val').textContent = (brx / 10).toFixed(1) + 's';
+  });
+
+  // Load banned topics separately
+  fetch('/api/banned-topics').then(r=>r.json()).then(d => {
+    // Show only user-added topics (not the built-ins, which are always applied)
+    const builtin = ['The Boltzmann Brain', 'Simulation Theory', 'Quantum Immortality'];
+    const userTopics = (d.topics || []).filter(t => !builtin.includes(t));
+    document.getElementById('s-banned-topics').value = userTopics.join('\n');
+  });
+}
+
+function saveSettings() {
+  const rate  = document.getElementById('s-voice-rate').value;
+  const pitch = document.getElementById('s-voice-pitch').value;
+  const ov    = parseInt(document.getElementById('s-overlay').value)/100;
+  fetch('/api/save-settings', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      gemini_key:   document.getElementById('s-gemini').value,
+      pexels_key:   document.getElementById('s-pexels').value,
+      channel_name: document.getElementById('s-channel-name').value,
+      channel_desc: document.getElementById('s-channel-desc').value,
+      voice_id:     document.getElementById('s-voice').value,
+      voice_rate:   rate,
+      voice_pitch:  pitch,
+      gemini_model: document.getElementById('s-model').value,
+      overlay:      ov,
+      kb_start:     parseFloat(document.getElementById('s-kb-start').value),
+      kb_end:       parseFloat(document.getElementById('s-kb-end').value),
+      music_enabled: document.getElementById('s-music-enabled').checked,
+      music_volume:  parseInt(document.getElementById('s-music-vol').value) / 100,
+      privacy:      document.getElementById('quick-privacy').value,
+      render_preset: document.getElementById('s-render-preset').value,
+      broll_interval: parseInt(document.getElementById('s-broll-interval').value),
+      broll_xfade:    parseInt(document.getElementById('s-broll-xfade').value) / 10,
+    })
+  }).then(r=>r.json()).then(d => {
+    const msg = document.getElementById('settings-msg');
+    if (d.ok) {
+      msg.style.display = 'block'; msg.style.color='var(--green)';
+      msg.textContent = '✓ Settings saved to config.py';
+    } else {
+      msg.style.display = 'block'; msg.style.color='var(--red)';
+      msg.textContent = '✗ '+d.error;
+    }
+    setTimeout(()=>{msg.style.display='none';},3000);
+  });
+}
+
+function applyQuickVoice(val) {
+  document.getElementById('s-voice').value = val;
+  fetch('/api/save-settings', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({voice_id: val})
+  });
+}
+
+// ── Banned Topics ────────────────────────────────────────
+function saveBannedTopics() {
+  const raw    = document.getElementById('s-banned-topics').value;
+  const topics = raw.split('\n')
+    .map(t => t.trim())
+    .filter(t => t && !t.startsWith('#'));
+  fetch('/api/save-banned-topics', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({topics})
+  }).then(r=>r.json()).then(d => {
+    const msg = document.getElementById('banned-msg');
+    msg.style.display = 'inline';
+    msg.style.color   = d.ok ? 'var(--green)' : 'var(--red)';
+    msg.textContent   = d.ok ? '✓ Saved' : '✗ ' + (d.error || 'Error');
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+loadSettings();
+pollStatus();
+</script>
+</body>
+</html>
