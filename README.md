@@ -2,7 +2,7 @@
 
 <img src="docs/screenshots/banner.png" alt="YouTube AI Agent Studio" width="100%">
 
-# 🎬 YouTube AI Agent Studio
+# 🎬 Ai Powered Free Automated Faceless Youtube Studio
 
 **A fully automated, 100% free AI pipeline that researches, scripts, narrates, animates, and uploads faceless YouTube videos — from a single command.**
 
