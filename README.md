@@ -305,13 +305,10 @@ Running 100% on this pipeline. Subscribe to see it in action.
 
 ---
 
-## 📄 License
+<div align="center">
+Made with ❤️ by <a href="https://github.com/raunakpatil">@raunakpatil</a>
+</div>
 
-[MIT License](LICENSE) — free to use, modify, and distribute.
-
----
-
-## ⭐ Support
 
 If this project saves you time, please **star the repo** — it helps others find it.
 
