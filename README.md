@@ -173,7 +173,7 @@ GEMINI_MODEL = "gemini-2.0-flash"   # 1500 free req/day — recommended default
 
 ---
 
-## 🔑 API Keys Required
+## 🔑 API Keys Required (All Free)
 
 | Service | Key | Free Tier | Where to get it |
 |---|---|---|---|
