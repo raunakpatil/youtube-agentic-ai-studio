@@ -310,6 +310,5 @@ Made with ❤️ by <a href="https://github.com/raunakpatil">@raunakpatil</a>
 </div>
 
 
-If this project saves you time, please **star the repo** — it helps others find it.
 
 [![Star on GitHub](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=social)](https://github.com/raunakpatil/youtube-agentic-ai-studio)
