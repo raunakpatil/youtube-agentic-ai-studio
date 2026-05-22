@@ -300,7 +300,7 @@ Pull requests are welcome! Please open an issue first to discuss major changes.
 
 ## 🌍 Made With This Tool
 
-**[Fractured Timelines](https://www.youtube.com/@TheFracturedTimelines)** — science, history, and "what if" scenarios.
+**[Eldritch Lore](https://www.youtube.com/@EldritchLore)** — science, history, and "what if" scenarios.
 Running 100% on this pipeline. Subscribe to see it in action.
 
 ---
