@@ -50,7 +50,7 @@
 
 This repo powers **[Eldritch Lore](https://www.youtube.com/@EldritchLore)** — a real YouTube channel running entirely on this pipeline.
 
-[![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCqDCtCHo22_6KtJ0rkDFG5g?style=for-the-badge&logo=youtube)](https://www.youtube.com/@EldritchLore)
+[![YouTube Subscribers](https://img.shields.io/youtube/channel/subscribers/UCqDCtCHo22_6KtJ0rkDFG5g?style=for-the-badge&logo=youtube&label=Eldritch%20Lore&color=FF0000)](https://www.youtube.com/@EldritchLore)
 
 > "What if Napoleon had nukes? What if Earth was flat... and spinning?"
 > Every video on this channel was researched, scripted, narrated, and uploaded using exactly this code.
