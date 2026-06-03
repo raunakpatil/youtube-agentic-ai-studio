@@ -48,9 +48,9 @@
 
 ## 🎬 Live Example — Built With This Tool
 
-This repo powers **[Fractured Timelines](https://www.youtube.com/@TheFracturedTimelines)** — a real YouTube channel running entirely on this pipeline.
+This repo powers **[Eldritch Lore](https://www.youtube.com/@EldritchLore)** — a real YouTube channel running entirely on this pipeline.
 
-[![Fractured Timelines](https://img.shields.io/badge/YouTube-Fractured%20Timelines-red?style=flat-square&logo=youtube)](https://www.youtube.com/@TheFracturedTimelines)
+[![Eldritch Lore](https://img.shields.io/badge/YouTube-Eldritch%2Lore-red?style=flat-square&logo=youtube)](https://www.youtube.com/@EldritchLore)
 
 > "What if Napoleon had nukes? What if Earth was flat... and spinning?"
 > Every video on this channel was researched, scripted, narrated, and uploaded using exactly this code.
