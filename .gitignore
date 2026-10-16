@@ -25,6 +25,9 @@ youtube_token.pickle
 *.pickle
 *.pkl
 
+# ── Downloaded fonts (fetched from Google Fonts on first run) ──
+assets/fonts/
+
 # ── Generated output — large files ───────
 output/
 output/images/

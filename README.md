@@ -1,217 +1,159 @@
 <div align="center">
 
-<img src="docs/screenshots/banner.png" alt="YouTube AI Agent Studio" width="100%">
+# YAAS — youtube-agentic-ai-studio
 
-# 🎬 Ai Powered Free Automated Faceless Youtube Studio
+**Type an idea. Get a finished, fact-checked YouTube video. Free.**
 
-**A fully automated, 100% free AI pipeline that researches, scripts, narrates, animates, and uploads faceless YouTube videos — from a single command.**
+YAAS researches a topic, checks the facts, writes the script, records a voiceover, finds visuals, renders the video, and helps you title, tag and publish it, all from one simple local app.
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?style=flat-square&logo=google&logoColor=white)](https://aistudio.google.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-[![Free Tier](https://img.shields.io/badge/Cost-$0%20per%20video-brightgreen?style=flat-square)](SETUP.md)
+[![Cost](https://img.shields.io/badge/Cost-$0%20per%20video-brightgreen?style=flat-square)](SETUP.md)
+[![Free APIs](https://img.shields.io/badge/Free%20APIs-19-ff70f3?style=flat-square)](#-the-free-api-stack)
 [![Stars](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=flat-square)](https://github.com/raunakpatil/youtube-agentic-ai-studio/stargazers)
 
-[**Quick Start**](#-quick-start) · [**Features**](#-features) · [**Pipeline**](#️-how-it-works) · [**Setup Guide**](SETUP.md) · [**FAQ**](#-faq)
+[**Quick start**](#-quick-start) · [**How it works**](#-how-it-works) · [**Free APIs**](#-the-free-api-stack) · [**Setup guide**](SETUP.md) · [**FAQ**](#-faq)
 
 </div>
 
 ---
 
-## ✨ Features
+## ⚡ Quick start
 
-| Feature | Details |
-|---|---|
-| 🧠 **AI Research** | Gemini scans for trending topics tailored to your channel niche |
-| ✍️ **Script Writing** | Full narrated script with hook, sections, and CTA — in JSON |
-| 🎙️ **Free Voice** | Microsoft Edge TTS (no API key, no cost, word-level timing) |
-| 🖼️ **Stock Images** | Auto-downloads from Pexels with topic-aware search |
-| 🎞️ **Animated Video** | Ken Burns zoom, smooth crossfades, captions, progress bars |
-| 📱 **Shorts Support** | Generates vertical 9:16 Shorts alongside the main video |
-| 🕵️ **Human Review** | Local web dashboard to watch and approve before publishing |
-| 🚀 **Auto Upload** | Publishes to YouTube with SEO tags, description, and thumbnail |
-| 🔄 **Smart Fallback** | 8-model chain auto-switches if any model hits quota |
-| 🎵 **Background Music** | Drop MP3s in `music library/` — auto-looped to fit video length |
+```bash
+git clone https://github.com/raunakpatil/youtube-agentic-ai-studio.git
+cd youtube-agentic-ai-studio
+pip install -r requirements.txt
+python gui.py          # opens http://localhost:7070
+```
+
+Then type a topic on the Home screen and press **Make video**. That's it.
+
+No keys are required to try it. A free [Gemini key](https://aistudio.google.com/apikey) (1 minute to get) makes the scripts much better. Paste it in **Settings** and it's stored locally in `.env`. Uploading straight to YouTube needs a one-time Google setup, covered in the [Setup guide](SETUP.md). You can always download the MP4 and upload it yourself instead.
 
 ---
 
-## 🖥️ Screenshots
+## 🧭 How it works
+
+The app has three screens, in the order you use them:
+
+| Screen | What you do there |
+|---|---|
+| **Home** | Type a topic, or press **Let AI pick a topic**, or click a **trending idea**. Choose long video or Short. Watch plain-English progress: *researching → writing → finding visuals → recording voice → rendering*. |
+| **Review & publish** | Five numbered steps: **1** watch it, **2** polish the title (or let AI suggest 6 better ones), **3** edit description & tags (with real YouTube search suggestions), **4** make a thumbnail (photo or new AI artwork), **5** upload now or schedule. A live *How easy is it to find?* score tells you what to fix. |
+| **My videos** | Every finished video is saved automatically, with **Long videos** and **Shorts** in separate sections. Re-open, re-edit, re-publish, download or delete. |
+
+**Settings** (top right) holds your channel name, voice, optional keys and advanced options. Everything has a sensible default.
+
+Behind the scenes:
+
+```
+topic ──► Research ──► Fact-check ──► Script ──► Visuals ──► Voice ──► Render ──► Review ──► Publish
+          (AI +        (Wikipedia    (AI)       (Pexels →   (Edge     (MoviePy)   (title lab,  (YouTube
+          trends)       + arXiv)                 NASA → …)   TTS)                  SEO score)   API)
+```
+
+---
+
+## ✨ Features
 
 | | |
 |---|---|
-| ![Main GUI](docs/screenshots/gui_main.png) | ![Settings](docs/screenshots/gui_settings.png) |
-| **Main dashboard** — generate videos with one click | **Settings panel** — configure every aspect |
-| ![Review Dashboard](docs/screenshots/review_dashboard.png) | ![Banner](docs/screenshots/banner.png) |
-| **Review dashboard** — watch before you publish | **Pipeline overview** |
+| 🧠 **Trend-aware topics** | Live ideas from Google Trends, Wikipedia, Hacker News, Spaceflight News and arXiv. Click one, or let the AI ride a trend that fits your niche. |
+| 📚 **Fact-checked scripts** | Before writing, YAAS pulls background from Wikipedia and arXiv, tells the AI not to contradict it, and lists the sources in your description. |
+| ✍️ **Never-stuck AI** | Gemini model chain → Groq → OpenRouter → Pollinations (keyless), so a quota error doesn't kill the run. Broken JSON from models is repaired automatically. |
+| 🖼️ **Visuals without a key** | Pexels → Pixabay → NASA (public domain, space topics) → Openverse (CC, credited) → AI-generated images. Credits are written into the description for you. |
+| 🎙️ **Free voice** | Microsoft Edge neural voices with word-synced captions. |
+| 🎞️ **Long videos & Shorts** | 16:9 with chapters, Ken Burns motion and B-roll cuts, or 9:16 Shorts with big captions. Each format gets matching thumbnails and its own section in My videos. |
+| 🏷️ **Your brand** | Your channel name appears in the intro, on Shorts and on thumbnails. Change the text or switch it off in Settings. |
+| ✦ **Title Lab** | 6 alternative titles written from what people actually search, each scored. |
+| 🔎 **Findability score** | 11 checks based on YouTube best practice (length, keyword placement, chapters, tags, hashtags, call to action), each with a tip. |
+| 🔤 **Keyword ideas** | Real YouTube autocomplete suggestions + related terms, one click to add as tags. |
+| 🖌️ **Thumbnail designer** | 4 styles (Impact, Cinematic, Split, Studio) with live previews, short punchy text with a highlighted word, AI text ideas, and any photo from the video or brand-new AI artwork as the background. 1280×720 for long videos, 1080×1920 for Shorts, always under YouTube's 2 MB limit. |
+| 📅 **Schedule uploads** | Upload now or pick a time. Downloads for MP4, thumbnail and captions (SRT). |
+| 📊 **Your stats** | Production history, plus live subscribers and views per upload with a free YouTube Data API key. |
+| 🗂️ **My videos** | Every render archived with its script, sources, photos and metadata. |
+| ©️ **Credits** | Every video carries a semi-transparent **raunakpatil.com** watermark, and descriptions end with *Made with YAAS by Raunak Patil · raunakpatil.com*. |
+| 🎵 **Background music** | Drop MP3s in `music library/` and they're shuffled and looped to fit. |
 
 ---
 
-## 🎬 Live Example — Built With This Tool
+## 🔌 The free API stack
 
-This repo powers **[Eldritch Lore](https://www.youtube.com/@EldritchLore)** — a real YouTube channel running entirely on this pipeline.
+Everything below is free. **Keyless** ones work out of the box; the others need a free sign-up and are optional.
 
-[![YouTube Subscribers](https://img.shields.io/youtube/channel/subscribers/UCqDCtCHo22_6KtJ0rkDFG5g?style=for-the-badge&logo=youtube&label=Eldritch%20Lore&color=FF0000)](https://www.youtube.com/@EldritchLore)
+| Service | Used for | Key |
+|---|---|---|
+| Google Gemini | Research, scripts, titles | free key, recommended |
+| Groq | Fast backup AI | free key, optional |
+| OpenRouter | Backup AI (free models) | free key, optional |
+| Pollinations (text) | Last-resort backup AI | keyless |
+| Edge TTS | Neural voiceover | keyless |
+| Pexels | Stock photos | free key, optional |
+| Pixabay | Stock photos | free key, optional |
+| NASA Image Library | Public-domain space imagery | keyless |
+| Openverse | Creative Commons images (credited) | keyless |
+| Pollinations (image) | AI B-roll & thumbnail art | keyless |
+| Wikipedia | Fact-checking + trending ideas | keyless |
+| arXiv | Fact-checking + new research ideas | keyless |
+| Google Trends RSS | Search spikes | keyless |
+| Hacker News (Algolia) | Tech trends | keyless |
+| Spaceflight News API | Space & science news | keyless |
+| YouTube autocomplete | Keyword research | keyless |
+| Datamuse | Related keywords | keyless |
+| YouTube Data API | Channel stats | free key, optional |
+| YouTube upload (OAuth) | Publishing | one-time setup |
 
-> "What if Napoleon had nukes? What if Earth was flat... and spinning?"
-> Every video on this channel was researched, scripted, narrated, and uploaded using exactly this code.
+Home → **Connected services → Test connections** pings every service and shows what's working.
 
-**[→ See what this tool can actually produce](https://www.youtube.com/@TheFracturedTimelines)**
+> Free, keyless services can rate-limit or change without notice. YAAS retries, then falls through to the next source, and the run only fails if every option for a step is down.
 
 ---
 
-## ⚡ Quick Start
+## 🔑 Keys and settings
+
+Keys live in `.env` (git-ignored) and nothing else stores them. Either paste them in **Settings** or copy `.env.example`:
 
 ```bash
-# 1. Clone
-git clone https://github.com/raunakpatil/youtube-agentic-ai-studio.git
-cd youtube-agentic-ai-studio
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set your API keys (copy and edit .env.example)
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY and PEXELS_API_KEY
-
-# 4. Run the GUI
-python gui.py
-# → Opens at http://localhost:7842
-
-# — OR — run the pipeline directly from the terminal
-python pipeline.py
 ```
 
-> **First run?** Read the full [Setup Guide](SETUP.md) — it takes about 10 minutes.
+Non-secret settings (voice, channel description, video style) are saved to `config.py`, which is also documented line by line.
 
 ---
 
-## 🏗️ How It Works
-
-The pipeline runs 6 sequential phases:
+## 📁 Project structure
 
 ```
-python pipeline.py  ──►  Research  ──►  Script  ──►  Narration
-                                                          │
-              YouTube ◄── Upload ◄── Review ◄── Video ◄──┘
-```
-
-| Phase | Agent | What it does |
-|---|---|---|
-| 1 · Research | `agents/researcher.py` | Gemini brainstorms trending topics for your niche and outputs a structured brief |
-| 2 · Script | `agents/scriptwriter.py` | Expands the brief into a full narrated script with image queries per section |
-| 3 · Narration | `video/narrator.py` | Edge-TTS converts the script to a cinematic MP3 voiceover |
-| 4 · Images | `video/stock.py` | Downloads high-res stock photos from Pexels, topic-aware per section |
-| 5 · Video | `video/creator.py` | Renders animated slides with Ken Burns, crossfades, captions, and music |
-| 6 · Review | `review/app.py` | Spins up a local dashboard — you watch and approve before anything is published |
-| 7 · Upload | `uploader/youtube.py` | Publishes to YouTube with full SEO metadata on your approval |
-
----
-
-## 📁 Project Structure
-
-```
-youtube-ai-agent/
-├── 📄 pipeline.py              ← Run this to start the full pipeline
-├── 🖥️  gui.py                  ← Run this for the visual GUI
-├── ⚙️  config.py               ← All settings: keys, colors, voice, video
-├── 📦  requirements.txt
-├── 🔑  client_secret.json      ← YouTube OAuth (you add yours — see SETUP.md)
-├── 📝  .env.example            ← Copy to .env and fill in your API keys
+├── gui.py                  ← run this: the app (Flask, http://localhost:7070)
+├── pipeline.py             ← headless CLI version of the pipeline
+├── config.py               ← every setting, documented (+ .env loader)
+├── .env.example            ← copy to .env for your keys
+│
+├── apis/                   ← free API integrations (all fail-soft)
+│   ├── trends.py           ← Google Trends, Wikipedia, HN, Spaceflight News, arXiv
+│   ├── knowledge.py        ← Wikipedia + arXiv fact grounding
+│   ├── seo.py              ← YouTube autocomplete, Datamuse, findability score
+│   ├── images.py           ← Pixabay, NASA, Openverse, Pollinations
+│   ├── llm.py              ← Groq → OpenRouter → Pollinations fallback
+│   └── youtube_stats.py    ← public channel stats
 │
 ├── agents/
-│   ├── gemini_client.py        ← Shared AI client with 8-model fallback chain
-│   ├── researcher.py           ← Topic research agent
-│   └── scriptwriter.py        ← Script writing agent
+│   ├── gemini_client.py    ← Gemini model chain + fallback hand-off
+│   ├── json_utils.py       ← repairs broken JSON from models
+│   ├── researcher.py       ← topic research (trend-aware, grounded)
+│   └── scriptwriter.py     ← script writing
 │
 ├── video/
-│   ├── narrator.py             ← Edge-TTS voiceover generator
-│   ├── stock.py                ← Pexels image downloader
-│   ├── creator.py              ← Full video renderer (Ken Burns, captions, etc.)
-│   └── music.py                ← Background music mixer
+│   ├── narrator.py         ← Edge TTS voiceover + captions
+│   ├── stock.py            ← image download chain + credits
+│   ├── creator.py          ← renderer (Ken Burns, captions, Shorts)
+│   └── music.py            ← background music mixer
 │
-├── review/
-│   ├── app.py                  ← Flask review server
-│   └── templates/review.html  ← Review dashboard UI
-│
-├── uploader/
-│   └── youtube.py              ← YouTube Data API v3 upload
-│
-├── gui_templates/
-│   └── index.html              ← Full GUI (served by gui.py)
-│
-├── music library/              ← Drop your MP3/WAV tracks here
-│
-└── output/                     ← Auto-generated (gitignored)
-    ├── research.json
-    ├── script.json
-    ├── narration.mp3
-    ├── images/
-    └── final_video.mp4
-```
-
----
-
-## 🤖 AI Model Fallback Chain
-
-The system automatically tries models in order, rotating from your **Starting Model** preference:
-
-```
-gemini-2.5-flash  →  gemini-2.5-flash-lite  →  gemma-4-31b-it
-       ↓
-gemini-2.0-flash  →  gemini-2.0-flash-lite  →  gemma-3-27b-it
-       ↓
-gemini-1.5-flash-001  →  gemini-1.5-pro-001
-```
-
-If a model hits quota (429) or is overloaded (503), it automatically retries up to 3 times then advances to the next model — **so your pipeline never stops mid-run.**
-
-Set your preferred starting model in the GUI under **Settings → AI Model**, or in `config.py`:
-
-```python
-GEMINI_MODEL = "gemini-2.0-flash"   # 1500 free req/day — recommended default
-```
-
----
-
-## 🔑 API Keys Required (All Free)
-
-| Service | Key | Free Tier | Where to get it |
-|---|---|---|---|
-| **Google Gemini** | `GEMINI_API_KEY` | 1500 req/day | [aistudio.google.com](https://aistudio.google.com/apikey) |
-| **Pexels** | `PEXELS_API_KEY` | 200 req/hour | [pexels.com/api](https://www.pexels.com/api/) |
-| **Edge TTS** | *(none)* | Unlimited | Built-in |
-| **YouTube API** | `client_secret.json` | Free | [Google Cloud Console](https://console.cloud.google.com) |
-| **ElevenLabs** | `ELEVENLABS_API_KEY` | Optional | [elevenlabs.io](https://elevenlabs.io) |
-
-> **Total cost: $0 per video.** All required services have free tiers that comfortably cover daily video production.
-
----
-
-## 🎨 Customising Your Channel
-
-Edit `config.py` to make the output yours:
-
-```python
-# 1. Describe your channel — the more specific, the better the topics
-CHANNEL_DESCRIPTION = """
-An educational channel covering the psychology of decision-making.
-Target audience: adults 25-40 who enjoy Lex Fridman and Hidden Brain.
-"""
-CHANNEL_NAME = "Mind Mechanics"
-
-# 2. Pick your voice
-VOICE_ID = "en-GB-RyanNeural"   # British, deep, cinematic
-
-# 3. Brand colours (RGB tuples)
-COLORS = {
-    "primary":   (99, 102, 241),   # your brand colour
-    "highlight": (251, 191, 36),   # accent / titles
-    ...
-}
-
-# 4. Video style
-CROSSFADE_DURATION = 0.7   # image transition smoothness
-OVERLAY_OPACITY    = 0.62  # how dark the image overlay is
+├── uploader/youtube.py     ← YouTube upload (used by pipeline.py)
+├── gui_templates/index.html← the whole UI
+└── output/                 ← generated files (git-ignored)
+    └── library/            ← every finished video, archived
 ```
 
 ---
@@ -219,96 +161,84 @@ OVERLAY_OPACITY    = 0.62  # how dark the image overlay is
 ## ❓ FAQ
 
 <details>
-<summary><b>Does this cost anything to run?</b></summary>
+<summary><b>Does this cost anything?</b></summary>
 
-No. The entire stack uses free tiers:
-- **Gemini** — 1500 req/day free on the 2.0-flash model
-- **Pexels** — 200 req/hour free
-- **Edge TTS** — completely free, no account needed
-- **YouTube Data API** — free for uploads
-- **Video rendering** — runs locally on your machine (CPU/GPU)
-
+No. Every service has a free tier or needs no account, and rendering runs on your own machine.
 </details>
 
 <details>
-<summary><b>How long does one video take to generate?</b></summary>
+<summary><b>Do I need any API keys?</b></summary>
 
-On a mid-range machine (i7 + 16GB RAM):
-- Research + Script: ~30 seconds
-- Narration: ~10 seconds
-- Image downloads: ~20 seconds
-- Video render (10 min video): ~3–8 minutes depending on `RENDER_PRESET`
-- Upload: ~2–5 minutes depending on internet speed
-
+Not to try it. Without keys, scripts come from the keyless backup AI and visuals from NASA / Openverse / AI images. A free Gemini key is strongly recommended for script quality and reliability.
 </details>
 
 <details>
-<summary><b>Can I use this without the YouTube upload?</b></summary>
+<summary><b>How long does one video take?</b></summary>
 
-Yes. The review step lets you click "Reject" to skip the upload — the rendered MP4 will still be saved in `output/`. You can also comment out the upload step in `pipeline.py` entirely.
+Research and script take under a minute. A Short renders in a few minutes; a 6–8 minute video in roughly 3–10 minutes depending on your CPU and the *Render quality* setting.
+</details>
 
+<details>
+<summary><b>The voiceover step fails with a 403 error</b></summary>
+
+Microsoft periodically changes its free speech service. Update the voice library: `pip install -U edge-tts`.
+</details>
+
+<details>
+<summary><b>Can I use it without uploading to YouTube?</b></summary>
+
+Yes. Download the MP4, thumbnail and captions from **Review & publish** and upload them however you like.
+</details>
+
+<details>
+<summary><b>Can I turn off the raunakpatil.com watermark?</b></summary>
+
+No. The small semi-transparent watermark is part of every video YAAS renders, as credit for the free tool. The description credit line can be switched off in **Settings → Music & publishing**.
 </details>
 
 <details>
 <summary><b>Why is moviepy pinned to 1.0.3?</b></summary>
 
-MoviePy v2.0 removed the `moviepy.editor` module and changed the entire API. v1.0.3 is required. Similarly, NumPy must be `<2.0.0` because MoviePy's underlying C extensions were compiled against NumPy 1.x. **Do not upgrade either.**
-
+MoviePy 2.x removed `moviepy.editor` and changed the API, and NumPy must stay below 2.0 for it. Don't upgrade either.
 </details>
 
 <details>
-<summary><b>The video renders with tiny/ugly text</b></summary>
+<summary><b>The video has tiny or ugly text</b></summary>
 
-Your system is missing the fonts the renderer looks for. Install DejaVu fonts:
-- **Ubuntu/Debian:** `sudo apt install fonts-dejavu`
-- **Mac:** `brew install --cask font-dejavu-sans-mono-nerd-font`  
-- **Windows:** fonts are already present in `C:/Windows/Fonts/`
-
+Your system is missing the fonts the renderer looks for. Install DejaVu (`sudo apt install fonts-dejavu` on Ubuntu). Windows already has them.
 </details>
 
 <details>
 <summary><b>YouTube upload fails with "access denied"</b></summary>
 
-Delete `youtube_token.pickle` and re-run. This forces a fresh OAuth flow. Make sure your Google account is added as a **Test User** in Google Cloud Console → OAuth consent screen.
-
+Delete `youtube_token.pickle` and upload again to redo sign-in. Make sure your Google account is a **Test user** on the OAuth consent screen.
 </details>
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Thumbnail generator (AI-designed cover art)
-- [ ] Scheduler (auto-post at peak times)
-- [ ] Multi-channel support
+- [x] Thumbnail designer (4 styles, AI text ideas, AI artwork)
+- [x] Scheduled uploads
+- [x] Analytics (channel stats + production history)
+- [x] Trend-aware topics and fact-checked scripts
+- [ ] Stock video B-roll (Pexels / Pixabay video)
+- [ ] Multi-channel profiles
 - [ ] Custom intro/outro clips
-- [ ] Analytics dashboard
-- [ ] Voice cloning via ElevenLabs
+- [ ] Caption upload to YouTube
 
 ---
+
+## 🎬 Made with YAAS
+
+**[Eldritch Lore](https://www.youtube.com/@EldritchLore)** runs on this pipeline: science, history and "what if" videos. Also see **[The Fractured Timelines](https://www.youtube.com/@TheFracturedTimelines)**.
 
 ## 🤝 Contributing
 
-Pull requests are welcome! Please open an issue first to discuss major changes.
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit: `git commit -m 'Add my feature'`
-4. Push: `git push origin feature/my-feature`
-5. Open a Pull Request
-
----
-
-## 🌍 Made With This Tool
-
-**[Eldritch Lore](https://www.youtube.com/@EldritchLore)** — science, history, and "what if" scenarios.
-Running 100% on this pipeline. Subscribe to see it in action.
-
----
+Pull requests welcome. Open an issue first for big changes. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 <div align="center">
-Made with ❤️ by <a href="https://github.com/raunakpatil">@raunakpatil</a>
+
+Made by <a href="https://raunakpatil.com">Raunak Patil</a> · UI styled after <a href="https://raunakpatil.com">raunakpatil.com</a>
+
 </div>
-
-
-
-[![Star on GitHub](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=social)](https://github.com/raunakpatil/youtube-agentic-ai-studio)

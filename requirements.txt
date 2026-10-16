@@ -1,4 +1,4 @@
-# YouTube AI Agent — Free Edition
+# YAAS — youtube-agentic-ai-studio (free edition)
 # IMPORTANT: Do NOT upgrade moviepy or numpy — see README for why
 
 # AI Brain — NEW SDK (replaces deprecated google-generativeai)
@@ -8,7 +8,7 @@ google-genai>=1.0.0
 requests>=2.31.0
 
 # Voiceover — 100% free, no API key needed
-edge-tts>=6.1.9
+edge-tts>=7.3.1   # older versions get 403 from Microsoft's speech service
 
 # Video rendering — pin these exactly, they have breaking changes
 moviepy==1.0.3

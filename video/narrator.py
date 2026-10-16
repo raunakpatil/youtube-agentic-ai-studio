@@ -329,7 +329,15 @@ def generate_narration(script: dict, output_dir: str) -> str:
     srt_path   = os.path.join(output_dir, "narration.srt")
 
     print(f"   → Synthesising {len(full_text.split())} words via Edge TTS…")
-    asyncio.run(_synthesise(full_text, audio_path, srt_path))
+    try:
+        asyncio.run(_synthesise(full_text, audio_path, srt_path))
+    except Exception as e:
+        if "403" in str(e):
+            raise RuntimeError(
+                "Microsoft's free voice service rejected the request (403). "
+                "Update the voice library:  pip install -U edge-tts"
+            ) from e
+        raise
 
     # ── Post-run report ──────────────────────────────────────────────────────
     size_kb     = os.path.getsize(audio_path) // 1024

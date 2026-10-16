@@ -1,6 +1,6 @@
 # 🛠️ Setup Guide
 
-Complete step-by-step instructions to get YouTube AI Agent Studio running from scratch.
+Complete step-by-step instructions to get YAAS (youtube-agentic-ai-studio) running from scratch.
 
 > **Time required:** ~10 minutes
 
@@ -63,39 +63,25 @@ pip install -r requirements.txt
 
 ---
 
-## Step 3 — Configure your keys
+## Step 3 — Add your keys
 
-### Option A — Environment variables (recommended)
+All keys are optional. YAAS runs without any, but a Gemini key makes scripts much better.
 
-```bash
-# Mac / Linux
-export GEMINI_API_KEY="your_key_here"
-export PEXELS_API_KEY="your_key_here"
+### Option A — In the app (easiest)
 
-# Windows (Command Prompt)
-set GEMINI_API_KEY=your_key_here
-set PEXELS_API_KEY=your_key_here
+Run `python gui.py`, click **Settings** (top right), paste your keys, and press **Save**.
+They're written to a local `.env` file that git ignores.
 
-# Windows (PowerShell)
-$env:GEMINI_API_KEY="your_key_here"
-$env:PEXELS_API_KEY="your_key_here"
-```
-
-To make these permanent, add them to your shell profile (`~/.bashrc`, `~/.zshrc`) or use a `.env` file:
+### Option B — Edit `.env` yourself
 
 ```bash
 cp .env.example .env
-# Now edit .env and fill in your keys
+# open .env and fill in the keys you have
 ```
 
-### Option B — Edit config.py directly
+Real environment variables (`export GEMINI_API_KEY=...`) also work and take priority over `.env`.
 
-Open `config.py` and replace the placeholder values:
-
-```python
-GEMINI_API_KEY = "AIza..."     # your Gemini key
-PEXELS_API_KEY = "abc123..."   # your Pexels key
-```
+> Never put keys in `config.py`. It's tracked by git, so they'd end up in your commits.
 
 ---
 
@@ -107,7 +93,7 @@ Skip this step if you just want to generate videos locally without uploading.
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
 2. Click **Select a project → New Project**
-3. Name it (e.g. "YouTube AI Agent") and click **Create**
+3. Name it (e.g. "YAAS") and click **Create**
 
 ### 4b. Enable the YouTube Data API
 
@@ -141,16 +127,13 @@ On your first run, a browser window will open asking you to sign in with Google 
 
 ## Step 5 — Customise your channel
 
-Open `config.py` and edit:
+In the app, open **Settings → Your channel** and set:
 
-```python
-CHANNEL_DESCRIPTION = """
-Describe your channel clearly here.
-The more specific, the better the AI's topic and script quality.
-Example: "Educational science channel for curious adults, style of Veritasium."
-"""
-CHANNEL_NAME = "Your Channel Name"
-```
+- **Channel name**, which is shown in your videos and thumbnails (switch it off or use custom text with *Show channel name in videos*)
+- **What your channel is about**: the more specific, the better the AI's topics and scripts.
+  Example: *"Educational science channel for curious adults, style of Veritasium."*
+
+These are saved to `config.py` (`CHANNEL_NAME`, `CHANNEL_DESCRIPTION`, `SHOW_CHANNEL_BRAND`, `BRAND_TEXT`) if you prefer editing it directly.
 
 ---
 
@@ -162,7 +145,7 @@ CHANNEL_NAME = "Your Channel Name"
 python gui.py
 ```
 
-Opens at **http://localhost:7842** — configure everything visually and click Generate.
+Opens at **http://localhost:7070**. Type a topic on Home and press **Make video**.
 
 ### CLI mode
 

@@ -291,9 +291,9 @@ def _draw_normal_caption(frame: Image.Image, text: str) -> Image.Image:
 def _render_hook(draw, section, t, duration):
     narr  = section.get("narration", "")
     title = section.get("title", "")
-    if t > 0.3:
+    if t > 0.3 and config.brand_text():
         a = min(1.0, (t - 0.3) / 0.4)
-        _shadow_text(draw, (60, 50), "▶ FRACTURED TIMELINES",
+        _shadow_text(draw, (60, 50), f"▶ {config.brand_text().upper()}",
                      _load_font("regular", 24), fill=_alpha(C["accent"], a), shadow_offset=2)
     sentences = [s.strip() for s in narr.replace("...", "…").split(".") if s.strip()]
     first_two = ". ".join(sentences[:2]) + ("." if sentences else "")
@@ -734,12 +734,13 @@ def _build_shorts_clip(all_images: list, total_duration: float,
 
         # ── Top brand strip ───────────────────────────────────
         draw       = ImageDraw.Draw(frame)
-        font_brand = _load_font("bold", 30)
-        brand      = "▶ FRACTURED TIMELINES"
-        bbox       = draw.textbbox((0, 0), brand, font=font_brand)
-        bw         = bbox[2] - bbox[0]
-        draw.text(((W - bw) // 2, 50), brand, font=font_brand,
-                  fill=(255, 255, 255, 160))
+        if config.brand_text():
+            font_brand = _load_font("bold", 30)
+            brand      = f"▶ {config.brand_text().upper()}"
+            bbox       = draw.textbbox((0, 0), brand, font=font_brand)
+            bw         = bbox[2] - bbox[0]
+            draw.text(((W - bw) // 2, 50), brand, font=font_brand,
+                      fill=(255, 255, 255, 160))
 
         # NOTE: Flash cut indicator removed — crossfades replace hard cuts.
 
@@ -752,6 +753,57 @@ def _build_shorts_clip(all_images: list, total_duration: float,
 # ══════════════════════════════════════════════════════════════
 #  MAIN ENTRY POINT
 # ══════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════
+#  WATERMARK — burned into every frame of every video.
+#  Deliberately not a setting: YAAS credits its author on all output.
+# ══════════════════════════════════════════════════════════════
+
+WATERMARK_TEXT    = "raunakpatil.com"
+WATERMARK_OPACITY = 0.55
+
+
+def _watermark_patch(w: int, h: int):
+    """Pre-rendered watermark: (x, y, rgb float array, alpha float array)."""
+    from video import fonts
+    portrait = h > w
+    size = max(18, int((h * 0.017) if portrait else (h * 0.024)))
+    font = fonts.get("inter", size, 600)
+    pad = size // 2
+    tw = int(font.getlength(WATERMARK_TEXT))
+    pw, ph = tw + pad * 2, int(size * 1.5) + pad
+    patch = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
+    d = ImageDraw.Draw(patch)
+    # soft dark halo keeps it legible on bright footage
+    halo = Image.new("L", (pw, ph), 0)
+    ImageDraw.Draw(halo).text((pad, pad // 2), WATERMARK_TEXT, font=font, fill=255,
+                              stroke_width=max(2, size // 8), stroke_fill=255)
+    halo = halo.filter(ImageFilter.GaussianBlur(max(2, size // 6)))
+    patch.paste((0, 0, 0, 255), (0, 0), halo.point(lambda v: int(v * .55)))
+    d.text((pad, pad // 2), WATERMARK_TEXT, font=font, fill=(255, 255, 255, 255))
+
+    arr = np.asarray(patch, dtype=np.float32) / 255.0
+    rgb, alpha = arr[..., :3] * 255.0, arr[..., 3:4] * WATERMARK_OPACITY
+    if portrait:      # top centre, under the channel tag — clear of the Shorts UI
+        x, y = (w - pw) // 2, int(h * 0.055)
+    else:             # top right corner
+        x, y = w - pw - int(w * 0.022), int(h * 0.035)
+    return x, y, rgb, alpha
+
+
+def _apply_watermark(clip, w: int, h: int):
+    x, y, rgb, alpha = _watermark_patch(w, h)
+    ph, pw = alpha.shape[:2]
+
+    def stamp(frame):
+        out = frame.copy()
+        region = out[y:y + ph, x:x + pw].astype(np.float32)
+        out[y:y + ph, x:x + pw] = (region * (1 - alpha) + rgb * alpha).astype(np.uint8)
+        return out
+
+    print(f"   → Watermark: {WATERMARK_TEXT}")
+    return clip.fl_image(stamp)
+
 
 def create_video(script: dict, audio_path: str, output_dir: str,
                  image_map: dict = None, video_type: str = "normal") -> str:
@@ -881,6 +933,9 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         final = final.set_audio(audio)
 
         output_path = os.path.join(output_dir, "final_video.mp4")
+
+    # ── WATERMARK (always on) ──────────────────────────────────
+    final = _apply_watermark(final, W, H)
 
     # ── EXPORT ─────────────────────────────────────────────────
     total_secs = int(final.duration)

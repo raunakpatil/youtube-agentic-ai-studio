@@ -3,1288 +3,1654 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YouTube AI Agent Studio</title>
+<title>YAAS — youtube-agentic-ai-studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#09090f;--surface:#111120;--surface2:#181830;--border:#1f1f40;
-  --primary:#6366f1;--accent:#a78bfa;--amber:#fbbf24;
-  --green:#34d399;--red:#f87171;--blue:#60a5fa;
-  --text:#e2e8f0;--muted:#64748b;--dim:#94a3b8;
-  --r:10px;--r-sm:6px;
+/* ===================== Tokens (shared with raunakpatil.com) ===================== */
+:root {
+  --bg: #f2f2f2;
+  --surface: #ffffff;
+  --card: #151515;
+  --card-2: #1c1c1c;
+  --card-3: #242424;
+  --card-line: #2a2a2a;
+  --ink: #111111;
+  --ink-2: #6b6b6b;
+  --on-card: #f3f3f3;
+  --on-card-2: #a3a3a3;
+  --on-card-3: #6f6f6f;
+  --radius: 16px;
+  --gap: 10px;
+  --bar: 58px;
+  --pad: 24px;
+  --font: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ease: cubic-bezier(.7, 0, .2, 1);
+  --snap: cubic-bezier(.22, 1, .36, 1);
+  --pink: #ff70f3;
+  --green: #38ffb3;
+  --amber: #ffc94d;
+  --red: #ff5f6d;
+  --blue: #5cc8ff;
+  --violet: #a98bff;
+  --neu-hi: rgba(255, 255, 255, .95);
+  --neu-lo: rgba(163, 168, 186, .55);
+  --neu-out: -5px -5px 12px var(--neu-hi), 5px 5px 12px var(--neu-lo);
+  --neu-out-sm: -3px -3px 8px var(--neu-hi), 3px 3px 8px var(--neu-lo);
+  --neu-in-sm: inset 2px 2px 4px var(--neu-lo), inset -2px -2px 4px var(--neu-hi);
+  --dneu-out: -3px -3px 7px rgba(255, 255, 255, .05), 4px 4px 10px rgba(0, 0, 0, .55);
+  --dneu-in: inset 2px 2px 5px rgba(0, 0, 0, .6), inset -2px -2px 5px rgba(255, 255, 255, .055);
+  --key: inset 0 1px 1px rgba(255, 255, 255, .18), 0 3px 8px rgba(0, 0, 0, .22);
 }
-html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
 
-/* ── Layout ── */
-.app{display:grid;grid-template-columns:230px 1fr;grid-template-rows:52px 1fr;height:100vh}
-.topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;padding:0 20px;z-index:10}
-.topbar .logo{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px}
-.topbar .logo span{color:var(--primary)}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;overflow:hidden;padding-top:8px}
-.main{overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%}
-
-/* ── Sidebar stages ── */
-.section-label{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);
-  padding:12px 16px 6px;text-transform:uppercase}
-.stage{display:flex;align-items:center;gap:10px;padding:8px 16px;
-  border-radius:var(--r-sm);margin:1px 8px;cursor:default;transition:background .15s}
-.stage:hover{background:rgba(255,255,255,.04)}
-.stage-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:12px;flex-shrink:0;border:1.5px solid var(--border)}
-.stage-name{font-size:13px;color:var(--dim)}
-.stage.pending .stage-icon{background:var(--surface2);color:var(--muted)}
-.stage.running .stage-icon{background:rgba(99,102,241,.2);border-color:var(--primary);
-  color:var(--primary);animation:pulse 1s infinite}
-.stage.done .stage-icon{background:rgba(52,211,153,.15);border-color:var(--green);color:var(--green)}
-.stage.error .stage-icon{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-
-.yt-panel{margin:auto 8px 8px;padding:12px;background:var(--surface2);
-  border:1px solid var(--border);border-radius:var(--r)}
-.yt-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
-.yt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.yt-dot.ok{background:var(--green)}.yt-dot.bad{background:var(--red)}
-
-/* ── Tabs ── */
-.tabs{display:flex;gap:2px;padding:10px 16px 0;background:var(--surface);
-  border-bottom:1px solid var(--border)}
-.tab{padding:8px 18px;border-radius:var(--r-sm) var(--r-sm) 0 0;cursor:pointer;
-  font-size:13px;font-weight:500;color:var(--muted);border:1px solid transparent;
-  border-bottom:none;transition:all .15s}
-.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
-.tab.active{color:var(--text);background:var(--bg);border-color:var(--border);
-  border-bottom-color:var(--bg)}
-.tab-content{display:none;flex:1;overflow:hidden;min-height:0}
-.tab-content.active{display:flex;flex-direction:column;min-height:0}
-/* Settings tab: let the inner .settings-scroll div actually scroll */
-#tab-settings{overflow:hidden;}
-
-/* ── Generate tab ── */
-.gen-layout{display:grid;grid-template-columns:320px 1fr;gap:0;height:100%;overflow:hidden}
-.gen-options{padding:18px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:16px}
-.gen-console{display:flex;flex-direction:column;overflow:hidden}
-
-.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-input[type=text],textarea,select{
-  width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--r-sm);color:var(--text);padding:8px 10px;font-size:13px;
-  font-family:inherit;transition:border-color .15s;outline:none;resize:vertical}
-input[type=text]:focus,textarea:focus,select:focus{border-color:var(--primary)}
-input[type=range]{width:100%;accent-color:var(--primary)}
-
-.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.step-check{display:flex;align-items:center;gap:7px;padding:7px 10px;
-  background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);
-  cursor:pointer;font-size:12px;transition:border-color .15s}
-.step-check:hover{border-color:var(--primary)}
-.step-check input{accent-color:var(--primary);cursor:pointer}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
-  padding:9px 18px;border:none;border-radius:var(--r-sm);font-size:13px;
-  font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;
-  font-family:inherit;white-space:nowrap}
-.btn:hover{opacity:.88}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-success{background:var(--green);color:#052e16}
-.btn-danger{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3)}
-.btn-ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
-.btn-amber{background:var(--amber);color:#451a03}
-.btn-full{width:100%}
-
-.console-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;
-  background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
-.console-body{flex:1;overflow-y:auto;padding:10px 14px;font-size:12px;
-  font-family:"Consolas","Courier New",monospace;line-height:1.7;background:#050509}
-.console-body::-webkit-scrollbar{width:4px}
-.console-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
-.log-info{color:#94a3b8}
-.log-warn{color:var(--amber)}
-.log-error{color:var(--red)}
-.log-success{color:var(--green)}
-.log-stage{color:var(--accent);font-weight:600}
-
-/* ── Review tab ── */
-.review-layout{display:grid;grid-template-columns:1fr 380px;height:100%;overflow:hidden}
-.review-left{display:flex;flex-direction:column;padding:16px;gap:12px;overflow-y:auto}
-.review-right{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-
-.video-wrap{position:relative;background:#000;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9}
-.video-wrap video{width:100%;height:100%;display:block}
-.no-video{display:flex;align-items:center;justify-content:center;
-  height:100%;color:var(--muted);font-size:13px;flex-direction:column;gap:8px}
-
-.thumb-wrap{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;
-  background:var(--surface2);border:1px solid var(--border)}
-.thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-.thumb-wrap .no-thumb{display:flex;align-items:center;justify-content:center;
-  height:100%;color:var(--muted);font-size:12px}
-
-.edit-panel{display:flex;flex-direction:column;overflow-y:auto;padding:16px;gap:14px}
-.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.tag{background:rgba(99,102,241,.15);color:var(--accent);border:1px solid rgba(99,102,241,.3);
-  border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer}
-.tag:hover{background:rgba(99,102,241,.3)}
-
-.upload-section{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface)}
-.upload-row{display:flex;gap:8px;align-items:center;margin-top:10px}
-.upload-mode-btn{padding:5px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s;font-family:inherit}
-.upload-mode-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.upload-mode-btn:hover:not(.active){color:var(--text);background:rgba(255,255,255,.06)}
-.progress-bar-wrap{height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:8px}
-.progress-bar-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .3s}
-
-/* ── Settings tab ── */
-.settings-scroll{
-  /* flex:1 + height:0 is the reliable way to make a flex child scrollable */
-  flex:1;height:0;
-  overflow-y:auto;
-  overflow-x:hidden;
-  padding:16px 20px 32px;
-  display:flex;flex-direction:column;gap:16px;
-  /* Smooth scrolling and prevent layout blowout */
-  min-height:0;
-  -webkit-overflow-scrolling:touch;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--ink);
+  font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; min-height: 100vh;
 }
-/* Readable inputs at any zoom level */
-.settings-field input,.settings-field select,.settings-field textarea{
-  font-size:14px;
-  min-height:34px;
-  width:100%;
-}
-.settings-section{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);overflow:hidden;flex-shrink:0;
-}
-.settings-header{
-  padding:11px 16px;background:var(--surface2);
-  border-bottom:1px solid var(--border);
-  font-size:11px;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.08em;
-  display:flex;align-items:center;gap:8px;
-  cursor:pointer;user-select:none;
-}
-.settings-header:hover{color:var(--dim)}
-.settings-header .caret{margin-left:auto;transition:transform .2s;font-size:10px;opacity:.5}
-.settings-section.collapsed .caret{transform:rotate(-90deg)}
-.settings-section.collapsed .settings-body{display:none}
-.settings-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-/* Single-column field layout — label above input */
-.settings-field{display:flex;flex-direction:column;gap:5px}
-.settings-field .field-label{margin-bottom:0}
-/* Two-column layout for compact pairs (speed+pitch, zoom start+end) */
-.settings-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-/* Inline row for range slider + live value */
-.range-row{display:flex;align-items:center;gap:10px}
-.range-row input[type=range]{flex:1}
-.range-val{font-size:12px;font-weight:600;color:var(--primary);min-width:38px;text-align:right}
-.voice-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+img, video { display: block; max-width: 100%; }
+:focus-visible { outline: 2px solid #7c5cff; outline-offset: 2px; }
+::selection { background: var(--pink); color: #111; }
+[hidden] { display: none !important; }
 
-/* ── Status chips ── */
-.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
-  border-radius:20px;font-size:11px;font-weight:600}
-.chip-running{background:rgba(99,102,241,.2);color:var(--primary)}
-.chip-done{background:rgba(52,211,153,.15);color:var(--green)}
-.chip-idle{background:rgba(255,255,255,.06);color:var(--muted)}
-.chip-error{background:rgba(248,113,113,.15);color:var(--red)}
+/* ===================== Top bar ===================== */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  height: var(--bar); padding: 0 var(--pad);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.brand { justify-self: start; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.brand b { font-size: 15px; font-weight: 500; letter-spacing: .01em; }
+.brand small { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
 
-/* ── Format selector buttons ── */
-.fmt-btn{display:flex;align-items:center;gap:10px;flex:1;padding:10px 12px;
-  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);
-  cursor:pointer;text-align:left;color:var(--text);font-family:inherit;transition:all .15s}
-.fmt-btn:hover{border-color:var(--primary);background:rgba(99,102,241,.08)}
-.fmt-btn.fmt-active{border-color:var(--primary);background:rgba(99,102,241,.15)}
-.fmt-btn.fmt-active div:first-child{color:var(--primary)}
+.tabs {
+  position: relative; display: flex; padding: 4px;
+  background: var(--surface); border-radius: 999px;
+  box-shadow: var(--neu-out), 0 0 0 1px rgba(0, 0, 0, .04);
+}
+.tabs a {
+  position: relative; z-index: 1; padding: 6px 20px; border-radius: 999px;
+  font-size: 13px; color: #333; white-space: nowrap; transition: color .35s;
+}
+.tabs a.active { color: #fff; }
+.tabs a .dot { display: none; position: absolute; top: 5px; right: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--pink); }
+.tabs a.notify .dot { display: block; }
+.tabs-indicator {
+  position: absolute; top: 4px; bottom: 4px; left: 0; width: 0;
+  background: #111; border-radius: 999px; box-shadow: var(--key);
+  transition: transform .5s var(--ease), width .5s var(--ease);
+}
 
-/* ── Misc ── */
-.divider{height:1px;background:var(--border);margin:4px 0}
-.help-text{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5}
-.url-link{color:var(--primary);text-decoration:none;font-size:12px;word-break:break-all}
-.url-link:hover{text-decoration:underline}
-.badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;
-  background:rgba(99,102,241,.2);color:var(--primary)}
-.flex-row{display:flex;align-items:center;gap:8px}
+.bar-right { justify-self: end; display: flex; align-items: center; gap: 10px; }
+.status-pill {
+  display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px;
+  border-radius: 999px; background: var(--surface); box-shadow: var(--neu-out-sm), 0 0 0 1px rgba(0,0,0,.04);
+  font-size: 12px; color: #333;
+}
+.status-pill i { width: 6px; height: 6px; border-radius: 50%; background: #bbb; }
+.status-pill.running i { background: var(--pink); box-shadow: 0 0 8px var(--pink); animation: pulse 1.2s ease-in-out infinite; }
+.status-pill.done i { background: #19c983; }
+.status-pill.error i { background: var(--red); }
+@keyframes pulse { 50% { opacity: .35; } }
+
+.settings-btn {
+  display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px 0 10px; border-radius: 999px; color: #111; font-size: 12px;
+  background: var(--surface); box-shadow: var(--neu-out-sm), 0 0 0 1px rgba(0, 0, 0, .04);
+  transition: background .45s var(--snap), color .45s var(--snap), box-shadow .45s var(--snap);
+}
+.settings-btn span { display: grid; grid-template-columns: repeat(2, 4px); gap: 3px; transition: transform .55s var(--snap); }
+.settings-btn span i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.settings-btn em { font-style: normal; }
+.settings-btn:active { box-shadow: var(--neu-in-sm); }
+.settings-btn.active { background: #111; color: #fff; box-shadow: var(--key); }
+.settings-btn.active span { transform: rotate(45deg); }
+
+/* ===================== Layout ===================== */
+main { padding: 0 var(--gap) 24px; }
+.view { display: none; gap: var(--gap); grid-template-columns: repeat(24, minmax(0, 1fr)); grid-auto-rows: min-content; }
+.view.active { display: grid; }
+.s6 { grid-column: span 6; } .s8 { grid-column: span 8; } .s10 { grid-column: span 10; }
+.s12 { grid-column: span 12; } .s14 { grid-column: span 14; } .s16 { grid-column: span 16; } .s24 { grid-column: span 24; }
+.r2 { grid-row: span 2; }
+.col { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+.col > .card:last-child { flex: 1; }
+
+/* ===================== Cards ===================== */
+.card {
+  position: relative; overflow: hidden; isolation: isolate; min-width: 0;
+  background: var(--card); color: var(--on-card); border-radius: var(--radius);
+  padding: 46px 20px 18px;
+  animation: rise .7s var(--ease) both;
+}
+.view.active > :nth-child(2) { animation-delay: 50ms; }
+.view.active > :nth-child(3) { animation-delay: 100ms; }
+.view.active > :nth-child(4) { animation-delay: 150ms; }
+.view.active > :nth-child(n+5) { animation-delay: 200ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+.card.flat { padding-top: 22px; }
+
+.card-label {
+  position: absolute; top: 14px; left: 16px; z-index: 4;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: #d0d0d0;
+}
+.card-label svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.card-label .num {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  background: #f3f3f3; color: #111; font-family: var(--mono); font-size: 10px; letter-spacing: 0;
+}
+.card-tools { position: absolute; top: 10px; right: 12px; z-index: 4; display: flex; gap: 6px; align-items: center; }
+.card-note { font-family: var(--mono); font-size: 10.5px; color: var(--on-card-3); }
+.card-intro { color: var(--on-card-2); font-size: 13px; margin: -2px 0 14px; max-width: 62ch; }
+
+.mono { font-family: var(--mono); }
+.dim { color: var(--on-card-3); }
+.hint { font-size: 12px; color: var(--on-card-3); line-height: 1.5; }
+.hint a, .link { color: var(--on-card); border-bottom: 1px solid #555; }
+.hint a:hover, .link:hover { border-color: var(--on-card); }
+.empty { display: grid; place-items: center; align-content: center; gap: 12px; min-height: 140px; text-align: center; color: var(--on-card-2); font-size: 13px; }
+
+/* ===================== Controls ===================== */
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field + .field { margin-top: 16px; }
+.label { font-size: 12.5px; font-weight: 500; color: var(--on-card); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.label small { font-weight: 400; color: var(--on-card-3); font-size: 11.5px; }
+input[type=text], input[type=password], input[type=datetime-local], textarea, select {
+  width: 100%; font: inherit; font-size: 13.5px; color: var(--on-card);
+  background: var(--card-2); border: 1px solid var(--card-line); border-radius: 10px;
+  padding: 9px 12px; outline: none; transition: border-color .2s, background .2s; color-scheme: dark;
+}
+textarea { resize: vertical; line-height: 1.55; font-size: 12.5px; }
+input:focus, textarea:focus, select:focus { border-color: #5a5a5a; background: var(--card-3); }
+input::placeholder, textarea::placeholder { color: #666; }
+select { appearance: none; padding-right: 32px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239a9a9a' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; }
+input[type=range] { width: 100%; accent-color: var(--green); }
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-row span { font-family: var(--mono); font-size: 11px; color: var(--on-card-2); min-width: 46px; text-align: right; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 36px; padding: 0 16px; border-radius: 999px; font-size: 13px; white-space: nowrap;
+  transition: transform .15s, background .25s, color .25s, opacity .25s, box-shadow .25s;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .35; pointer-events: none; }
+.btn-white { background: #f3f3f3; color: #111; box-shadow: 0 2px 10px rgba(0,0,0,.35); font-weight: 500; }
+.btn-white:hover { background: #fff; }
+.btn-ghost { background: var(--card-2); color: var(--on-card); box-shadow: var(--dneu-out); }
+.btn-ghost:hover { background: var(--card-3); }
+.btn-green { background: var(--green); color: #111; font-weight: 500; }
+.btn-red { background: transparent; color: var(--red); box-shadow: inset 0 0 0 1px rgba(255,95,109,.4); }
+.btn-sm { height: 30px; padding: 0 13px; font-size: 12.5px; }
+.btn-xs { height: 26px; padding: 0 11px; font-size: 12px; }
+.btn-lg { height: 48px; padding: 0 24px; font-size: 15px; }
+.btn-block { width: 100%; }
+.icon-btn { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); box-shadow: var(--dneu-out); color: var(--on-card-2); transition: color .2s; }
+.icon-btn:hover { color: #fff; }
+.icon-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.seg { display: inline-flex; padding: 3px; gap: 3px; border-radius: 999px; background: #0e0e0e; box-shadow: var(--dneu-in); }
+.seg button { height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: var(--on-card-2); transition: background .3s, color .3s; white-space: nowrap; }
+.seg button.on { background: #f3f3f3; color: #111; box-shadow: var(--key); }
+.seg.full { display: flex; } .seg.full button { flex: 1; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px;
+  background: var(--card-2); border: 1px solid var(--card-line); font-size: 12.5px; color: var(--on-card);
+  transition: background .2s, border-color .2s, color .2s; cursor: pointer; user-select: none;
+}
+.chip:hover { border-color: #4a4a4a; }
+.chip.on { background: #f3f3f3; color: #111; border-color: #f3f3f3; }
+.chip .x { opacity: .55; }
+.chip input { display: none; }
+.count { display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 6px; border-radius: 999px; background: #2a2a2a; font-family: var(--mono); font-size: 10px; color: var(--on-card-2); letter-spacing: 0; }
+.tag { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 999px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; background: #262626; color: var(--on-card-2); white-space: nowrap; }
+.tag.green { background: rgba(56,255,179,.12); color: var(--green); }
+.tag.pink { background: rgba(255,112,243,.13); color: var(--pink); }
+.tag.amber { background: rgba(255,201,77,.13); color: var(--amber); }
+
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid var(--card-line); cursor: pointer; }
+.toggle.first { border-top: 0; }
+.toggle b { font-weight: 500; font-size: 13px; display: block; }
+.toggle small { color: var(--on-card-3); font-size: 12px; }
+.toggle input { display: none; }
+.switch { flex: none; position: relative; width: 36px; height: 20px; border-radius: 999px; background: #0e0e0e; box-shadow: var(--dneu-in); transition: background .3s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #666; transition: transform .35s var(--snap), background .3s; }
+.toggle input:checked + .switch { background: rgba(56,255,179,.18); }
+.toggle input:checked + .switch::after { transform: translateX(16px); background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+details.more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; color: var(--on-card-2); font-size: 13px; user-select: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "+"; flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--card-3); font-family: var(--mono); font-size: 12px; color: var(--on-card); transition: transform .3s var(--snap); }
+details.more[open] > summary::before { transform: rotate(45deg); }
+details.more > summary:hover { color: #fff; }
+details.more > .more-body { margin-top: 14px; }
+
+/* ===================== Home: hero ===================== */
+.hero { min-height: 470px; display: flex; flex-direction: column; padding: 26px 28px 22px; }
+.hero > div { flex: 1; display: flex; flex-direction: column; }
+.hero-grid { position: absolute; inset: 0; z-index: -1; opacity: .6;
+  background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size: 22px 22px; mask-image: radial-gradient(circle at 85% 15%, #000, transparent 65%); }
+.hello { font-size: clamp(38px, 3.6vw, 56px); font-weight: 300; line-height: 1; letter-spacing: -.025em; display: flex; flex-wrap: wrap; gap: 0 .28em; }
+.hello span { position: relative; display: block; color: #878a8c; }
+.hello span::after {
+  content: attr(data-t); position: absolute; inset: 0; color: transparent;
+  background: linear-gradient(102deg, transparent 0%, transparent 35.6%, #fff 50%, transparent 64.4%, transparent 100%) no-repeat;
+  background-size: 200% 200%; -webkit-background-clip: text; background-clip: text;
+  animation: shine 2.8s linear infinite;
+}
+.hello span + span::after { animation-delay: .12s; }
+@keyframes shine { 0%, 28.57% { background-position: 200% center; } 100% { background-position: -100% center; } }
+.hero-sub { color: var(--on-card-2); font-size: 15px; margin-top: 12px; max-width: 58ch; }
+
+.ask { margin-top: 26px; }
+.ask-box {
+  display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 22px; border-radius: 999px;
+  background: #f3f3f3; box-shadow: 0 6px 24px rgba(0,0,0,.4);
+}
+.ask-box input[type=text] { flex: 1; min-width: 0; background: transparent; border: 0; color: #111; font-size: 16px; padding: 10px 0; color-scheme: light; }
+.ask-box input[type=text]:focus { background: transparent; }
+.ask-box input::placeholder { color: #8a8a8a; }
+.btn-go { height: 44px; padding: 0 22px; border-radius: 999px; background: #111; color: #fff; font-size: 14px; font-weight: 500; box-shadow: var(--key); white-space: nowrap; transition: background .2s, transform .15s; }
+.btn-go:hover { background: #000; }
+.btn-go:active { transform: scale(.97); }
+.ask-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 14px; }
+.ask-row .or { display: flex; align-items: center; gap: 10px; color: var(--on-card-3); font-size: 13px; }
+.surprise { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--card-2); box-shadow: var(--dneu-out); color: var(--on-card); font-size: 13px; transition: background .2s; }
+.surprise:hover { background: var(--card-3); }
+.surprise b { color: var(--pink); font-weight: 400; }
+
+.how { margin-top: auto; padding-top: 24px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.how div { padding: 12px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid #232323; }
+.how b { display: block; font-family: var(--mono); font-size: 10px; color: var(--on-card-3); letter-spacing: .06em; margin-bottom: 4px; font-weight: 400; }
+.how span { font-size: 12.5px; color: #d8d8d8; line-height: 1.35; display: block; }
+
+/* running / done / error */
+.prog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.prog-title { font-size: clamp(28px, 2.6vw, 40px); font-weight: 300; letter-spacing: -.02em; line-height: 1.1; }
+.prog-topic { color: var(--on-card-2); font-size: 14px; margin-top: 8px; min-height: 20px; }
+.prog-bar { height: 6px; border-radius: 6px; background: #262626; overflow: hidden; margin: 22px 0 6px; }
+.prog-bar b { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #f5d742, #ff4d6d, #ff70f3, #a98bff, #38ffb3, #f5d742); background-size: 200% 100%; transition: width .8s var(--snap); animation: flow 3s linear infinite; }
+@keyframes flow { to { background-position: -200% 0; } }
+.prog-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--on-card-3); }
+.steps-list { display: grid; gap: 4px; margin-top: 16px; }
+.step { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 12px; border-radius: 12px; transition: background .3s; }
+.step .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #222; color: var(--on-card-3); font-size: 12px; }
+.step b { font-weight: 500; font-size: 14px; display: block; color: var(--on-card-2); }
+.step small { font-size: 12px; color: var(--on-card-3); }
+.step em { font-style: normal; font-size: 12px; color: var(--on-card-3); }
+.step[data-s=running] { background: var(--card-2); }
+.step[data-s=running] .ic { background: transparent; border: 2px solid #333; border-top-color: var(--pink); animation: spin .9s linear infinite; }
+.step[data-s=running] b { color: #fff; }
+.step[data-s=running] em { color: var(--pink); }
+.step[data-s=done] .ic { background: rgba(56,255,179,.14); color: var(--green); }
+.step[data-s=done] b { color: #e6e6e6; }
+.step[data-s=error] .ic { background: rgba(255,95,109,.16); color: var(--red); }
+.step[data-s=error] b { color: var(--red); }
+.step[data-s=skipped] { opacity: .4; }
+
+.done-box { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; align-items: center; margin-top: 22px; }
+.err-box { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: rgba(255,95,109,.08); border: 1px solid rgba(255,95,109,.25); color: #ffc0c6; font-size: 13px; word-break: break-word; }
+.err-box b { color: var(--red); display: block; margin-bottom: 4px; }
+
+.console {
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.7; color: #bdbdbd;
+  max-height: 280px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  scrollbar-width: thin; scrollbar-color: #333 transparent;
+  padding: 12px; border-radius: 10px; background: #0d0d0d;
+}
+.console .l-ok { color: var(--green); } .console .l-warn { color: var(--amber); }
+.console .l-err { color: var(--red); } .console .l-dim { color: var(--on-card-3); }
+.console .t { color: #555; margin-right: 8px; }
+
+/* ===================== Home: side cards ===================== */
+.ck { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 11px; align-items: center; padding: 9px 0; border-top: 1px solid var(--card-line); }
+.ck:first-child { border-top: 0; }
+.ck .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; background: #232323; color: var(--on-card-3); }
+.ck.ok .ic { background: rgba(56,255,179,.14); color: var(--green); }
+.ck.opt .ic { background: rgba(255,201,77,.13); color: var(--amber); }
+.ck b { font-weight: 500; font-size: 13px; display: block; }
+.ck small { font-size: 12px; color: var(--on-card-3); display: block; }
+.ready-meter { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.ready-meter strong { font-size: 40px; font-weight: 300; letter-spacing: -.03em; line-height: 1; }
+.ready-meter span { color: var(--on-card-2); font-size: 13px; }
+
+.trend-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; }
+.trend-item { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; transition: background .2s; text-align: left; }
+.trend-item:hover { background: var(--card-2); }
+.trend-item i { width: 6px; height: 6px; border-radius: 50%; }
+.trend-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.trend-item em { font-style: normal; font-size: 12px; color: var(--on-card-3); white-space: nowrap; opacity: 0; transition: opacity .2s; }
+.trend-item:hover em { opacity: 1; color: var(--on-card); }
+.src-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.src-filter i { width: 6px; height: 6px; border-radius: 50%; }
+
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin-top: 16px; }
+.bars i { flex: 1; min-width: 2px; border-radius: 2px 2px 0 0; position: relative; }
+.bars i[data-tip]:hover::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  padding: 3px 8px; border-radius: 999px; background: #f3f3f3; color: #111; font-family: var(--mono); font-size: 10px; white-space: nowrap; z-index: 5;
+}
+.bars-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--on-card-3); margin-top: 6px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+.stat b { display: block; font-size: 28px; font-weight: 300; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat span { font-size: 12px; color: var(--on-card-3); }
+
+.api-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; }
+.api-group { grid-column: 1 / -1; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; color: var(--on-card-3); text-transform: uppercase; margin-top: 10px; }
+.api-group:first-child { margin-top: 0; }
+.api { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 4px 0; }
+.api i { width: 7px; height: 7px; border-radius: 50%; background: #3a3a3a; }
+.api.ready i { background: var(--green); box-shadow: 0 0 7px rgba(56,255,179,.6); }
+.api.down i { background: var(--red); }
+.api div { min-width: 0; }
+.api b { font-weight: 500; font-size: 12.5px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.api small { font-size: 11px; color: var(--on-card-3); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.thumb-frame { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #0d0d0d; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+.thumb-frame img, .thumb-frame video { width: 100%; height: 100%; object-fit: cover; }
+.thumb-frame.contain video { object-fit: contain; background: #000; }
+.thumb-frame .empty { position: absolute; inset: 0; min-height: 0; }
+.thumb-frame .badge { position: absolute; top: 8px; left: 8px; }
+.thumb-frame.tall { aspect-ratio: 9 / 16; }
+#thumb-wrap.tall, #latest .thumb-frame.tall { max-height: 520px; margin: 0 auto; }
+.styles.tall { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.styles.tall .style-tile .pv { aspect-ratio: 9 / 16; }
+.styles.tall .style-tile small { display: none; }
+.lib-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; padding: 22px 8px 4px; }
+.lib-head h3 { font-size: 24px; font-weight: 300; letter-spacing: -.02em; color: var(--ink); }
+.lib-head span { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+.lib-head p { margin-left: auto; font-size: 12.5px; color: var(--ink-2); }
+.s4 { grid-column: span 4; }
+.foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; padding: 6px var(--pad) 90px; font-size: 12.5px; color: var(--ink-2); }
+.foot a { color: var(--ink); border-bottom: 1px solid rgba(17,17,17,.25); }
+.foot a:hover { border-color: var(--ink); }
+.foot .mono { font-size: 11px; }
+.thumb-frame.busy::before { content: ""; position: absolute; inset: 0; z-index: 2; background: rgba(0,0,0,.5); }
+.thumb-frame.busy::after { content: ""; position: absolute; left: 50%; top: 50%; z-index: 3; width: 28px; height: 28px; margin: -14px; border-radius: 50%; border: 3px solid rgba(255,255,255,.2); border-top-color: #fff; animation: spin .8s linear infinite; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.styles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.style-tile { text-align: left; padding: 6px 6px 8px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--card-line); transition: border-color .2s, background .2s, transform .15s; }
+.style-tile:hover { border-color: #4a4a4a; }
+.style-tile:active { transform: scale(.98); }
+.style-tile .pv { display: block; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #0d0d0d; }
+.style-tile .pv img { width: 100%; height: 100%; object-fit: cover; }
+.style-tile b { display: block; font-weight: 500; font-size: 13px; margin: 8px 4px 0; }
+.style-tile small { display: block; font-size: 11.5px; color: var(--on-card-3); margin: 1px 4px 0; }
+.style-tile.on { border-color: #f3f3f3; background: var(--card-3); box-shadow: 0 0 0 1px #f3f3f3 inset; }
+.vid-title { font-size: 15px; line-height: 1.3; }
+.vid-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--on-card-3); margin-top: 4px; }
+
+/* ===================== Review ===================== */
+.guide { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; }
+.guide h2 { font-size: 28px; font-weight: 300; letter-spacing: -.02em; line-height: 1.1; }
+.guide p { color: var(--on-card-2); font-size: 13.5px; margin-top: 6px; max-width: 64ch; }
+.guide-steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.guide-steps a { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px 0 6px; border-radius: 999px; background: var(--card-2); font-size: 12.5px; color: var(--on-card-2); transition: color .2s, background .2s; }
+.guide-steps a:hover { color: #fff; background: var(--card-3); }
+.guide-steps a i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #2e2e2e; font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--on-card); }
+.player.shorts { aspect-ratio: 9 / 16; max-height: 72vh; margin: 0 auto; }
+.dl-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+.counter { font-family: var(--mono); font-size: 10.5px; color: var(--on-card-3); font-weight: 400; }
+.counter.over { color: var(--red); }
+.ideas { display: grid; gap: 4px; }
+.idea { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; padding: 9px 11px; border-radius: 10px; background: var(--card-2); font-size: 13px; transition: background .2s; }
+.idea:hover { background: var(--card-3); }
+.idea small { font-size: 11px; color: var(--on-card-3); display: block; }
+
+.score { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 16px; align-items: center; }
+.ring { position: relative; width: 84px; height: 84px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 7; }
+.ring .bg { stroke: #262626; }
+.ring .fg { stroke-linecap: round; transition: stroke-dashoffset 1s var(--snap), stroke .4s; }
+.ring div { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ring b { font-size: 24px; font-weight: 300; line-height: 1; }
+.ring small { font-size: 10px; color: var(--on-card-3); display: block; }
+.score-text b { font-weight: 500; font-size: 14px; display: block; }
+.score-text span { color: var(--on-card-2); font-size: 12.5px; }
+.checks { display: grid; gap: 6px; font-size: 12.5px; margin-top: 14px; }
+.check { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; color: #cfcfcf; }
+.check .mk { font-family: var(--mono); color: var(--amber); }
+.check.ok .mk { color: var(--green); }
+
+.tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.sections { display: grid; gap: 6px; }
+.section { border-radius: 10px; background: var(--card-2); overflow: hidden; }
+.section summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; font-size: 13px; }
+.section summary::-webkit-details-marker { display: none; }
+.section summary .n { font-family: var(--mono); font-size: 10px; color: var(--on-card-3); }
+.section p { padding: 0 12px 12px 48px; color: var(--on-card-2); font-size: 12.5px; line-height: 1.6; }
+.sources { display: grid; gap: 5px; }
+.source { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; font-size: 12.5px; }
+.source a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d6d6d6; }
+.source a:hover { color: #fff; }
+.progress { height: 4px; border-radius: 4px; background: #262626; overflow: hidden; margin-top: 12px; }
+.progress b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--violet), var(--green)); transition: width .4s; }
+
+/* ===================== Library ===================== */
+.lib-card { padding: 10px 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+.lib-card h4 { font-weight: 500; font-size: 14px; line-height: 1.3; padding: 0 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
+.lib-meta { padding: 0 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--on-card-3); }
+.lib-actions { padding: 0 4px; display: flex; gap: 6px; margin-top: auto; }
+
+/* ===================== Floating bars ===================== */
+.savebar {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(160%); z-index: 60;
+  display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 16px; border-radius: 999px;
+  background: var(--surface); box-shadow: var(--neu-out), 0 0 0 1px rgba(0,0,0,.05), 0 12px 40px rgba(0,0,0,.18);
+  transition: transform .5s var(--snap); font-size: 13px; color: #333; white-space: nowrap;
+}
+.savebar.show { transform: translateX(-50%); }
+.savebar .btn-dark { background: #111; color: #fff; box-shadow: var(--key); }
+.savebar .btn-light { color: #333; }
+.savebar i { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); }
+
+.toasts { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); z-index: 100; display: grid; gap: 8px; justify-items: center; pointer-events: none; }
+.toast { padding: 10px 18px; border-radius: 999px; background: #111; color: #fff; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.25); animation: toast-in .45s var(--snap) both; max-width: 90vw; }
+.toast.err { background: #2a0d12; color: #ffb3bb; }
+.toast.ok::before { content: "● "; color: var(--green); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(.96); } }
+
+/* ===================== Responsive ===================== */
+@media (max-width: 1180px) {
+  .s6, .s8, .s10 { grid-column: span 12; }
+  .s4 { grid-column: span 8; }
+  .s14, .s16 { grid-column: span 24; }
+  .r2 { grid-row: auto; }
+  .brand small { display: none; }
+}
+@media (max-width: 760px) {
+  :root { --pad: 12px; }
+  .view > * { grid-column: 1 / -1 !important; }
+  .view > .s4 { grid-column: span 12 !important; }
+  .topbar { grid-template-columns: auto 1fr auto; gap: 8px; }
+  .tabs { justify-self: center; overflow-x: auto; max-width: 100%; }
+  .tabs a { padding: 6px 11px; }
+  .status-pill, .settings-btn em { display: none; }
+  .how { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trend-list { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .done-box { grid-template-columns: 1fr; }
+  .hero { padding: 22px 18px; }
+  .ask-box { padding-left: 16px; }
+  .btn-go { padding: 0 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
 </style>
 </head>
 <body>
 
-<div class="app">
+<header class="topbar">
+  <a class="brand" href="#home"><b>YAAS</b><small>youtube-agentic-ai-studio</small></a>
+  <nav class="tabs" id="tabs">
+    <span class="tabs-indicator" id="tabs-indicator"></span>
+    <a href="#home" data-view="home">Home</a>
+    <a href="#review" data-view="review">Review &amp; publish<span class="dot"></span></a>
+    <a href="#library" data-view="library">My videos</a>
+  </nav>
+  <div class="bar-right">
+    <div class="status-pill" id="status-pill"><i></i><span id="status-text">Ready</span></div>
+    <a class="settings-btn" id="settings-btn" href="#settings" title="Settings"><span><i></i><i></i><i></i><i></i></span><em>Settings</em></a>
+  </div>
+</header>
 
-  <!-- ── Top bar ── -->
-  <header class="topbar">
-    <div class="logo">🎬 <span>Fractured</span> Timelines Studio</div>
-    <div class="topbar-right">
-      <span id="status-chip" class="chip chip-idle">● Idle</span>
+<main>
+
+<!-- ════════════════════════ HOME ════════════════════════ -->
+<section class="view" id="view-home">
+
+  <article class="card s16 hero" id="hero">
+    <div class="hero-grid"></div>
+
+    <!-- Idle: ask for a topic -->
+    <div id="hero-form">
+      <h1 class="hello"><span data-t="Hello,">Hello,</span><span data-t="Creator">Creator</span></h1>
+      <p class="hero-sub">Type an idea. YAAS researches it, writes the script, records a voiceover, finds visuals and renders a finished YouTube video, free.</p>
+
+      <div class="ask">
+        <form class="ask-box" id="ask-form" autocomplete="off">
+          <input type="text" id="topic-input" placeholder="What's your video about?  e.g. Why time slows down near black holes">
+          <button class="btn-go" type="submit">Make video →</button>
+        </form>
+        <div class="ask-row">
+          <div class="or">no idea yet? <button class="surprise" type="button" id="surprise-btn"><b>✦</b> Let AI pick a topic</button></div>
+          <div class="seg" id="format-seg" title="Video format">
+            <button data-fmt="normal" class="on" type="button">Long video · 6–8 min</button>
+            <button data-fmt="shorts" type="button">Short · 60 s</button>
+          </div>
+        </div>
+      </div>
+
+      <details class="more" style="margin-top:18px">
+        <summary>More options</summary>
+        <div class="more-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px 24px">
+          <div class="field">
+            <div class="label">Voice <small>✓ = captions synced word by word</small></div>
+            <select id="quick-voice">
+              <option value="en-US-AndrewNeural">Andrew — US, warm ✓</option>
+              <option value="en-GB-LibbyNeural">Libby — UK, clear ✓</option>
+              <option value="en-US-BrianNeural">Brian — US, calm</option>
+              <option value="en-US-GuyNeural">Guy — US, neutral</option>
+              <option value="en-GB-RyanNeural">Ryan — UK, warm</option>
+              <option value="en-US-ChristopherNeural">Christopher — US, deep</option>
+              <option value="en-US-AriaNeural">Aria — US, expressive</option>
+              <option value="en-GB-SoniaNeural">Sonia — UK, clear</option>
+              <option value="en-AU-NatashaNeural">Natasha — AU</option>
+            </select>
+          </div>
+          <div class="field" style="margin-top:0">
+            <div class="label">When AI picks the topic <small>stay within a theme</small></div>
+            <select id="focus-angle">
+              <option value="">Any theme from my channel</option>
+              <option>Theoretical Physics &amp; Time Travel</option>
+              <option>The Dark Forest Theory &amp; Aliens</option>
+              <option>Existential Human Psychology &amp; Illusions</option>
+              <option>Frightening AI Futures &amp; Simulation Theory</option>
+              <option>Mind-bending Mathematical Paradoxes</option>
+              <option>The limits of Human Biology &amp; Immortality</option>
+              <option>Quantum Mechanics &amp; Alternate Realities</option>
+              <option>Cosmic scale, Black Holes, and the end of the Universe</option>
+              <option>Neuroscience &amp; the Mystery of Consciousness</option>
+              <option>Ancient Civilisations &amp; Lost History</option>
+              <option>Cutting-edge Biotechnology &amp; Genetic Engineering</option>
+              <option>The Future of Space Colonisation</option>
+            </select>
+          </div>
+          <div>
+            <label class="toggle first"><span><b>Check facts</b><small>Look up Wikipedia &amp; arXiv first and cite them</small></span><input type="checkbox" id="quick-grounding" checked><span class="switch"></span></label>
+            <label class="toggle"><span><b>Use today's trends</b><small>When AI picks, ride a trending story if it fits</small></span><input type="checkbox" id="quick-trends" checked><span class="switch"></span></label>
+          </div>
+          <div class="field" style="margin-top:0">
+            <div class="label">Redo only some steps <small>to re-render your last video</small></div>
+            <div class="chips" id="steps">
+              <label class="chip on"><input type="checkbox" value="research" checked>Research</label>
+              <label class="chip on"><input type="checkbox" value="script" checked>Script</label>
+              <label class="chip on"><input type="checkbox" value="images" checked>Visuals</label>
+              <label class="chip on"><input type="checkbox" value="narration" checked>Voice</label>
+              <label class="chip on"><input type="checkbox" value="music" checked>Music</label>
+              <label class="chip on"><input type="checkbox" value="video" checked>Render</label>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="how">
+        <div><b>STEP 1</b><span>You give a topic, or let AI pick one</span></div>
+        <div><b>STEP 2</b><span>AI researches, checks facts &amp; writes</span></div>
+        <div><b>STEP 3</b><span>Voice, visuals &amp; video are made for you</span></div>
+        <div><b>STEP 4</b><span>You review, tweak and publish</span></div>
+      </div>
     </div>
-  </header>
 
-  <!-- ── Sidebar ── -->
-  <aside class="sidebar">
-    <div class="section-label">Pipeline</div>
+    <!-- Running / finished / failed -->
+    <div id="hero-run" hidden>
+      <div class="prog-head">
+        <div>
+          <div class="prog-title" id="run-title">Making your video…</div>
+          <div class="prog-topic" id="run-topic">Starting up</div>
+        </div>
+        <button class="btn btn-red btn-sm" id="stop-btn">Stop</button>
+      </div>
+      <div id="run-progress">
+        <div class="prog-bar"><b id="prog-fill"></b></div>
+        <div class="prog-meta"><span id="prog-step">Getting ready…</span><span id="prog-time"></span></div>
+        <div class="steps-list" id="steps-list"></div>
+        <p class="hint" style="margin-top:12px">You can leave this page open and do something else. It keeps going in the background.</p>
+      </div>
+      <div id="run-done" hidden></div>
+      <div id="run-error" hidden></div>
+      <details class="more" id="log-details" style="margin-top:auto;padding-top:16px">
+        <summary>Show technical log</summary>
+        <div class="more-body console" id="console"><span class="l-dim">// waiting for output</span></div>
+      </details>
+    </div>
+  </article>
 
-    <div class="stage pending" id="stage-research">
-      <div class="stage-icon">1</div>
+  <div class="col s8">
+    <article class="card">
+      <div class="card-label"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Your setup</div>
+      <div class="ready-meter"><strong id="ready-num">–</strong><span id="ready-text">checking…</span></div>
+      <div id="checklist"></div>
+    </article>
+
+    <article class="card">
+      <div class="card-label"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Your latest video</div>
+      <div id="latest"><div class="empty" style="min-height:110px">Your videos will show up here.</div></div>
+    </article>
+  </div>
+
+  <article class="card s16">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Need an idea? Trending today</div>
+    <div class="card-tools"><span class="card-note" id="trend-age"></span><button class="icon-btn" id="trend-refresh" title="Refresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button></div>
+    <p class="card-intro">Click any idea to use it as your topic. Pulled live from news, science papers and search trends.</p>
+    <div class="src-filter" id="src-filter"></div>
+    <div class="trend-list" id="trend-list"><div class="empty" style="grid-column:1/-1">Loading what's trending…</div></div>
+  </article>
+
+  <article class="card s8">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Your stats</div>
+    <div class="card-tools"><span class="card-note" id="pulse-src"></span></div>
+    <div class="stat-row" id="pulse-stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+    <div class="bars" id="pulse-bars"></div>
+    <div class="bars-foot" id="pulse-foot"><span></span><span></span></div>
+    <p class="hint" id="pulse-hint" style="margin-top:10px"></p>
+  </article>
+
+  <article class="card s24">
+    <div class="card-label"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Connected services <span class="count" id="api-count">–</span></div>
+    <div class="card-tools"><button class="btn btn-ghost btn-xs" id="api-probe">Test connections</button></div>
+    <details class="more" id="api-details">
+      <summary>See the free services YAAS uses. Green = working. Most need no account at all.</summary>
+      <div class="more-body api-grid" id="api-grid"></div>
+    </details>
+  </article>
+</section>
+
+<!-- ════════════════════════ REVIEW ════════════════════════ -->
+<section class="view" id="view-review">
+
+  <article class="card s24 flat" id="review-empty" hidden>
+    <div class="empty" style="min-height:320px">
+      <div style="font-size:28px;font-weight:300;color:var(--on-card)">No video to review yet</div>
+      <div>Make one on Home. When it's done it appears here, ready to polish and publish.</div>
+      <div style="display:flex;gap:8px;justify-content:center"><a class="btn btn-white" href="#home">Make a video</a><a class="btn btn-ghost" href="#library">Open a past video</a></div>
+    </div>
+  </article>
+
+  <article class="card s24 flat review-part">
+    <div class="guide">
       <div>
-        <div class="stage-name">Research</div>
+        <h2>Review &amp; publish</h2>
+        <p>Watch your video, polish the title, description and thumbnail, then upload it. Nothing goes to YouTube until you press Upload.</p>
+      </div>
+      <nav class="guide-steps">
+        <a href="#rv-watch"><i>1</i>Watch</a>
+        <a href="#rv-title"><i>2</i>Title</a>
+        <a href="#rv-desc"><i>3</i>Description &amp; tags</a>
+        <a href="#rv-thumb"><i>4</i>Thumbnail</a>
+        <a href="#rv-publish"><i>5</i>Publish</a>
+      </nav>
+    </div>
+  </article>
+
+  <article class="card s14 review-part" id="rv-watch">
+    <div class="card-label"><span class="num">1</span>Watch it</div>
+    <div class="card-tools"><span class="card-note" id="review-src"></span></div>
+    <div class="thumb-frame player contain" id="player"></div>
+    <div class="dl-row">
+      <span class="hint" style="margin-right:4px">Download:</span>
+      <a class="btn btn-ghost btn-sm" id="dl-video" href="/video?download=1">Video (MP4)</a>
+      <a class="btn btn-ghost btn-sm" id="dl-thumb" href="/thumbnail?download=1">Thumbnail</a>
+      <a class="btn btn-ghost btn-sm" id="dl-srt" href="/captions?download=1">Captions (SRT)</a>
+    </div>
+  </article>
+
+  <div class="col s10 review-part">
+    <article class="card" id="rv-title">
+      <div class="card-label"><span class="num">2</span>Title</div>
+      <div class="field">
+        <div class="label">Video title <span class="counter" id="title-count">0/70</span></div>
+        <input type="text" id="edit-title" placeholder="Video title…">
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="title-lab-btn">✦ Suggest better titles</button>
+        <span class="hint">6 options based on what people search</span>
+      </div>
+      <div class="ideas" id="ideas" style="margin-top:10px"></div>
+    </article>
+
+    <article class="card">
+      <div class="card-label"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>How easy is it to find?</div>
+      <div class="score">
+        <div class="ring"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="seo-ring" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="263.9"/></svg><div><span><b id="seo-num">–</b><small>/ 100</small></span></div></div>
+        <div class="score-text"><b id="seo-verdict">—</b><span id="seo-sub">Updates as you edit the title, description and tags.</span></div>
+      </div>
+      <div class="checks" id="seo-checks"></div>
+    </article>
+  </div>
+
+  <article class="card s14 review-part" id="rv-desc">
+    <div class="card-label"><span class="num">3</span>Description &amp; tags</div>
+    <div class="field">
+      <div class="label">Description <span style="display:flex;gap:10px;align-items:center"><span class="counter" id="desc-count">0/5000</span><button class="btn btn-ghost btn-xs" id="regen-desc">✦ Rewrite with AI</button></span></div>
+      <textarea id="edit-desc" rows="12" placeholder="Video description…"></textarea>
+      <div class="hint">Chapters, sources and image credits are added for you. Keep them: they help viewers, and some images require credit.</div>
+    </div>
+    <div class="field">
+      <div class="label">Tags <span class="counter" id="tag-count">0/500</span></div>
+      <div class="tags" id="tag-list"></div>
+      <input type="text" id="new-tag" placeholder="Type a tag and press Enter">
+    </div>
+    <div class="field">
+      <div class="label">Popular searches <small>click one to add it as a tag</small></div>
+      <div class="chips" id="kw-chips"></div>
+    </div>
+  </article>
+
+  <article class="card s10 review-part" id="rv-thumb">
+    <div class="card-label"><span class="num">4</span>Thumbnail</div>
+    <div class="thumb-frame" id="thumb-wrap"></div>
+
+    <div class="field" style="margin-top:16px">
+      <div class="label">Text on the thumbnail <small>2–5 words work best</small></div>
+      <div class="row2"><input type="text" id="thumb-text" maxlength="60" placeholder="e.g. Time *stops* here"><button class="btn btn-ghost btn-sm" id="thumb-ideas-btn" style="height:auto">✦ Ideas</button></div>
+      <div class="hint">Put <span class="mono" style="color:var(--on-card)">*stars*</span> around a word to make it pop. Leave empty to use your title.</div>
+      <div class="chips" id="thumb-ideas"></div>
+    </div>
+
+    <div class="field">
+      <div class="label">Style <small>click one to use it</small></div>
+      <div class="styles" id="thumb-styles"></div>
+    </div>
+
+    <div class="field">
+      <div class="label">Background <small id="bg-note"></small></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="bg-prev">← Previous photo</button>
+        <button class="btn btn-ghost btn-sm" id="bg-next">Next photo →</button>
+        <button class="btn btn-ghost btn-sm" id="bg-ai">✦ New AI artwork</button>
       </div>
     </div>
-    <div class="stage pending" id="stage-script">
-      <div class="stage-icon">2</div>
-      <div class="stage-name">Script</div>
-    </div>
-    <div class="stage pending" id="stage-images">
-      <div class="stage-icon">3</div>
-      <div class="stage-name">Images</div>
-    </div>
-    <div class="stage pending" id="stage-narration">
-      <div class="stage-icon">4</div>
-      <div class="stage-name">Narration</div>
-    </div>
-    <div class="stage pending" id="stage-video">
-      <div class="stage-icon">5</div>
-      <div class="stage-name">Video</div>
-    </div>
+  </article>
 
-    <div class="divider" style="margin:8px"></div>
-
-    <div class="yt-panel">
-      <div class="section-label" style="padding:0 0 8px">YouTube</div>
-      <div class="yt-row">
-        <div class="yt-dot bad" id="yt-secret-dot"></div>
-        <span id="yt-secret-label">client_secret.json</span>
+  <article class="card s14 review-part" id="rv-publish">
+    <div class="card-label"><span class="num">5</span>Publish to YouTube</div>
+    <div id="yt-setup" class="hint" style="margin-bottom:14px"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+      <div class="field">
+        <div class="label">When</div>
+        <div class="seg full" id="upload-seg"><button data-um="now" class="on">Right now</button><button data-um="schedule">Schedule</button></div>
       </div>
-      <div class="yt-row" style="margin-bottom:0">
-        <div class="yt-dot bad" id="yt-token-dot"></div>
-        <span id="yt-token-label">Auth token</span>
+      <div class="field" style="margin-top:0" id="upane-now">
+        <div class="label">Who can see it</div>
+        <select id="upload-privacy"><option value="public">Everyone (public)</option><option value="unlisted">Anyone with the link (unlisted)</option><option value="private">Only me (private)</option></select>
+      </div>
+      <div class="field" style="margin-top:0" id="upane-schedule" hidden>
+        <div class="label">Goes public at</div>
+        <input type="datetime-local" id="schedule-dt">
       </div>
     </div>
-  </aside>
+    <button class="btn btn-green btn-lg btn-block" id="upload-btn" style="margin-top:16px">Upload to YouTube</button>
+    <div class="progress" id="upload-progress" hidden><b id="upload-fill"></b></div>
+    <div class="hint" id="upload-status" style="margin-top:8px"></div>
+  </article>
 
-  <!-- ── Main ── -->
-  <main class="main">
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('generate')">🚀 Generate</div>
-      <div class="tab" onclick="switchTab('review')">🎬 Review & Edit</div>
-      <div class="tab" onclick="switchTab('settings')">⚙️ Settings</div>
-    </div>
+  <article class="card s10 review-part">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Script &amp; sources</div>
+    <details class="more">
+      <summary>Read the script, section by section</summary>
+      <div class="more-body sections" id="sections"></div>
+    </details>
+    <div id="review-sources" style="margin-top:16px"></div>
+  </article>
+</section>
 
-    <!-- ════ GENERATE TAB ════ -->
-    <div class="tab-content active" id="tab-generate">
-      <div class="gen-layout">
+<!-- ════════════════════════ LIBRARY ════════════════════════ -->
+<section class="view" id="view-library">
+  <article class="card s24">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M16 5l3.8-1 3 15.5-3.8 1z"/></svg>My videos</div>
+    <p class="card-intro">Every video you finish is saved here automatically. Open one to edit and publish it.</p>
+    <div class="stat-row" id="lib-stats"></div>
+    <div class="bars" id="lib-bars" style="height:70px"></div>
+    <div class="bars-foot"><span>60 days ago</span><span>videos made per day</span><span>today</span></div>
+  </article>
+  <div id="lib-grid" style="display:contents"></div>
+</section>
 
-        <!-- Options panel -->
-        <div class="gen-options">
-          <!-- ══ Topic / Focus selector ══ -->
-          <div id="topic-section">
+<!-- ════════════════════════ SETTINGS ════════════════════════ -->
+<section class="view" id="view-settings">
 
-            <!-- Mode toggle -->
-            <div class="field-label" style="margin-bottom:8px">Topic Mode</div>
-            <div style="display:flex;gap:0;border:1px solid var(--border,#333);border-radius:8px;overflow:hidden;margin-bottom:12px">
-              <button id="mode-ai" onclick="setTopicMode('ai')"
-                style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;cursor:pointer;
-                       background:var(--primary,#6366f1);color:#fff;transition:background .2s">
-                🤖 AI Picks
-              </button>
-              <button id="mode-manual" onclick="setTopicMode('manual')"
-                style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;cursor:pointer;
-                       background:var(--surface,#1a1a2e);color:var(--muted,#888);transition:background .2s">
-                ✏️ I Pick
-              </button>
-            </div>
-
-            <!-- AI mode panel -->
-            <div id="panel-ai">
-              <div class="field-label" style="margin-bottom:4px">Focus Theme</div>
-              <select id="focus-angle-select" style="margin-bottom:6px"
-                      onchange="document.getElementById('focus-angle-custom').style.display=this.value==='__custom__'?'block':'none'">
-                <option value="">🎲 Random (AI surprises you)</option>
-                <option value="Theoretical Physics &amp; Time Travel">⏱ Theoretical Physics &amp; Time Travel</option>
-                <option value="The Dark Forest Theory &amp; Aliens">👽 Dark Forest Theory &amp; Aliens</option>
-                <option value="Existential Human Psychology &amp; Illusions">🧠 Existential Psychology &amp; Illusions</option>
-                <option value="Frightening AI Futures &amp; Simulation Theory">🤖 Frightening AI Futures</option>
-                <option value="Mind-bending Mathematical Paradoxes">♾ Mathematical Paradoxes</option>
-                <option value="The limits of Human Biology &amp; Immortality">🧬 Human Biology &amp; Immortality</option>
-                <option value="Quantum Mechanics &amp; Alternate Realities">⚛ Quantum Mechanics &amp; Alternate Realities</option>
-                <option value="Cosmic scale, Black Holes, and the end of the Universe">🌌 Black Holes &amp; End of Universe</option>
-                <option value="Neuroscience &amp; the Mystery of Consciousness">🔬 Neuroscience &amp; Consciousness</option>
-                <option value="Ancient Civilisations &amp; Lost History">🏛 Ancient Civilisations &amp; Lost History</option>
-                <option value="Cutting-edge Biotechnology &amp; Genetic Engineering">🧪 Biotech &amp; Genetic Engineering</option>
-                <option value="The Future of Space Colonisation">🚀 Future of Space Colonisation</option>
-                <option value="__custom__">✏️ Custom theme…</option>
-              </select>
-              <input type="text" id="focus-angle-custom"
-                     placeholder="Describe your custom theme…"
-                     style="display:none;margin-bottom:6px">
-              <div class="help-text">AI will pick the best specific topic within this theme, avoiding banned topics.</div>
-            </div>
-
-            <!-- Manual mode panel -->
-            <div id="panel-manual" style="display:none">
-              <div class="field-label" style="margin-bottom:4px">Exact Topic</div>
-              <input type="text" id="topic-input"
-                     placeholder="e.g. Why black holes might be the key to time travel">
-              <div class="help-text">Gemini will write a script about <strong>this exact topic</strong> — no creative substitution.</div>
-            </div>
-
-          </div>
-
-          <div>
-            <div class="field-label">Steps to run</div>
-            <div class="steps-grid">
-              <label class="step-check"><input type="checkbox" id="step-research" checked> 🔍 Research</label>
-              <label class="step-check"><input type="checkbox" id="step-script" checked> ✍️ Script</label>
-              <label class="step-check"><input type="checkbox" id="step-images" checked> 🖼 Images</label>
-              <label class="step-check"><input type="checkbox" id="step-narration" checked> 🎙 Narration</label>
-              <label class="step-check"><input type="checkbox" id="step-music" checked> 🎵 Music <span style="font-size:10px;opacity:0.6">(library)</span></label>
-              <label class="step-check"><input type="checkbox" id="step-video" checked> 🎞 Render Video</label>
-            </div>
-            <div class="help-text" style="margin-top:8px">Uncheck steps to skip and reuse previous output. Useful after rejecting a video to just re-render a different section.</div>
-          </div>
-
-          <div>
-            <div class="field-label">Voice<br><span style="font-size:10px;font-weight:400;color:var(--success,#4ade80)">✓ = word-synced captions</span></div>
-            <select id="quick-voice" onchange="applyQuickVoice(this.value)">
-              <option value="en-US-AndrewNeural">Andrew (US, Warm) ✓</option>
-              <option value="en-US-BrianNeural">Brian (US, Calm)</option>
-              <option value="en-GB-LibbyNeural">Libby (UK, Clear) ✓</option>
-              <option value="en-US-GuyNeural">Guy (US, Neutral)</option>
-              <option value="en-GB-RyanNeural">Ryan (UK, Warm)</option>
-              <option value="en-US-AriaNeural">Aria (US, Female)</option>
-              <option value="en-GB-SoniaNeural">Sonia (UK, Female)</option>
-              <option value="en-US-ChristopherNeural">Christopher (US, Deep)</option>
-            </select>
-          </div>
-
-          <div>
-            <div class="field-label">Video privacy</div>
-            <select id="quick-privacy">
-              <option value="public">Public</option>
-              <option value="unlisted">Unlisted</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
-
-          <div>
-            <div class="field-label">Video Format</div>
-            <div style="display:flex;gap:8px">
-              <button id="fmt-normal" class="fmt-btn fmt-active" onclick="setFormat('normal')">
-                <span style="font-size:16px">📺</span>
-                <span>
-                  <div style="font-weight:700;font-size:12px">Normal Video</div>
-                  <div style="font-size:10px;color:var(--muted)">16:9 · 6-8 min · 1920×1080</div>
-                </span>
-              </button>
-              <button id="fmt-shorts" class="fmt-btn" onclick="setFormat('shorts')">
-                <span style="font-size:16px">📱</span>
-                <span>
-                  <div style="font-weight:700;font-size:12px">YouTube Shorts</div>
-                  <div style="font-size:10px;color:var(--muted)">9:16 · ~60 sec · 1080×1920</div>
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
-            <button class="btn btn-primary btn-full" id="gen-btn" onclick="startGeneration()" style="padding:13px">
-              🚀 Generate Full Video
-            </button>
-            <button class="btn btn-danger" id="stop-btn" onclick="stopPipeline()"
-                    style="padding:13px 16px;display:none" title="Stop after current step">
-              ⏹ Stop
-            </button>
-          </div>
-          <button class="btn btn-ghost btn-full" onclick="clearConsole()">Clear Console</button>
-        </div>
-
-        <!-- Console -->
-        <div class="gen-console">
-          <div class="console-bar">
-            <span>Console</span>
-            <span id="console-status" class="chip chip-idle">Idle</span>
-          </div>
-          <div class="console-body" id="console"></div>
-        </div>
+  <article class="card s24 flat">
+    <div class="guide">
+      <div>
+        <h2>Settings</h2>
+        <p>YAAS works without any keys. Free keys make scripts and photos better and let you publish. Keys stay on this computer in a <span class="mono">.env</span> file.</p>
       </div>
     </div>
+  </article>
 
-    <!-- ════ REVIEW TAB ════ -->
-    <div class="tab-content" id="tab-review">
-      <div class="review-layout">
+  <article class="card s12 r2">
+    <div class="card-label"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Free API keys</div>
+    <p class="card-intro">All optional. The first one makes the biggest difference.</p>
+    <div id="key-fields"></div>
+  </article>
 
-        <!-- Left: video + thumbnail -->
-        <div class="review-left">
-          <div>
-            <div class="field-label" style="margin-bottom:8px">Video Preview</div>
-            <div class="video-wrap" id="video-wrap">
-              <div class="no-video">
-                <span style="font-size:32px">🎬</span>
-                <span>Generate a video first</span>
-              </div>
-            </div>
-          </div>
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Your channel</div>
+    <div class="field"><div class="label">Channel name</div><input type="text" id="s-channel_name" placeholder="Your YouTube channel name"></div>
+    <label class="toggle" style="margin-top:6px"><span><b>Show channel name in videos</b><small>“▶ NAME” tag in the intro, on Shorts and on thumbnails</small></span><input type="checkbox" id="s-show_brand"><span class="switch"></span></label>
+    <div class="field" id="brand-field" style="margin-top:4px"><div class="label">Text to show <small>optional, defaults to channel name</small></div><input type="text" id="s-brand_text" placeholder="Same as channel name"><div class="hint" id="brand-preview"></div></div>
+    <div class="field"><div class="label">Default thumbnail style <small>change it per video on Review</small></div>
+      <select id="s-thumb_style">
+        <option value="impact">Impact — huge outlined text, classic YouTube</option>
+        <option value="cinematic">Cinematic — full-bleed photo, film letterbox</option>
+        <option value="split">Split — bold colour panel + angled photo</option>
+        <option value="studio">Studio — clean dark card, light type</option>
+      </select></div>
+    <div class="field"><div class="label">What your channel is about</div><textarea id="s-channel_desc" rows="5"></textarea><div class="hint">The AI uses this to pick topics and match your style. Be specific about subjects, tone and audience.</div></div>
+  </article>
 
-          <div>
-            <div class="flex-row" style="margin-bottom:8px">
-              <div class="field-label" style="margin:0">Thumbnail</div>
-              <button class="btn btn-ghost" style="padding:5px 12px;font-size:11px" onclick="regenThumbnail()">↻ Regenerate</button>
-            </div>
-            <div class="thumb-wrap" id="thumb-wrap">
-              <div class="no-thumb">No thumbnail yet</div>
-            </div>
-            <div class="help-text" style="margin-top:6px">Thumbnail is auto-generated from your title + stock image. Edit the title on the right and click ↻ Regenerate to update it.</div>
-          </div>
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>Voice</div>
+    <div class="field">
+      <div class="label">Narrator</div>
+      <select id="s-voice_id">
+        <optgroup label="Captions synced word by word">
+          <option value="en-US-AndrewNeural">Andrew — US, warm male</option>
+          <option value="en-GB-LibbyNeural">Libby — UK, clear female</option>
+        </optgroup>
+        <optgroup label="Captions synced by sentence">
+          <option value="en-US-BrianNeural">Brian — US, calm male</option>
+          <option value="en-US-GuyNeural">Guy — US, neutral male</option>
+          <option value="en-GB-RyanNeural">Ryan — UK, warm male</option>
+          <option value="en-US-ChristopherNeural">Christopher — US, deep male</option>
+          <option value="en-US-AriaNeural">Aria — US, expressive female</option>
+          <option value="en-GB-SoniaNeural">Sonia — UK, clear female</option>
+          <option value="en-AU-NatashaNeural">Natasha — AU, female</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field"><div class="label">Speed</div><div class="range-row"><input type="range" id="r-voice_rate" min="-20" max="20"><span id="v-voice_rate"></span></div></div>
+    <div class="field"><div class="label">Pitch</div><div class="range-row"><input type="range" id="r-voice_pitch" min="-10" max="10"><span id="v-voice_pitch"></span></div></div>
+  </article>
 
-          <div id="video-info" style="display:none">
-            <div class="field-label" style="margin-bottom:6px">Video info</div>
-            <div style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px">
-              <div>Topic: <span id="info-topic" style="color:var(--dim)"></span></div>
-              <div>Hook: <span id="info-hook" style="color:var(--dim)"></span></div>
-            </div>
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Music &amp; publishing</div>
+    <label class="toggle first"><span><b>Background music</b><small>Drop MP3s into the <span class="mono">music library</span> folder</small></span><input type="checkbox" id="s-music_enabled"><span class="switch"></span></label>
+    <label class="toggle"><span><b>Credit YAAS in descriptions</b><small>Adds “Made with YAAS by Raunak Patil · raunakpatil.com”</small></span><input type="checkbox" id="s-credit_yaas"><span class="switch"></span></label>
+    <div class="field"><div class="label">Music volume</div><div class="range-row"><input type="range" id="r-music_volume" min="0" max="100"><span id="v-music_volume"></span></div></div>
+    <div class="field"><div class="label">Default visibility</div>
+      <select id="s-privacy"><option value="public">Everyone (public)</option><option value="unlisted">Anyone with the link (unlisted)</option><option value="private">Only me (private)</option></select></div>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Topics to avoid</div>
+    <p class="card-intro">One per line. The AI never picks these. Add a topic after you've covered it so you don't repeat yourself.</p>
+    <textarea id="s-banned" rows="6" class="mono" placeholder="The Fermi Paradox&#10;Dark Matter"></textarea>
+    <button class="btn btn-ghost btn-sm" id="save-banned" style="margin-top:10px">Save list</button>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Advanced</div>
+    <details class="more">
+      <summary>AI models, image sources and video style</summary>
+      <div class="more-body">
+        <label class="toggle first"><span><b>Free backup AI</b><small>If every other AI fails, Pollinations writes the script (no key)</small></span><input type="checkbox" id="s-keyless_llm"><span class="switch"></span></label>
+        <label class="toggle"><span><b>Check facts</b><small>Wikipedia + arXiv lookups before writing</small></span><input type="checkbox" id="s-fact_grounding"><span class="switch"></span></label>
+        <div class="field" style="margin-top:12px">
+          <div class="label">Image sources after Pexels <small>tried in this order</small></div>
+          <div class="chips" id="img-sources">
+            <label class="chip"><input type="checkbox" value="pixabay">Pixabay</label>
+            <label class="chip"><input type="checkbox" value="nasa">NASA</label>
+            <label class="chip"><input type="checkbox" value="openverse">Openverse (CC)</label>
+            <label class="chip"><input type="checkbox" value="pollinations">AI-generated</label>
           </div>
         </div>
-
-        <!-- Right: edit panel + upload -->
-        <div class="review-right">
-          <div class="edit-panel">
-            <div class="field-label" style="margin-bottom:4px">Video Title</div>
-            <input type="text" id="edit-title" placeholder="Video title…" oninput="markDirty()">
-            <div class="help-text">Keep under 70 characters for best YouTube display.</div>
-
-            <div>
-              <div class="flex-row" style="margin-bottom:6px">
-                <div class="field-label" style="margin:0">Description</div>
-                <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="regenDescription()">✨ AI Rewrite</button>
-              </div>
-              <textarea id="edit-desc" rows="12" style="font-size:12px" placeholder="Video description…" oninput="markDirty()"></textarea>
-            </div>
-
-            <div>
-              <div class="field-label" style="margin-bottom:6px">Tags <span style="color:var(--muted);font-weight:400">(click to remove)</span></div>
-              <div class="tag-list" id="tag-list"></div>
-              <input type="text" id="new-tag" placeholder="Add tag, press Enter" style="margin-top:8px"
-                     onkeydown="if(event.key==='Enter')addTag(this.value.trim())&&(this.value='')">
-            </div>
-
-            <button class="btn btn-primary btn-full" id="save-btn" onclick="saveEdits()" disabled>Save Changes</button>
-
-            <div id="sections-list">
-              <div class="field-label" style="margin-bottom:6px">Script Sections</div>
-              <div id="sections-inner" style="display:flex;flex-direction:column;gap:4px"></div>
-            </div>
-          </div>
-
-          <div class="upload-section">
-            <div style="font-size:12px;font-weight:600;color:var(--dim);margin-bottom:10px">Upload to YouTube</div>
-
-            <!-- Tab switcher -->
-            <div style="display:flex;gap:4px;margin-bottom:10px">
-              <button class="upload-mode-btn active" id="utab-now" onclick="switchUploadMode('now')">Upload Now</button>
-              <button class="upload-mode-btn" id="utab-schedule" onclick="switchUploadMode('schedule')">📅 Schedule</button>
-            </div>
-
-            <!-- Upload Now pane -->
-            <div id="upane-now">
-              <div class="upload-row">
-                <select id="upload-privacy" style="flex:1">
-                  <option value="public">Public</option>
-                  <option value="unlisted">Unlisted</option>
-                  <option value="private">Private</option>
-                </select>
-                <button class="btn btn-success" id="upload-btn" onclick="uploadToYouTube()">
-                  ▲ Upload
-                </button>
-              </div>
-            </div>
-
-            <!-- Schedule pane -->
-            <div id="upane-schedule" style="display:none">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">
-                Video uploads immediately but goes public at the chosen date &amp; time.<br>
-                Requires a <strong style="color:var(--dim)">verified YouTube channel</strong>.
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px">
-                <input type="datetime-local" id="schedule-datetime" style="font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);padding:7px 10px;outline:none;width:100%;color-scheme:dark">
-                <div class="upload-row">
-                  <select id="schedule-privacy" style="flex:1">
-                    <option value="public">Public at scheduled time</option>
-                    <option value="unlisted">Unlisted at scheduled time</option>
-                  </select>
-                  <button class="btn btn-amber" id="schedule-btn" onclick="scheduleUpload()">
-                    📅 Schedule
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="progress-bar-wrap" id="upload-progress-wrap" style="display:none">
-              <div class="progress-bar-fill" id="upload-progress-fill" style="width:0%"></div>
-            </div>
-            <div id="upload-status" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
-            <div id="yt-url-wrap" style="display:none;margin-top:6px">
-              <a id="yt-url-link" class="url-link" target="_blank"></a>
-            </div>
-          </div>
+        <div class="field"><div class="label">Gemini model to try first</div>
+          <select id="s-gemini_model">
+            <option value="gemini-2.5-flash">gemini-2.5-flash — best quality</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — fast + smart</option>
+            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash — most free quota</option>
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite — fastest</option>
+            <option value="gemma-3-27b-it">gemma-3-27b-it</option>
+          </select></div>
+        <div class="field"><div class="label">Groq model</div><input type="text" id="s-groq_model"></div>
+        <div class="field"><div class="label">OpenRouter model</div><input type="text" id="s-openrouter_model"></div>
+        <div class="field"><div class="label">Trending ideas from</div>
+          <select id="s-trends_geo"><option value="US">United States</option><option value="GB">United Kingdom</option><option value="IN">India</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option><option value="BR">Brazil</option><option value="JP">Japan</option></select></div>
+        <div class="field"><div class="label">Render quality</div>
+          <select id="s-render_preset"><option value="ultrafast">Fast (bigger file)</option><option value="veryfast">Balanced</option><option value="medium">Best (about 3× slower)</option></select></div>
+        <div class="field"><div class="label">Darken images behind text</div><div class="range-row"><input type="range" id="r-overlay" min="0" max="100"><span id="v-overlay"></span></div></div>
+        <div class="field"><div class="label">Seconds per image</div><div class="range-row"><input type="range" id="r-broll_interval" min="4" max="30"><span id="v-broll_interval"></span></div></div>
+        <div class="field"><div class="label">Crossfade length</div><div class="range-row"><input type="range" id="r-broll_xfade" min="2" max="20"><span id="v-broll_xfade"></span></div></div>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><div class="label">Zoom start</div><input type="text" id="s-kb_start"></div>
+          <div class="field" style="margin-top:0"><div class="label">Zoom end</div><input type="text" id="s-kb_end"></div>
         </div>
       </div>
-    </div>
+    </details>
+  </article>
+</section>
 
-    <!-- ════ SETTINGS TAB ════ -->
-    <div class="tab-content" id="tab-settings">
-      <div class="settings-scroll">
+</main>
 
-        <!-- ── API Keys ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">🔑 API Keys <span class="caret">▾</span></div>
-          <div class="settings-body">
-            <div class="settings-field">
-              <div class="field-label">Gemini API Key</div>
-              <input type="text" id="s-gemini" placeholder="Your Gemini API key">
-            </div>
-            <div class="settings-field">
-              <div class="field-label">Pexels API Key</div>
-              <input type="text" id="s-pexels" placeholder="Your Pexels API key">
-            </div>
-            <div class="help-text">Keys are saved to config.py. Get Gemini free at <strong>aistudio.google.com</strong>, Pexels at <strong>pexels.com/api</strong>.</div>
-          </div>
-        </div>
+<footer class="foot">
+  <span><b style="font-weight:500;color:var(--ink)">YAAS</b> <span class="mono">youtube-agentic-ai-studio</span></span>
+  <span>made by <a href="https://raunakpatil.com" target="_blank" rel="noopener">Raunak Patil · raunakpatil.com</a></span>
+  <a href="https://github.com/raunakpatil/youtube-agentic-ai-studio" target="_blank" rel="noopener">GitHub</a>
+</footer>
 
-        <!-- ── Channel ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">📺 Channel <span class="caret">▾</span></div>
-          <div class="settings-body">
-            <div class="settings-field">
-              <div class="field-label">Channel Name</div>
-              <input type="text" id="s-channel-name">
-            </div>
-            <div class="settings-field">
-              <div class="field-label">Channel Description</div>
-              <textarea id="s-channel-desc" rows="5" style="font-size:12px"></textarea>
-              <div class="help-text">Tells the AI what kind of videos to make. Be specific about topics, style, and audience.</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Voice ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">🎙 Voice (Edge TTS — Free) <span class="caret">▾</span></div>
-          <div class="settings-body">
-            <div class="settings-field">
-              <div class="field-label">Voice</div>
-              <select id="s-voice">
-                <optgroup label="✓ Word-synced captions (best quality)">
-                  <option value="en-US-AndrewNeural">Andrew (US, Warm male)</option>
-                  <option value="en-GB-LibbyNeural">Libby (UK, Clear female)</option>
-                </optgroup>
-                <optgroup label="Sentence-level captions (good quality)">
-                  <option value="en-US-BrianNeural">Brian (US, Calm male)</option>
-                  <option value="en-US-GuyNeural">Guy (US, Neutral male)</option>
-                  <option value="en-GB-RyanNeural">Ryan (UK, Warm male)</option>
-                  <option value="en-US-ChristopherNeural">Christopher (US, Deep male)</option>
-                  <option value="en-US-AriaNeural">Aria (US, Expressive female)</option>
-                  <option value="en-GB-SoniaNeural">Sonia (UK, Clear female)</option>
-                  <option value="en-AU-NatashaNeural">Natasha (AU, female)</option>
-                </optgroup>
-              </select>
-            </div>
-            <div class="settings-cols">
-              <div class="settings-field">
-                <div class="field-label">Speed</div>
-                <div class="range-row">
-                  <input type="range" id="s-voice-rate-range" min="-20" max="20" value="-5"
-                         oninput="document.getElementById('s-voice-rate').value=this.value+'%';document.getElementById('s-voice-rate-val').textContent=this.value+'%'">
-                  <span class="range-val" id="s-voice-rate-val">-5%</span>
-                </div>
-                <input type="hidden" id="s-voice-rate" value="-5%">
-              </div>
-              <div class="settings-field">
-                <div class="field-label">Pitch</div>
-                <div class="range-row">
-                  <input type="range" id="s-voice-pitch-range" min="-10" max="10" value="-3"
-                         oninput="document.getElementById('s-voice-pitch').value=this.value+'Hz';document.getElementById('s-voice-pitch-val').textContent=this.value+'Hz'">
-                  <span class="range-val" id="s-voice-pitch-val">-3Hz</span>
-                </div>
-                <input type="hidden" id="s-voice-pitch" value="-3Hz">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── AI Model ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">🤖 AI Model <span class="caret">▾</span></div>
-          <div class="settings-body">
-            <div class="settings-field">
-              <div class="field-label">Starting Model</div>
-              <select id="s-model">
-                <option value="gemini-2.5-flash">gemini-2.5-flash — highest quality (500 req/day free)</option>
-                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — fast + smart</option>
-                <option value="gemma-4-31b-it">gemma-4-31b-it — Gemma 4 31B (strong reasoning, free)</option>
-                <option value="gemini-2.0-flash" selected>gemini-2.0-flash — recommended (1500 req/day free)</option>
-                <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite — fastest (1500 req/day free)</option>
-                <option value="gemma-3-27b-it">gemma-3-27b-it — Gemma 3 27B</option>
-                <option value="gemini-1.5-flash-001">gemini-1.5-flash-001 — reliable fallback</option>
-                <option value="gemini-1.5-pro-001">gemini-1.5-pro-001 — pro quality fallback</option>
-              </select>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
-                The chain starts here and automatically falls back through all remaining models
-                if quota or errors are hit — so generation always completes.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Video Style ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">🎨 Video Style <span class="caret">▾</span></div>
-          <div class="settings-body">
-
-            <div class="settings-field">
-              <div class="field-label">Overlay Opacity</div>
-              <div class="range-row">
-                <input type="range" id="s-overlay" min="0" max="100" value="62"
-                       oninput="document.getElementById('s-overlay-val').textContent=this.value+'%'">
-                <span class="range-val" id="s-overlay-val">62%</span>
-              </div>
-              <div class="help-text">Higher = darker overlay = easier to read text but less image visible.</div>
-            </div>
-
-            <div class="settings-field">
-              <div class="field-label">Render Quality</div>
-              <select id="s-render-preset">
-                <option value="ultrafast">⚡ Fast (ultrafast) — quickest, larger file</option>
-                <option value="veryfast">⚖️ Balanced (veryfast) — recommended</option>
-                <option value="medium">🎬 High Quality (medium) — best quality, ~3× slower</option>
-              </select>
-            </div>
-
-            <div class="settings-cols">
-              <div class="settings-field">
-                <div class="field-label">Ken Burns Zoom Start</div>
-                <input type="text" id="s-kb-start" value="1.00">
-              </div>
-              <div class="settings-field">
-                <div class="field-label">Ken Burns Zoom End</div>
-                <input type="text" id="s-kb-end" value="1.10">
-              </div>
-            </div>
-
-            <div class="settings-field">
-              <div class="field-label">B-roll Interval</div>
-              <div class="range-row">
-                <input type="range" id="s-broll-interval" min="4" max="30" step="1" value="10"
-                       oninput="document.getElementById('s-broll-interval-val').textContent=this.value+'s'">
-                <span class="range-val" id="s-broll-interval-val">10s</span>
-              </div>
-              <div class="help-text">How long each background image stays on screen before crossfading. Lower = more dynamic.</div>
-            </div>
-
-            <div class="settings-field">
-              <div class="field-label">B-roll Crossfade Duration</div>
-              <div class="range-row">
-                <input type="range" id="s-broll-xfade" min="2" max="20" step="1" value="12"
-                       oninput="document.getElementById('s-broll-xfade-val').textContent=(this.value/10).toFixed(1)+'s'">
-                <span class="range-val" id="s-broll-xfade-val">1.2s</span>
-              </div>
-              <div class="help-text">Must be less than the interval above.</div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- ── Background Music ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">🎵 Background Music <span style="font-size:10px;font-weight:400;color:var(--muted);margin-left:4px">(local library)</span> <span class="caret">▾</span></div>
-          <div class="settings-body">
-            <div class="settings-field">
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-                <input type="checkbox" id="s-music-enabled" checked style="accent-color:var(--primary);width:16px;height:16px;flex-shrink:0">
-                <span style="font-size:13px">Add background music from local library</span>
-              </label>
-            </div>
-            <div class="settings-field">
-              <div class="field-label">Volume</div>
-              <div class="range-row">
-                <input type="range" id="s-music-vol" min="0" max="100" value="12"
-                       oninput="document.getElementById('s-music-vol-val').textContent=this.value+'%'">
-                <span class="range-val" id="s-music-vol-val">12%</span>
-              </div>
-              <div class="help-text">
-                <span style="color:var(--green)">0–15%</span> subtle &nbsp;·&nbsp;
-                <span style="color:#f59e0b">16–35%</span> noticeable &nbsp;·&nbsp;
-                <span style="color:var(--red)">36–100%</span> prominent
-              </div>
-            </div>
-            <div class="help-text">Drop MP3 or WAV files into the <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">music library/</code> folder. Tracks are shuffled and looped to match video length exactly.</div>
-          </div>
-        </div>
-
-        <!-- ── Banned Topics ── -->
-        <div class="settings-section">
-          <div class="settings-header" onclick="toggleSection(this)">🚫 Banned Topics <span class="caret">▾</span></div>
-          <div class="settings-body">
-            <div class="help-text" style="margin-bottom:4px">
-              Topics listed here are excluded from AI research. Add a topic after you make a video so you never repeat yourself.<br>
-              Built-in banned: <em>Boltzmann Brain, Simulation Theory, Quantum Immortality</em> — always applied, don't list them again.
-            </div>
-            <textarea id="s-banned-topics" rows="6" style="font-size:12px;font-family:monospace"
-                      placeholder="One topic per line, e.g:&#10;The Fermi Paradox&#10;Dark Matter&#10;String Theory"></textarea>
-            <div style="display:flex;align-items:center;gap:10px">
-              <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="saveBannedTopics()">💾 Save Banned Topics</button>
-              <span id="banned-msg" style="font-size:12px;color:var(--green);display:none">✓ Saved</span>
-            </div>
-            <div class="help-text">You can also directly edit <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">banned_topics.txt</code>. Changes take effect on the next Research run.</div>
-          </div>
-        </div>
-
-        <!-- ── Save ── -->
-        <div style="display:flex;gap:10px;padding-bottom:8px">
-          <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button>
-          <button class="btn btn-ghost" onclick="loadSettings()">↺ Reload</button>
-        </div>
-        <div id="settings-msg" style="font-size:12px;color:var(--green);display:none">✓ Settings saved</div>
-
-      </div>
-    </div>
-  </main>
+<div class="savebar" id="savebar">
+  <i></i><span>Unsaved changes</span>
+  <button class="btn btn-light btn-sm" id="savebar-undo">Undo</button>
+  <button class="btn btn-dark btn-sm" id="savebar-save">Save</button>
 </div>
+<div class="toasts" id="toasts"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════
-//  TAB SWITCHING
-// ══════════════════════════════════════════════════════════
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['generate','review','settings'];
-    t.classList.toggle('active', names[i] === name);
-  });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  if (name === 'review') {
-    loadReviewData();
-    // Pre-fill schedule datetime to tomorrow 9am if blank
-    const dtEl = document.getElementById('schedule-datetime');
-    if (dtEl && !dtEl.value) {
-      const t = new Date(); t.setDate(t.getDate()+1); t.setHours(9,0,0,0);
-      dtEl.value = t.toISOString().slice(0,16);
-    }
-  }
-  if (name === 'settings') loadSettings();
+/* ═══════════════════════════ helpers ═══════════════════════════ */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M" : n >= 1e4 ? Math.round(n / 1e3) + "K" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(n ?? 0);
+const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+async function api(url, body, method) {
+  const opt = body !== undefined ? { method: method || "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : (method ? { method } : {});
+  const r = await fetch(url, opt);
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+function toast(msg, kind = "") {
+  const t = document.createElement("div");
+  t.className = "toast " + kind; t.textContent = msg;
+  $("#toasts").appendChild(t);
+  setTimeout(() => { t.style.transition = "opacity .4s"; t.style.opacity = 0; setTimeout(() => t.remove(), 400); }, 3800);
+}
+function busy(btn, on, label) {
+  if (on) { btn.dataset.label = btn.innerHTML; btn.disabled = true; if (label) btn.textContent = label; }
+  else { btn.disabled = false; if (btn.dataset.label) btn.innerHTML = btn.dataset.label; }
+}
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  return s < 60 ? "just now" : s < 3600 ? Math.round(s / 60) + " min ago" : s < 86400 ? Math.round(s / 3600) + " h ago" : new Date(iso).toLocaleDateString();
 }
 
-// ══════════════════════════════════════════════════════════
-//  CONSOLE HELPERS
-// ══════════════════════════════════════════════════════════
-const cons = document.getElementById('console');
-function _log(msg, cls='log-info') {
-  const el = document.createElement('div');
-  el.className = cls;
-  // Pretty-format known prefixes
-  if (msg.startsWith('[ERROR]'))  el.className = 'log-error';
-  else if (msg.startsWith('[WARN]')) el.className = 'log-warn';
-  else if (msg.includes('✅') || msg.includes('done') || msg.includes('saved'))
-    el.className = 'log-success';
-  else if (msg.startsWith('[STAGE]')) {
-    el.className = 'log-stage';
-    const [name, status] = msg.replace('[STAGE] ','').split(':');
-    msg = `Stage: ${name} → ${status}`;
-  }
-  el.textContent = msg;
-  cons.appendChild(el);
-  cons.scrollTop = cons.scrollHeight;
+// the site's spectrum: yellow → orange → red → pink → violet → blue → mint
+const SPECTRUM = ["#f5d742", "#ff9a3d", "#ff4d6d", "#ff70f3", "#a98bff", "#5cc8ff", "#38ffb3"].map(h => h.match(/\w\w/g).map(x => parseInt(x, 16)));
+function spectrum(t, a = 1) {
+  const x = Math.max(0, Math.min(.9999, t)) * (SPECTRUM.length - 1), i = Math.floor(x), f = x - i;
+  const c = SPECTRUM[i].map((v, k) => Math.round(v + (SPECTRUM[i + 1][k] - v) * f));
+  return `rgba(${c.join(",")},${a})`;
 }
-function clearConsole() { cons.innerHTML = ''; }
-
-// ══════════════════════════════════════════════════════════
-//  PIPELINE
-// ══════════════════════════════════════════════════════════
-let _es = null;
-let _pollInterval = null;
-
-// ── Video format toggle ───────────────────────────────────
-let _videoType = 'normal';
-
-function setTopicMode(mode) {
-  const isAI = mode === 'ai';
-  // Toggle button styles
-  document.getElementById('mode-ai').style.background     = isAI ? 'var(--primary,#6366f1)' : 'var(--surface,#1a1a2e)';
-  document.getElementById('mode-ai').style.color          = isAI ? '#fff' : 'var(--muted,#888)';
-  document.getElementById('mode-manual').style.background = isAI ? 'var(--surface,#1a1a2e)' : 'var(--primary,#6366f1)';
-  document.getElementById('mode-manual').style.color      = isAI ? 'var(--muted,#888)' : '#fff';
-  // Show correct panel
-  document.getElementById('panel-ai').style.display     = isAI ? 'block' : 'none';
-  document.getElementById('panel-manual').style.display = isAI ? 'none'  : 'block';
+function drawBars(el, values, tips = []) {
+  const max = Math.max(1, ...values);
+  el.innerHTML = values.map((v, i) => {
+    const t = i / Math.max(1, values.length - 1), h = v ? 12 + 88 * v / max : 4;
+    return `<i style="height:${h}%;background:linear-gradient(to top, ${spectrum(t)}, ${spectrum(t, v ? .7 : .4)});opacity:${v ? 1 : .3}" ${tips[i] ? `data-tip="${esc(tips[i])}"` : ""}></i>`;
+  }).join("");
 }
 
-function setFormat(type) {
-  _videoType = type;
-  document.getElementById('fmt-normal').classList.toggle('fmt-active', type === 'normal');
-  document.getElementById('fmt-shorts').classList.toggle('fmt-active', type === 'shorts');
-  // Update generate button label
-  document.getElementById('gen-btn').textContent =
-    type === 'shorts' ? '📱 Generate YouTube Short' : '🚀 Generate Full Video';
-  // Update manual mode placeholder for Shorts vs Normal
-  const manualInput = document.getElementById('topic-input');
-  if (manualInput) {
-    manualInput.placeholder = type === 'shorts'
-      ? 'e.g. Why the universe has no centre'
-      : 'e.g. Why black holes might be the key to time travel';
-  }
+/* ═══════════════════════════ navigation ═══════════════════════════ */
+const VIEWS = ["home", "review", "library", "settings"];
+const loaders = {};
+function moveIndicator() {
+  const a = $("#tabs a.active"), ind = $("#tabs-indicator");
+  if (!a) { ind.style.width = "0"; return; }
+  ind.style.width = a.offsetWidth + "px";
+  ind.style.transform = `translateX(${a.offsetLeft}px)`;
+}
+function route() {
+  const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
+  $$(".view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
+  $$("#tabs a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
+  $("#settings-btn").classList.toggle("active", v === "settings");
+  if (v === "review") $("#tabs a[data-view=review]").classList.remove("notify");
+  $("#savebar").classList.remove("show");
+  moveIndicator();
+  loaders[v] && loaders[v]();
+  window.scrollTo({ top: 0 });
+}
+window.addEventListener("hashchange", route);
+window.addEventListener("resize", moveIndicator);
+// the numbered step links on Review scroll within the page
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href^="#rv-"]');
+  if (a) { e.preventDefault(); $(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" }); }
+});
+
+/* ═══════════════════════════ making a video ═══════════════════════════ */
+const STEPS = [
+  ["research",  "Researching the topic",   "Picking the angle and checking facts"],
+  ["script",    "Writing the script",      "Hook, story and a strong ending"],
+  ["images",    "Finding visuals",         "Photos and artwork for every scene"],
+  ["narration", "Recording the voiceover", "Natural AI voice with synced captions"],
+  ["video",     "Rendering the video",     "The slow part, usually 2–10 minutes"],
+];
+let status = {}, es = null, heroMode = "form", runSteps = [], videoType = "normal", lastRunError = "", lastRequest = null;
+
+function setHero(mode) {
+  heroMode = mode;
+  $("#hero-form").hidden = mode !== "form";
+  $("#hero-run").hidden = mode === "form";
+  $("#run-progress").hidden = mode !== "running";
+  $("#run-done").hidden = mode !== "done";
+  $("#run-error").hidden = mode !== "error";
+  $("#stop-btn").hidden = mode !== "running";
 }
 
-function startGeneration() {
-  const steps = [];
-  if (document.getElementById('step-research').checked)  steps.push('research');
-  if (document.getElementById('step-script').checked)    steps.push('script');
-  if (document.getElementById('step-images').checked)    steps.push('images');
-  if (document.getElementById('step-narration').checked) steps.push('narration');
-  if (document.getElementById('step-music').checked)     steps.push('music');
-  if (document.getElementById('step-video').checked)     steps.push('video');
+function renderRun(d) {
+  const stages = d.stages || {};
+  let doneCount = 0, current = null, total = 0;
+  $("#steps-list").innerHTML = STEPS.map(([k, title, sub]) => {
+    let s = stages[k] || "pending";
+    if (runSteps.length && !runSteps.includes(k)) s = "skipped"; else total++;
+    if (s === "done") doneCount++;
+    if (s === "running") current = title;
+    const ic = { done: "✓", error: "!", skipped: "–" }[s] || "";
+    const label = { done: "done", running: "working…", error: "failed", skipped: "reused" }[s] || "";
+    return `<div class="step" data-s="${s}"><span class="ic">${ic}</span><div><b>${title}</b><small>${sub}</small></div><em>${label}</em></div>`;
+  }).join("");
+  total = total || 5;
+  $("#prog-fill").style.width = Math.min(100, (doneCount + (current ? .5 : 0)) / total * 100) + "%";
+  $("#prog-step").textContent = current ? `Step ${Math.min(total, doneCount + 1)} of ${total}: ${current.toLowerCase()}` : d.running ? "Getting ready…" : "";
+  $("#prog-time").textContent = d.started_at ? clock(Date.now() / 1000 - d.started_at) + " so far" : "";
+}
 
-  // Build topic payload from whichever mode is active
-  let topic       = '';
-  let focus_angle = '';
-  const mode = document.getElementById('panel-manual').style.display === 'none' ? 'ai' : 'manual';
-  if (mode === 'manual') {
-    topic = (document.getElementById('topic-input').value || '').trim();
-  } else {
-    const sel = document.getElementById('focus-angle-select').value;
-    if (sel === '__custom__') {
-      focus_angle = (document.getElementById('focus-angle-custom').value || '').trim();
-    } else {
-      focus_angle = sel;   // empty string = random; named string = specific angle
-    }
+function applyStatus(d) {
+  const was = status.running;
+  status = d;
+  const state = d.running ? "running" : d.error ? "error" : d.has_video ? "done" : "idle";
+  $("#status-pill").className = "status-pill " + state;
+  $("#status-text").textContent = d.uploading ? "Uploading…" : d.running ? "Making video…" : d.error ? "Last run failed" : "Ready";
+  if (d.running) {
+    if (heroMode !== "running") setHero("running");
+    renderRun(d);
+    if (!es) startSSE();
   }
+  if (was && !d.running) onFinished(d);
+}
+async function pollStatus() {
+  try { applyStatus(await api("/api/status")); } catch (e) { }
+  setTimeout(pollStatus, status.running || status.uploading ? 1500 : 5000);
+}
+const pollOnce = () => api("/api/status").then(applyStatus).catch(() => {});
 
-  clearConsole();
-  setRunning(true);
-
-  fetch('/api/run', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({steps, topic, focus_angle, video_type: _videoType})
-  }).then(r => r.json()).then(d => {
-    if (!d.ok) { _log('Error: '+d.error, 'log-error'); setRunning(false); return; }
-    _log('Pipeline started…');
-    startSSE();
-  });
+async function onFinished(d) {
+  renderRun(d);
+  loadLibrary();
+  const msg = d.error || lastRunError;
+  if (msg) {
+    const failed = STEPS.find(([k]) => (d.stages || {})[k] === "error");
+    const quota = /429|quota|RESOURCE_EXHAUSTED|All .*failed/i.test(msg);
+    $("#run-title").textContent = "That didn't work";
+    $("#run-topic").textContent = "";
+    $("#run-error").innerHTML = `<div class="err-box"><b>Stopped at: ${failed ? failed[1].toLowerCase() : "a step"}</b>${esc(msg.slice(0, 400))}
+      <div style="margin-top:8px;color:#d9a8ae">${quota ? "The free AI ran out of quota. Wait a minute and try again, or add a free key in Settings for more quota."
+        : "Try again. If it keeps happening, the technical log below has the details."}</div></div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn btn-white" onclick="retry()">Try again</button><button class="btn btn-ghost" onclick="setHero('form')">Change topic</button><a class="btn btn-ghost" href="#settings">Settings</a></div>`;
+    setHero("error");
+    $("#log-details").open = true;
+    return;
+  }
+  if (!d.has_video || (lastRequest && !lastRequest[2].includes("video"))) {
+    setHero("form");
+    if (d.stop_requested) toast("Stopped");
+    return;
+  }
+  const out = await api("/api/output").catch(() => ({}));
+  $("#run-title").textContent = "Your video is ready";
+  $("#run-topic").textContent = "";
+  $("#run-done").innerHTML = `<div class="done-box">
+      <div class="thumb-frame">${d.has_thumb ? `<img src="/thumbnail/${Date.now()}" alt="">` : ""}</div>
+      <div><div style="font-size:20px;line-height:1.25">${esc(out.title || "")}</div>
+        <p class="hint" style="margin:8px 0 16px">${out.sources && out.sources.length ? `Fact-checked against ${out.sources.length} sources. ` : ""}Next: watch it, polish the title and thumbnail, then publish.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-white btn-lg" href="#review">Review &amp; publish →</a><button class="btn btn-ghost btn-lg" onclick="setHero('form')">Make another</button></div></div>
+    </div>`;
+  setHero("done");
+  $("#tabs a[data-view=review]").classList.add("notify");
+  toast("Your video is ready", "ok");
 }
 
 function startSSE() {
-  if (_es) _es.close();
-  _es = new EventSource('/api/stream');
-  _es.onmessage = e => {
-    const d = JSON.parse(e.data);
-    if (d.kind === 'ping') return;
-    if (d.kind === 'stage') {
-      const [name, status] = d.msg.split(':');
-      updateStage(name, status);
-      _log(`[STAGE] ${name}:${status}`, 'log-stage');
-    } else if (d.kind === 'log') {
-      _log(d.msg);
-    } else if (d.kind === 'done') {
-      setRunning(false);
-      _log('✅ All done! Switch to Review & Edit tab.', 'log-success');
-      _es.close();
-      pollStatus();
-    } else if (d.kind === 'stopped') {
-      setRunning(false);
-      document.getElementById('stop-btn').disabled = false;
-      document.getElementById('stop-btn').textContent = '⏹ Stop';
-      _log('⏹ Pipeline stopped.', 'log-warn');
-      _es.close();
-    } else if (d.kind === 'error') {
-      setRunning(false);
-      _log('❌ '+d.msg, 'log-error');
-      _es.close();
+  if (es) es.close();
+  es = new EventSource("/api/stream");
+  es.onmessage = ev => {
+    const d = JSON.parse(ev.data);
+    if (d.kind === "log") log(d.msg);
+    else if (d.kind === "stage") pollOnce();
+    else if (d.kind === "research") showTopic();
+    else if (["done", "error", "stopped"].includes(d.kind)) {
+      if (d.kind === "error") lastRunError = d.msg;
+      es.close(); es = null; pollOnce();
     }
   };
-  _es.onerror = () => { _es.close(); setRunning(false); };
+  es.onerror = () => { es && es.close(); es = null; };
+}
+async function showTopic() {
+  const r = await api("/api/research").catch(() => null);
+  if (r && r.title) $("#run-topic").innerHTML = `“${esc(r.title)}”${r.sources.length ? ` <span class="tag green" style="margin-left:6px">${r.sources.length} sources found</span>` : ""}`;
+}
+function log(msg) {
+  const c = $("#console");
+  if (c.firstElementChild && c.firstElementChild.classList.contains("l-dim")) c.innerHTML = "";
+  let cls = "";
+  if (/\[ERROR\]|ERROR|Traceback|❌/.test(msg)) cls = "l-err";
+  else if (/⚠|\[WARN\]/.test(msg)) cls = "l-warn";
+  else if (/✅|complete|saved|Uploaded|Saved to Library/i.test(msg)) cls = "l-ok";
+  const line = document.createElement("div");
+  line.innerHTML = `<span class="t">${new Date().toTimeString().slice(0, 8)}</span><span class="${cls}">${esc(msg)}</span>`;
+  c.appendChild(line);
+  while (c.children.length > 600) c.firstChild.remove();
+  c.scrollTop = c.scrollHeight;
 }
 
-function setRunning(running) {
-  document.getElementById('gen-btn').disabled = running;
-  document.getElementById('stop-btn').style.display = running ? '' : 'none';
-  document.getElementById('console-status').className = 
-    running ? 'chip chip-running' : 'chip chip-idle';
-  document.getElementById('console-status').textContent = 
-    running ? '⟳ Running' : 'Idle';
-  document.getElementById('status-chip').className =
-    running ? 'chip chip-running' : 'chip chip-idle';
-  document.getElementById('status-chip').textContent =
-    running ? '⟳ Running' : '● Idle';
+async function startRun(topic, surprise) {
+  const steps = $$("#steps input:checked").map(i => i.value);
+  if (!steps.length) return toast("Turn on at least one step under More options", "err");
+  if (!surprise && !topic) { $("#topic-input").focus(); return toast("Type a topic first, or let AI pick one"); }
+  lastRequest = [topic, surprise, steps];
+  runSteps = steps.length === 6 ? [] : steps;
+  lastRunError = "";
+  $("#console").innerHTML = "";
+  $("#log-details").open = false;
+  $("#run-title").textContent = "Making your video…";
+  $("#run-topic").textContent = surprise ? "AI is choosing a topic…" : `“${topic}”`;
+  setHero("running");
+  renderRun({ stages: {}, running: true });
+  const r = await api("/api/run", {
+    steps, topic: surprise ? "" : topic, video_type: videoType,
+    focus_angle: surprise ? $("#focus-angle").value : "",
+    use_trends: surprise && $("#quick-trends").checked,
+  }).catch(e => ({ ok: false, error: e.message }));
+  if (!r.ok) { setHero("form"); return toast(r.error, "err"); }
+  status.running = true;
+  startSSE(); pollOnce();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function retry() { lastRequest ? startRun(lastRequest[0], lastRequest[1]) : setHero("form"); }
+$("#ask-form").onsubmit = e => { e.preventDefault(); startRun($("#topic-input").value.trim(), false); };
+$("#surprise-btn").onclick = () => startRun("", true);
+$("#stop-btn").onclick = () => api("/api/stop", {}).then(() => { toast("Stopping after the current step…"); $("#run-title").textContent = "Stopping…"; });
+$$("#format-seg button").forEach(b => b.onclick = () => {
+  videoType = b.dataset.fmt;
+  $$("#format-seg button").forEach(x => x.classList.toggle("on", x === b));
+});
+$$("#steps .chip, #img-sources .chip").forEach(c => {
+  const input = $("input", c);
+  c.classList.toggle("on", input.checked);
+  input.addEventListener("change", () => c.classList.toggle("on", input.checked));
+});
+$("#quick-voice").onchange = e => api("/api/save-settings", { voice_id: e.target.value }).then(() => toast("Voice saved"));
+$("#quick-grounding").onchange = e => api("/api/save-settings", { fact_grounding: e.target.checked });
+
+/* ═══════════════════════════ home: trending ideas ═══════════════════════════ */
+const SRC_COLORS = { google: "#5cc8ff", wikipedia: "#f3f3f3", hackernews: "#ff9a3d", spaceflight: "#a98bff", arxiv: "#38ffb3" };
+const SRC_NAMES = { google: "Searches", wikipedia: "Wikipedia", hackernews: "Tech", spaceflight: "Space", arxiv: "Science papers" };
+let trends = null, trendSrc = "all";
+async function loadTrends(refresh) {
+  $("#trend-refresh").classList.add("spin");
+  try { trends = await api("/api/trends" + (refresh ? "?refresh=1" : "")); renderTrends(); }
+  catch (e) { $("#trend-list").innerHTML = `<div class="empty" style="grid-column:1/-1">Couldn't load trends. Check your internet connection.</div>`; }
+  $("#trend-refresh").classList.remove("spin");
+}
+function renderTrends() {
+  const ok = Object.entries(trends.sources).filter(([, s]) => s.ok && s.items.length);
+  $("#src-filter").innerHTML = `<span class="chip ${trendSrc === "all" ? "on" : ""}" data-k="all">All</span>` +
+    ok.map(([k, s]) => `<span class="chip ${trendSrc === k ? "on" : ""}" data-k="${k}"><i style="background:${SRC_COLORS[k]}"></i>${SRC_NAMES[k] || s.label}</span>`).join("");
+  $$("#src-filter .chip").forEach(c => c.onclick = () => { trendSrc = c.dataset.k; renderTrends(); });
+  const lists = ok.filter(([k]) => trendSrc === "all" || trendSrc === k).map(([k, s]) => s.items.map(it => ({ ...it, k })));
+  const items = [];
+  for (let i = 0; lists.some(l => l[i]); i++) lists.forEach(l => l[i] && items.push(l[i]));
+  $("#trend-list").innerHTML = items.slice(0, trendSrc === "all" ? 14 : 20).map(it =>
+    `<button class="trend-item" data-title="${esc(it.title)}" title="${esc(it.detail || it.title)}"><i style="background:${SRC_COLORS[it.k]}"></i><span>${esc(it.title)}</span><em>Use →</em></button>`).join("")
+    || `<div class="empty" style="grid-column:1/-1">Nothing here right now.</div>`;
+  $$("#trend-list .trend-item").forEach(el => el.onclick = () => useTopic(el.dataset.title));
+  const age = Math.round((Date.now() / 1000 - trends.fetched_at) / 60);
+  $("#trend-age").textContent = age < 1 ? "just updated" : `updated ${age} min ago`;
+}
+function useTopic(title) {
+  if (heroMode === "running") return toast("A video is already being made. Wait for it to finish");
+  setHero("form");
+  $("#topic-input").value = title;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  setTimeout(() => { $("#topic-input").focus(); $("#topic-input").select(); }, 350);
+  toast("Topic added. Edit it if you like, then press Make video");
+}
+$("#trend-refresh").onclick = () => loadTrends(true);
+
+/* ═══════════════════════════ home: setup, services, stats, latest ═══════════════════════════ */
+let providers = [], settings = {}, library = null;
+const SETUP_URL = "https://github.com/raunakpatil/youtube-agentic-ai-studio/blob/main/SETUP.md";
+function renderChecklist() {
+  if (!providers.length) return;
+  const P = id => providers.find(p => p.id === id) || {};
+  const gemini = P("gemini").ready, backup = P("groq").ready || P("openrouter").ready;
+  const named = settings.channel_name && settings.channel_name !== "My AI Channel";
+  const items = [
+    { ok: true, t: "Voiceover", s: "Built in, free, no setup" },
+    { ok: true, t: "Visuals", s: P("pexels").ready ? "Pexels + free image sources" : "Free image sources. Add Pexels for nicer photos" },
+    { ok: gemini || backup, opt: true, t: "Script writer", s: gemini ? "Gemini connected" : backup ? "Backup AI connected" : "Free backup AI works. A free Gemini key writes better scripts", act: !gemini && ["Add key", "#settings"] },
+    { ok: named, opt: true, t: "Channel name", s: named ? settings.channel_name : "Shown in your videos. Set it once", act: !named && ["Set name", "#settings"] },
+    { ok: P("youtube_upload").ready, t: "Publishing", s: P("youtube_upload").ready ? "Ready to upload" : "Only needed to upload from here. You can always download the MP4", act: !P("youtube_upload").ready && ["Guide", SETUP_URL] },
+  ];
+  const n = items.filter(i => i.ok).length;
+  $("#ready-num").textContent = `${n}/${items.length}`;
+  $("#ready-text").textContent = "ready. You can make a video now";
+  $("#checklist").innerHTML = items.map(i => `
+    <div class="ck ${i.ok ? "ok" : i.opt ? "opt" : ""}"><span class="ic">${i.ok ? "✓" : i.opt ? "!" : "○"}</span>
+      <div><b>${i.t}</b><small>${esc(i.s)}</small></div>
+      ${i.act ? `<a class="btn btn-ghost btn-xs" href="${i.act[1]}" ${i.act[1].startsWith("http") ? 'target="_blank" rel="noopener"' : ""}>${i.act[0]}</a>` : ""}</div>`).join("");
+}
+async function loadHealth(probe) {
+  const btn = $("#api-probe");
+  if (probe) { busy(btn, true, "Testing…"); $("#api-details").open = true; }
+  try {
+    providers = (await api("/api/health" + (probe ? "?probe=1" : ""))).providers;
+    const ready = providers.filter(p => p.ready && !(p.probe && !p.probe.ok)).length;
+    $("#api-count").textContent = `${ready} of ${providers.length} on`;
+    const groups = [...new Set(providers.map(p => p.group))];
+    const GROUP = { AI: "Writing", Media: "Voice & visuals", Research: "Research & ideas", Growth: "Growth & publishing" };
+    $("#api-grid").innerHTML = groups.map(g => `<div class="api-group">${GROUP[g] || g}</div>` +
+      providers.filter(p => p.group === g).map(p => {
+        const down = p.probe && !p.probe.ok;
+        const meta = down ? "offline" : p.probe ? `${p.probe.ms} ms` : p.keyless ? "free" : p.ready ? "connected" : "needs key";
+        return `<div class="api ${down ? "down" : p.ready ? "ready" : ""}" title="${esc(p.probe && p.probe.error || p.role)}"><i></i><div><b>${esc(p.name)}</b><small>${esc(p.role)}</small></div>${!p.ready && !p.keyless ? `<a class="tag amber" href="#settings">${meta}</a>` : `<span class="tag ${down ? "pink" : p.keyless ? "green" : ""}">${meta}</span>`}</div>`;
+      }).join("")).join("");
+    renderChecklist();
+  } catch (e) { }
+  if (probe) { busy(btn, false); toast("Connection test finished"); }
+}
+$("#api-probe").onclick = () => loadHealth(true);
+
+async function loadChannel() {
+  const lib = library || { totals: {}, activity: [] };
+  const ch = await api("/api/channel-stats").catch(() => null);
+  if (ch && ch.ok) {
+    $("#pulse-src").textContent = ch.title;
+    $("#pulse-stats").innerHTML = [[fmt(ch.subscribers), "subscribers"], [fmt(ch.views), "total views"], [fmt(ch.videos), "videos on YouTube"], [lib.totals.videos || 0, "made with YAAS"]]
+      .map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+    const recent = ch.recent.slice(-30);
+    drawBars($("#pulse-bars"), recent.map(v => v.views), recent.map(v => `${fmt(v.views)} views · ${v.title.slice(0, 36)}`));
+    $("#pulse-foot").innerHTML = `<span>views per video</span><span>newest →</span>`;
+    $("#pulse-hint").textContent = "";
+  } else {
+    $("#pulse-src").textContent = "";
+    $("#pulse-stats").innerHTML = [[lib.totals.videos || 0, "videos made"], [lib.totals.uploaded || 0, "published"], [lib.totals.shorts || 0, "shorts"], [lib.totals.minutes || 0, "minutes of video"]]
+      .map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+    drawBars($("#pulse-bars"), lib.activity.map(a => a.count), lib.activity.map(a => `${a.day}: ${a.count} video${a.count === 1 ? "" : "s"}`));
+    $("#pulse-foot").innerHTML = `<span>last 60 days</span><span>today</span>`;
+    $("#pulse-hint").innerHTML = ch && ch.configured ? `Couldn't reach YouTube: ${esc(ch.error || "")}` : `Want subscribers and views here? Add a free <a href="#settings">YouTube Data API key</a>.`;
+  }
+}
+function renderLatest() {
+  const m = library && library.items[0];
+  if (!m) { $("#latest").innerHTML = `<div class="empty" style="min-height:110px">Your videos will show up here.</div>`; return; }
+  $("#latest").innerHTML = `
+    <div class="thumb-frame ${m.video_type === "shorts" ? "tall" : ""}">${m.files.thumb ? `<img src="/library/${m.id}/thumbnail.jpg?t=${Date.now()}" alt="">` : ""}<span class="badge tag ${m.yt_url ? "green" : ""}">${m.yt_url ? "published" : m.video_type === "shorts" ? "short · not published" : "not published"}</span></div>
+    <div style="margin-top:10px"><div class="vid-title">${esc(m.title)}</div><div class="vid-meta"><span>${ago(m.created_at)}</span>${m.duration ? `<span>· ${clock(m.duration)}</span>` : ""}</div></div>
+    <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-white btn-sm" onclick="openProject('${m.id}')">Review &amp; publish</button>${m.yt_url ? `<a class="btn btn-ghost btn-sm" href="${esc(m.yt_url)}" target="_blank" rel="noopener">Watch on YouTube ↗</a>` : ""}</div>`;
 }
 
-function stopPipeline() {
-  const btn = document.getElementById('stop-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Stopping…';
-  fetch('/api/stop', {method: 'POST'})
-    .then(r => r.json())
-    .then(d => {
-      if (!d.ok) { btn.disabled = false; btn.textContent = '⏹ Stop'; }
-    });
+/* ═══════════════════════════ review ═══════════════════════════ */
+let tags = [], saved = null, thumbMode = "stock", uploadMode = "now";
+async function loadReview() {
+  const [st, d] = await Promise.all([api("/api/status"), api("/api/output")]);
+  const has = st.has_video;
+  $("#review-empty").hidden = has;
+  $$(".review-part").forEach(el => el.hidden = !has);
+  if (!has) return;
+  $("#player").classList.toggle("shorts", d.video_type === "shorts");
+  $("#player").innerHTML = `<video controls preload="metadata" src="/video?t=${Date.now()}"></video>`;
+  $("#thumb-wrap").innerHTML = st.has_thumb ? `<img src="/thumbnail/${Date.now()}" alt="Thumbnail">` : `<div class="empty">No thumbnail yet</div>`;
+  loadThumb();
+  $("#review-src").textContent = st.library_id ? "from My videos" : "";
+  $("#dl-thumb").hidden = !st.has_thumb;
+  $("#dl-srt").hidden = !st.has_captions;
+  saved = { title: d.title || "", desc: d.description || "", tags: [...(d.tags || [])] };
+  fillMeta(saved);
+  $("#sections").innerHTML = d.sections.map((s, i) => `
+    <details class="section"><summary><span class="n">${String(i + 1).padStart(2, "0")}</span><span>${esc(s.title || s.section_type || "Section")}</span><span class="tag">${esc(s.section_type || "")}</span></summary><p>${esc(s.narration || "")}</p></details>`).join("") || `<div class="hint">No script</div>`;
+  const credits = d.credits || [];
+  const bySrc = credits.reduce((a, c) => (a[c.source] = (a[c.source] || 0) + 1, a), {});
+  $("#review-sources").innerHTML = sourcesHTML(d.sources) +
+    (credits.length ? `<div class="label" style="margin:16px 0 8px">Where the images came from</div><div class="chips">${Object.entries(bySrc).map(([k, v]) => `<span class="chip" style="cursor:default">${esc(k)} <span class="count">${v}</span></span>`).join("")}</div>` : "");
+  $("#upload-status").innerHTML = st.yt_url ? `Already on YouTube: <a class="link" href="${esc(st.yt_url)}" target="_blank" rel="noopener">${esc(st.yt_url)}</a>` : "";
+  $("#ideas").innerHTML = "";
+  loadKeywords();
+  checkYt();
 }
-
-function updateStage(name, status) {
-  const el = document.getElementById('stage-'+name);
-  if (!el) return;
-  el.className = 'stage '+status;
-  const icons = {pending:'○', running:'⟳', done:'✓', error:'✗'};
-  el.querySelector('.stage-icon').textContent = icons[status] || status[0];
+function sourcesHTML(sources) {
+  if (!sources || !sources.length) return `<div class="hint">No fact-check sources for this video.</div>`;
+  return `<div class="label" style="margin-bottom:8px">Fact-checked against ${sources.length} sources <small>also listed in the description</small></div><div class="sources">${sources.map(s =>
+    `<div class="source"><span class="tag ${s.source === "arXiv" ? "green" : ""}">${esc(s.source)}</span><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></div>`).join("")}</div>`;
 }
-
-// ══════════════════════════════════════════════════════════
-//  STATUS POLL
-// ══════════════════════════════════════════════════════════
-function pollStatus() {
-  fetch('/api/status').then(r => r.json()).then(d => {
-    // Update all stages
-    for (const [name, status] of Object.entries(d.stages)) updateStage(name, status);
-    // Upload progress
-    if (d.uploading) {
-      document.getElementById('upload-progress-wrap').style.display = 'block';
-      document.getElementById('upload-progress-fill').style.width = d.upload_pct+'%';
-      document.getElementById('upload-status').textContent = `Uploading… ${d.upload_pct}%`;
-      setTimeout(pollStatus, 800);
-    } else if (d.upload_pct === 100 && d.yt_url) {
-      document.getElementById('upload-progress-fill').style.width = '100%';
-      document.getElementById('upload-status').textContent = 'Uploaded!';
-      document.getElementById('yt-url-wrap').style.display = 'block';
-      const link = document.getElementById('yt-url-link');
-      link.href = d.yt_url; link.textContent = d.yt_url;
-    }
-  });
+function fillMeta(m) {
+  $("#edit-title").value = m.title; $("#edit-desc").value = m.desc; tags = [...m.tags];
+  renderTags(); edited(true);
 }
-
-setInterval(pollStatus, 3000);
-
-// ══════════════════════════════════════════════════════════
-//  YOUTUBE STATUS
-// ══════════════════════════════════════════════════════════
-function checkYtStatus() {
-  fetch('/api/yt-status').then(r=>r.json()).then(d => {
-    const sd = document.getElementById('yt-secret-dot');
-    const sl = document.getElementById('yt-secret-label');
-    const td = document.getElementById('yt-token-dot');
-    const tl = document.getElementById('yt-token-label');
-    sd.className = 'yt-dot '+(d.secret?'ok':'bad');
-    sl.textContent = d.secret ? 'client_secret.json ✓' : 'client_secret.json missing';
-    td.className = 'yt-dot '+(d.token?'ok':'bad');
-    tl.textContent = d.token ? 'Auth token ✓' : 'Not authenticated';
-  });
+const currentMeta = () => ({ title: $("#edit-title").value, desc: $("#edit-desc").value, tags });
+const metaDirty = () => saved && JSON.stringify(currentMeta()) !== JSON.stringify(saved);
+let scoreTimer;
+function edited(quiet) {
+  const t = $("#edit-title").value.length, dl = $("#edit-desc").value.length, tl = tags.join(",").length;
+  $("#title-count").textContent = `${t}/70`; $("#title-count").classList.toggle("over", t > 70);
+  $("#desc-count").textContent = `${dl}/5000`; $("#desc-count").classList.toggle("over", dl > 5000);
+  $("#tag-count").textContent = `${tl}/500`; $("#tag-count").classList.toggle("over", tl > 500);
+  if (location.hash === "#review") $("#savebar").classList.toggle("show", !!metaDirty());
+  clearTimeout(scoreTimer); scoreTimer = setTimeout(scoreSEO, quiet ? 0 : 400);
 }
-checkYtStatus();
-setInterval(checkYtStatus, 10000);
-
-// ══════════════════════════════════════════════════════════
-//  REVIEW & EDIT
-// ══════════════════════════════════════════════════════════
-let _currentTags = [];
-let _dirty = false;
-
-function loadReviewData() {
-  // Video
-  fetch('/api/status').then(r=>r.json()).then(d => {
-    const vw = document.getElementById('video-wrap');
-    const tw = document.getElementById('thumb-wrap');
-    // Adapt aspect ratio for Shorts vs Normal
-    const isShorts = d.video_type === 'shorts';
-    if (vw) {
-      vw.style.aspectRatio = isShorts ? '9/16' : '16/9';
-      vw.style.maxWidth    = isShorts ? '340px' : '';
-      vw.style.margin      = isShorts ? '0 auto' : '';
-    }
-    if (tw) {
-      tw.style.aspectRatio = isShorts ? '9/16' : '16/9';
-      tw.style.maxWidth    = isShorts ? '340px' : '';
-      tw.style.margin      = isShorts ? '0 auto' : '';
-    }
-    if (d.has_video) {
-      vw.innerHTML = `<video controls><source src="/video?t=${Date.now()}" type="video/mp4"></video>`;
-    }
-    if (d.has_thumb) {
-      tw.innerHTML = `<img id="thumb-img" src="/thumbnail/${Date.now()}" alt="Thumbnail">`;
-    }
-  });
-  // Script data
-  fetch('/api/output').then(r=>r.json()).then(d => {
-    document.getElementById('edit-title').value  = d.title  || '';
-    document.getElementById('edit-desc').value   = d.description || '';
-    _currentTags = d.tags || [];
-    renderTags();
-    // Info
-    if (d.topic) {
-      document.getElementById('video-info').style.display = 'block';
-      document.getElementById('info-topic').textContent = d.topic;
-      document.getElementById('info-hook').textContent  = d.hook;
-    }
-    // Sections
-    const si = document.getElementById('sections-inner');
-    si.innerHTML = '';
-    (d.sections||[]).forEach(s => {
-      const el = document.createElement('div');
-      el.style.cssText='padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px';
-      el.innerHTML = `<span style="color:var(--accent);font-weight:600">[${s.id}]</span> <span style="color:var(--text)">${s.title||''}</span><div style="color:var(--muted);margin-top:2px;font-size:11px">${(s.narration||'').substring(0,80)}…</div>`;
-      si.appendChild(el);
-    });
-    _dirty = false;
-    document.getElementById('save-btn').disabled = true;
-  });
-}
-
 function renderTags() {
-  const tl = document.getElementById('tag-list');
-  tl.innerHTML = '';
-  _currentTags.forEach((tag, i) => {
-    const el = document.createElement('span');
-    el.className = 'tag';
-    el.textContent = '#'+tag;
-    el.onclick = () => { _currentTags.splice(i,1); renderTags(); markDirty(); };
-    tl.appendChild(el);
+  $("#tag-list").innerHTML = tags.map((t, i) => `<span class="chip" data-i="${i}" title="Remove">${esc(t)} <span class="x">×</span></span>`).join("") || `<span class="hint">No tags yet. Add some below.</span>`;
+  $$("#tag-list .chip").forEach(c => c.onclick = () => { tags.splice(+c.dataset.i, 1); renderTags(); edited(); });
+}
+function addTag(v) {
+  v = v.trim(); if (!v || tags.some(t => t.toLowerCase() === v.toLowerCase())) return;
+  tags.push(v); renderTags(); edited();
+}
+$("#edit-title").oninput = () => edited(); $("#edit-desc").oninput = () => edited();
+$("#new-tag").onkeydown = e => { if (e.key === "Enter") { addTag(e.target.value); e.target.value = ""; } };
+
+async function scoreSEO() {
+  if (!saved) return;
+  const r = await api("/api/seo", { title: $("#edit-title").value, description: $("#edit-desc").value, tags }).catch(() => null);
+  if (!r) return;
+  const col = r.score >= 85 ? "var(--green)" : r.score >= 70 ? "var(--blue)" : r.score >= 50 ? "var(--amber)" : "var(--pink)";
+  $("#seo-ring").style.strokeDashoffset = 263.9 * (1 - r.score / 100);
+  $("#seo-ring").style.stroke = col;
+  $("#seo-num").textContent = r.score;
+  $("#seo-verdict").textContent = r.score >= 85 ? "Great, ready to publish" : r.score >= 70 ? "Good, a few quick wins left" : r.score >= 50 ? "OK, try the tips below" : "Needs work before publishing";
+  const todo = r.checks.filter(c => !c.ok);
+  $("#seo-sub").textContent = todo.length ? `${todo.length} tip${todo.length > 1 ? "s" : ""} to improve it` : "Every check passes";
+  $("#seo-checks").innerHTML = todo.map(c => `<div class="check"><span class="mk">→</span><span>${esc(c.tip)}</span></div>`).join("") +
+    (r.checks.length - todo.length ? `<div class="check ok"><span class="mk">✓</span><span class="dim">${r.checks.length - todo.length} checks passed</span></div>` : "");
+}
+async function loadKeywords() {
+  $("#kw-chips").innerHTML = `<span class="hint">Asking YouTube what people search…</span>`;
+  try {
+    const k = await api("/api/keywords");
+    const all = [...k.suggestions.slice(0, 12), ...k.related.slice(0, 6)].filter(w => !tags.some(t => t.toLowerCase() === w.toLowerCase()));
+    $("#kw-chips").innerHTML = all.map(w => `<span class="chip" data-w="${esc(w)}">${esc(w)} <span class="x">+</span></span>`).join("") || `<span class="hint">No suggestions for this topic.</span>`;
+    $$("#kw-chips .chip").forEach(c => c.onclick = () => { addTag(c.dataset.w); c.remove(); });
+  } catch (e) { $("#kw-chips").innerHTML = `<span class="hint">Couldn't reach YouTube search suggestions.</span>`; }
+}
+$("#title-lab-btn").onclick = async () => {
+  const b = $("#title-lab-btn"); busy(b, true, "Writing titles… (~15 s)");
+  try {
+    const r = await api("/api/title-ideas", {});
+    if (!r.ok) throw new Error(r.error);
+    $("#ideas").innerHTML = `<div class="hint" style="margin-bottom:2px">Click one to use it. The number is its findability score.</div>` + r.titles.map(t => `<button class="idea" data-t="${esc(t.title)}"><span>${esc(t.title)}<small>${esc(t.style)}</small></span><span class="tag ${t.score >= 80 ? "green" : t.score >= 60 ? "" : "amber"}">${t.score}</span></button>`).join("");
+    $$("#ideas .idea").forEach(b => b.onclick = () => { $("#edit-title").value = b.dataset.t; edited(); toast("Title changed. Press Save to keep it"); });
+  } catch (e) { toast("Couldn't write titles: " + e.message, "err"); }
+  busy(b, false);
+};
+async function saveMeta() {
+  const c = currentMeta();
+  await api("/api/save-output", { title: c.title, description: c.desc, tags: c.tags });
+  saved = { ...c, tags: [...c.tags] };
+  edited(true); toast("Saved", "ok");
+  // a thumbnail using the title as its text should follow a title change
+  if (thumb && !thumb.custom_text) loadThumb();
+}
+window.addEventListener("beforeunload", e => { if (metaDirty() || settingsDirty()) { e.preventDefault(); e.returnValue = ""; } });
+$("#regen-desc").onclick = async () => {
+  const b = $("#regen-desc"); busy(b, true, "Writing…");
+  const r = await api("/api/regenerate-description", {}).catch(e => ({ ok: false, error: e.message }));
+  if (r.ok) { $("#edit-desc").value = r.description; edited(); toast("New description. Press Save to keep it"); } else toast(r.error, "err");
+  busy(b, false);
+};
+/* ── thumbnail designer ── */
+let thumb = null, thumbTimer, thumbBusy = 0;
+async function loadThumb() {
+  thumb = await api("/api/thumbnail").catch(() => null);
+  if (!thumb) return;
+  $("#thumb-text").value = thumb.text;
+  $("#thumb-wrap").classList.toggle("tall", !!thumb.portrait);
+  $("#thumb-styles").innerHTML = "";        // rebuild tiles in the right shape
+  $("#thumb-ideas").innerHTML = "";
+  renderStyles(0); bgNote();
+  thumbPost({ previews: true });          // fresh previews of every style for this video
+}
+// swap an image in only once the new one has loaded, so nothing flashes blank
+function swapImg(el, src) {
+  const im = new Image();
+  im.alt = "";
+  im.onload = () => el.replaceChildren(im);
+  im.src = src;
+}
+function renderStyles(ts) {
+  $("#thumb-styles").classList.toggle("tall", !!thumb.portrait);
+  if ($$("#thumb-styles .style-tile").length !== thumb.styles.length) {
+    $("#thumb-styles").innerHTML = thumb.styles.map(s => `
+      <button class="style-tile" data-s="${s.id}"><span class="pv"></span>
+        <b>${esc(s.name)}</b><small>${esc(s.desc)}</small></button>`).join("");
+    $$("#thumb-styles .style-tile").forEach(b => b.onclick = () => {
+      $$("#thumb-styles .style-tile").forEach(x => x.classList.toggle("on", x === b));
+      thumbPost({ style: b.dataset.s });
+    });
+  }
+  $$("#thumb-styles .style-tile").forEach(b => {
+    b.classList.toggle("on", b.dataset.s === thumb.style);
+    if (ts) swapImg($(".pv", b), `/thumb-preview/${b.dataset.s}?t=${ts}`);
   });
 }
-
-function addTag(val) {
-  if (!val) return false;
-  _currentTags.push(val.replace('#',''));
-  renderTags(); markDirty();
-  return true;
+function bgNote() {
+  const ai = thumb.background === "ai";
+  $("#bg-note").textContent = ai ? "AI artwork" : thumb.photos ? `photo ${thumb.photo_index} of ${thumb.photos} from your video` : "";
+  $("#bg-prev").hidden = ai || thumb.photos < 2;
+  $("#bg-next").hidden = !ai && thumb.photos < 2;
+  $("#bg-next").textContent = ai ? "← Back to photos" : "Next photo →";
 }
-
-function markDirty() {
-  _dirty = true;
-  document.getElementById('save-btn').disabled = false;
+async function thumbPost(body) {
+  thumbBusy++; $("#thumb-wrap").classList.add("busy");
+  const r = await api("/api/thumbnail", body).catch(e => ({ ok: false, error: e.message }));
+  if (--thumbBusy === 0) $("#thumb-wrap").classList.remove("busy");
+  if (!r.ok) { toast(r.error, "err"); return; }
+  thumb = r;
+  swapImg($("#thumb-wrap"), `/thumbnail/${r.ts}`);
+  renderStyles(body.previews ? r.ts : 0);
+  bgNote();
 }
-
-function saveEdits() {
-  const title = document.getElementById('edit-title').value.trim();
-  const desc  = document.getElementById('edit-desc').value;
-  fetch('/api/save-output', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({title, description: desc, tags: _currentTags})
-  }).then(r=>r.json()).then(d => {
-    if (d.ok) {
-      document.getElementById('save-btn').disabled = true;
-      document.getElementById('save-btn').textContent = '✓ Saved';
-      setTimeout(()=>{document.getElementById('save-btn').textContent='Save Changes';},1500);
-      _dirty = false;
-    }
+$("#thumb-text").oninput = () => { clearTimeout(thumbTimer); thumbTimer = setTimeout(() => thumbPost({ text: $("#thumb-text").value, previews: true }), 700); };
+$("#bg-next").onclick = () => thumbPost({ bg: "next", previews: true });
+$("#bg-prev").onclick = () => thumbPost({ bg: "prev", previews: true });
+$("#bg-ai").onclick = async () => {
+  const b = $("#bg-ai"); busy(b, true, "Painting… (~20 s)");
+  await thumbPost({ bg: "ai", previews: true });
+  busy(b, false);
+};
+$("#thumb-ideas-btn").onclick = async () => {
+  const b = $("#thumb-ideas-btn"); busy(b, true, "Thinking…");
+  const r = await api("/api/thumbnail-ideas", {}).catch(e => ({ ok: false, error: e.message }));
+  busy(b, false);
+  if (!r.ok) return toast("Couldn't get ideas: " + r.error, "err");
+  $("#thumb-ideas").innerHTML = r.texts.map(t => `<span class="chip" data-t="${esc(t)}">${esc(t).replace(/\*([^*]+)\*/g, '<b style="color:var(--amber);font-weight:500">$1</b>')}</span>`).join("");
+  $$("#thumb-ideas .chip").forEach(c => c.onclick = () => {
+    $("#thumb-text").value = c.dataset.t;
+    $$("#thumb-ideas .chip").forEach(x => x.classList.toggle("on", x === c));
+    thumbPost({ text: c.dataset.t, previews: true });
   });
+};
+$$("#upload-seg button").forEach(b => b.onclick = () => {
+  uploadMode = b.dataset.um;
+  $$("#upload-seg button").forEach(x => x.classList.toggle("on", x === b));
+  $("#upane-now").hidden = uploadMode !== "now";
+  $("#upane-schedule").hidden = uploadMode === "now";
+  $("#upload-btn").textContent = uploadMode === "now" ? "Upload to YouTube" : "Schedule on YouTube";
+});
+async function checkYt() {
+  const d = await api("/api/yt-status").catch(() => null);
+  if (!d) return;
+  $("#upload-btn").disabled = !d.secret;
+  $("#yt-setup").innerHTML = !d.secret
+    ? `<span class="tag amber">one-time setup</span> To upload from here, connect your YouTube account once (about 10 minutes, free). <a href="${SETUP_URL}" target="_blank" rel="noopener">Follow the guide</a>, or download the MP4 above and upload it yourself.`
+    : d.token ? `<span style="color:var(--green)">●</span> Your YouTube account is connected.` : `The first upload opens a Google sign-in window so you can pick your channel.`;
+}
+$("#upload-btn").onclick = async () => {
+  if (metaDirty()) await saveMeta();
+  let publish_at = "";
+  if (uploadMode === "schedule") {
+    const v = $("#schedule-dt").value;
+    if (!v) return toast("Pick a date and time", "err");
+    const dt = new Date(v);
+    if (dt < new Date(Date.now() + 15 * 60000)) return toast("Pick a time at least 15 minutes from now", "err");
+    publish_at = dt.toISOString();
+  }
+  const r = await api("/api/upload", { privacy: $("#upload-privacy").value, publish_at });
+  if (!r.ok) return toast(r.error, "err");
+  $("#upload-progress").hidden = false;
+  $("#upload-btn").disabled = true;
+  $("#upload-status").textContent = "Uploading… keep this window open.";
+  const tick = async () => {
+    const s = await api("/api/status");
+    $("#upload-fill").style.width = s.upload_pct + "%";
+    if (s.uploading) { $("#upload-status").textContent = `Uploading… ${s.upload_pct}%. Keep this window open.`; return setTimeout(tick, 1200); }
+    $("#upload-btn").disabled = false;
+    if (s.yt_url) {
+      $("#upload-status").innerHTML = `${publish_at ? "Scheduled! It goes public at the time you picked." : "It's live!"} <a class="link" href="${esc(s.yt_url)}" target="_blank" rel="noopener">${esc(s.yt_url)}</a>`;
+      toast(publish_at ? "Scheduled on YouTube" : "Published on YouTube", "ok"); loadLibrary(); checkYt();
+    } else { $("#upload-status").textContent = "Upload failed: " + (s.error || "unknown error"); toast("Upload failed", "err"); }
+  };
+  tick();
+};
+
+/* ═══════════════════════════ library ═══════════════════════════ */
+async function loadLibrary() {
+  try { library = await api("/api/library"); } catch (e) { return; }
+  const t = library.totals;
+  $("#lib-stats").innerHTML = [[t.videos, "videos made"], [t.uploaded, "published"], [t.shorts, "shorts"], [t.minutes, "minutes of video"]]
+    .map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+  drawBars($("#lib-bars"), library.activity.map(a => a.count), library.activity.map(a => `${a.day}: ${a.count}`));
+  const card = (m, shorts) => `
+    <article class="card ${shorts ? "s4" : "s6"} lib-card">
+      <div class="thumb-frame ${shorts ? "tall" : ""}">${m.files.thumb ? `<img loading="lazy" src="/library/${m.id}/thumbnail.jpg" alt="">` : `<div class="empty">no thumbnail</div>`}
+        <span class="badge tag ${m.yt_url ? "green" : ""}">${m.yt_url ? "published" : "not published"}</span></div>
+      <h4>${esc(m.title.replace(/\s*#shorts\b/ig, ""))}</h4>
+      <div class="lib-meta"><span>${ago(m.created_at)}</span>${m.duration ? `<span>· ${clock(m.duration)}</span>` : ""}</div>
+      <div class="lib-actions">
+        <button class="btn btn-white btn-sm" onclick="openProject('${m.id}')">Open</button>
+        ${m.yt_url ? `<a class="btn btn-ghost btn-sm" href="${esc(m.yt_url)}" target="_blank" rel="noopener">${shorts ? "↗" : "YouTube ↗"}</a>` : `<a class="btn btn-ghost btn-sm" href="/library/${m.id}/video.mp4?download=1">${shorts ? "↓" : "Download"}</a>`}
+        <button class="btn btn-red btn-sm" style="margin-left:auto" title="Delete" onclick="deleteProject('${m.id}', this)">${shorts ? "✕" : "Delete"}</button>
+      </div>
+    </article>`;
+  const longs = library.items.filter(m => m.video_type !== "shorts");
+  const shorts = library.items.filter(m => m.video_type === "shorts");
+  const section = (title, sub, items, isShort) => `
+    <div class="lib-head"><h3>${title}</h3><span>${items.length}</span><p>${sub}</p></div>` +
+    (items.length ? items.map(m => card(m, isShort)).join("")
+      : `<article class="card s24 flat"><div class="empty" style="min-height:90px">None yet. Pick “${isShort ? "Short · 60 s" : "Long video"}” on Home to make one.</div></article>`);
+  $("#lib-grid").innerHTML = library.items.length
+    ? section("Long videos", "16:9 · 6–8 min · 1280×720 thumbnails", longs, false) +
+      section("Shorts", "9:16 · ~60 s · vertical thumbnails", shorts, true)
+    : `<article class="card s24 flat"><div class="empty">No videos yet. Every video you make is saved here automatically.<a class="btn btn-white" href="#home">Make your first video</a></div></article>`;
+  renderLatest();
+  loadChannel();
+}
+async function openProject(id) {
+  const r = await api(`/api/library/${id}/load`, {});
+  if (!r.ok) return toast(r.error, "err");
+  location.hash === "#review" ? loadReview() : (location.hash = "#review");
+}
+async function deleteProject(id, btn) {
+  if (btn.dataset.confirm !== "1") { btn.dataset.confirm = "1"; btn.textContent = "Click again to delete"; setTimeout(() => { btn.dataset.confirm = ""; btn.textContent = "Delete"; }, 3500); return; }
+  const r = await api(`/api/library/${id}`, undefined, "DELETE");
+  r.ok ? (toast("Deleted"), loadLibrary()) : toast(r.error, "err");
 }
 
-function regenDescription() {
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⟳ Rewriting…';
-  fetch('/api/regenerate-description', {method:'POST'}).then(r=>r.json()).then(d => {
-    btn.disabled = false; btn.textContent = '✨ AI Rewrite';
-    if (d.ok) {
-      document.getElementById('edit-desc').value = d.description;
-      markDirty();
-    } else alert('Error: '+d.error);
-  });
+/* ═══════════════════════════ settings ═══════════════════════════ */
+const KEYS = [
+  ["gemini_key", "Google Gemini", "Writes much better scripts. Recommended, takes 1 minute.", "https://aistudio.google.com/apikey"],
+  ["pexels_key", "Pexels", "High-quality stock photos for your scenes.", "https://www.pexels.com/api/"],
+  ["pixabay_key", "Pixabay", "Even more stock photos.", "https://pixabay.com/api/docs/"],
+  ["groq_key", "Groq", "Backup AI for when Gemini runs out of free quota.", "https://console.groq.com/keys"],
+  ["openrouter_key", "OpenRouter", "Another backup AI.", "https://openrouter.ai/keys"],
+  ["youtube_key", "YouTube Data API", "Shows your subscribers and views on Home.", "https://console.cloud.google.com/apis/library/youtube.googleapis.com"],
+  ["youtube_channel", "Your channel", "Channel ID or @handle, used with the key above.", ""],
+];
+$("#key-fields").innerHTML = KEYS.map(([id, name, why, link]) => `
+  <div class="field">
+    <div class="label">${name}${link ? ` <a class="link" style="font-weight:400;font-size:11.5px" href="${link}" target="_blank" rel="noopener">get a free key ↗</a>` : ""}</div>
+    <input type="${id === "youtube_channel" ? "text" : "password"}" id="s-${id}" autocomplete="off" spellcheck="false">
+    <div class="hint">${why}</div>
+  </div>`).join("");
+
+const RANGES = {
+  voice_rate:     { to: v => parseInt(v) || 0, from: v => (v >= 0 ? "+" : "") + v + "%", label: v => (v >= 0 ? "+" : "") + v + "%" },
+  voice_pitch:    { to: v => parseInt(v) || 0, from: v => (v >= 0 ? "+" : "") + v + "Hz", label: v => (v >= 0 ? "+" : "") + v + "Hz" },
+  overlay:        { to: v => Math.round(v * 100), from: v => v / 100, label: v => v + "%" },
+  music_volume:   { to: v => Math.round(v * 100), from: v => v / 100, label: v => v + "%" },
+  broll_interval: { to: v => Math.round(v), from: v => +v, label: v => v + " s" },
+  broll_xfade:    { to: v => Math.round(v * 10), from: v => v / 10, label: v => (v / 10).toFixed(1) + " s" },
+};
+const TEXT = ["channel_name", "channel_desc", "brand_text", "thumb_style", "gemini_model", "groq_model", "openrouter_model", "render_preset", "kb_start", "kb_end", "privacy", "voice_id", "trends_geo"];
+const BOOLS = ["fact_grounding", "keyless_llm", "music_enabled", "show_brand", "credit_yaas"];
+Object.entries(RANGES).forEach(([k, r]) => { const el = $("#r-" + k); el.addEventListener("input", () => $("#v-" + k).textContent = r.label(+el.value)); });
+
+let settingsSnap = "";
+function collectSettings() {
+  const body = {};
+  KEYS.forEach(([id]) => body[id] = $("#s-" + id).value);
+  TEXT.forEach(k => body[k] = $("#s-" + k).value);
+  BOOLS.forEach(k => body[k] = $("#s-" + k).checked);
+  Object.entries(RANGES).forEach(([k, r]) => body[k] = r.from(+$("#r-" + k).value));
+  body.image_sources = $$("#img-sources input:checked").map(i => i.value);
+  return body;
 }
-
-function regenThumbnail() {
-  const title = document.getElementById('edit-title').value.trim();
-  fetch('/api/regenerate-thumbnail', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({title})
-  }).then(r=>r.json()).then(d => {
-    if (d.ok) {
-      const tw = document.getElementById('thumb-wrap');
-      const ts = d.ts || Date.now();
-      tw.innerHTML = `<img src="/thumbnail/${ts}" alt="Thumbnail" style="width:100%;height:100%;object-fit:cover">`;
-    } else alert('Thumbnail error: '+d.error);
-  });
+const settingsDirty = () => settingsSnap && JSON.stringify(collectSettings()) !== settingsSnap;
+async function loadSettings() {
+  const d = settings = await api("/api/settings");
+  KEYS.forEach(([id]) => { const el = $("#s-" + id); el.value = d[id] || ""; el.placeholder = id === "youtube_channel" ? "@yourhandle" : "not set (optional)"; });
+  TEXT.forEach(k => { const el = $("#s-" + k); if (el && d[k] !== undefined) el.value = d[k]; });
+  BOOLS.forEach(k => $("#s-" + k).checked = !!d[k]);
+  Object.entries(RANGES).forEach(([k, r]) => { const v = r.to(d[k]); $("#r-" + k).value = v; $("#v-" + k).textContent = r.label(v); });
+  $$("#img-sources input").forEach(i => { i.checked = (d.image_sources || []).includes(i.value); i.closest(".chip").classList.toggle("on", i.checked); });
+  $("#s-banned").value = (d.banned_topics || []).filter(t => !["The Boltzmann Brain", "Simulation Theory", "Quantum Immortality"].includes(t)).join("\n");
+  $("#quick-voice").value = d.voice_id;
+  $("#quick-grounding").checked = !!d.fact_grounding;
+  $("#upload-privacy").value = d.privacy;
+  brandPreview();
+  settingsSnap = JSON.stringify(collectSettings());
+  settingsChanged();
+  renderChecklist();
 }
-
-function switchUploadMode(mode) {
-  document.querySelectorAll('.upload-mode-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('utab-'+mode).classList.add('active');
-  document.getElementById('upane-now').style.display      = mode==='now'      ? '' : 'none';
-  document.getElementById('upane-schedule').style.display = mode==='schedule' ? '' : 'none';
+function settingsChanged() {
+  if (location.hash === "#settings") $("#savebar").classList.toggle("show", !!settingsDirty());
 }
-
-function scheduleUpload() {
-  const dt = document.getElementById('schedule-datetime').value;
-  if (!dt) { alert('Please pick a date and time.'); return; }
-  // Convert local datetime to RFC 3339 (UTC) as YouTube requires
-  const publishAt = new Date(dt).toISOString();
-  const privacy   = document.getElementById('schedule-privacy').value;
-  const btn = document.getElementById('schedule-btn');
-  btn.disabled = true; btn.textContent = '⏳ Uploading…';
-  document.getElementById('upload-progress-wrap').style.display = 'block';
-  document.getElementById('upload-status').textContent = 'Uploading (will go public at scheduled time)…';
-  fetch('/api/upload', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({privacy, publish_at: publishAt})
-  }).then(r => r.json()).then(d => {
-    btn.disabled = false; btn.textContent = '📅 Schedule';
-    if (!d.ok) {
-      document.getElementById('upload-status').textContent = 'Error: '+d.error;
-      return;
-    }
-    pollStatus();
-  });
+function brandPreview() {
+  const on = $("#s-show_brand").checked, text = ($("#s-brand_text").value.trim() || $("#s-channel_name").value.trim()).toUpperCase();
+  $("#brand-field").style.opacity = on ? 1 : .4;
+  $("#brand-preview").innerHTML = on ? `Your videos will show <span class="mono" style="color:var(--on-card)">▶ ${esc(text || "—")}</span>` : "No channel name will appear in your videos or thumbnails.";
 }
-
-function uploadToYouTube() {
-  const btn = document.getElementById('upload-btn');
-  const privacy = document.getElementById('upload-privacy').value;
-  btn.disabled = true;
-  document.getElementById('upload-progress-wrap').style.display = 'block';
-  document.getElementById('upload-status').textContent = 'Starting upload…';
-  fetch('/api/upload', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({privacy})
-  }).then(r=>r.json()).then(d => {
-    if (!d.ok) {
-      btn.disabled = false;
-      document.getElementById('upload-status').textContent = 'Error: '+d.error;
-      return;
-    }
-    pollStatus();
-  });
+["input", "change"].forEach(ev => $("#view-settings").addEventListener(ev, e => {
+  if (e.target.id === "s-banned") return;
+  brandPreview(); settingsChanged();
+}));
+async function saveSettings() {
+  const r = await api("/api/save-settings", collectSettings());
+  if (r.ok) { toast("Settings saved", "ok"); await loadSettings(); loadHealth(); pollOnce(); }
+  else toast(r.error, "err");
 }
+$("#save-banned").onclick = async () => {
+  const topics = $("#s-banned").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const r = await api("/api/save-banned-topics", { topics });
+  r.ok ? toast("List saved", "ok") : toast(r.error, "err");
+};
 
-// ══════════════════════════════════════════════════════════
-//  SETTINGS
-// ══════════════════════════════════════════════════════════
-// ── Collapsible settings sections ────────────────────────
-function toggleSection(header) {
-  header.closest('.settings-section').classList.toggle('collapsed');
-}
+// one floating save bar, shared by Review and Settings
+$("#savebar-save").onclick = () => location.hash === "#settings" ? saveSettings() : saveMeta();
+$("#savebar-undo").onclick = () => location.hash === "#settings"
+  ? loadSettings().then(() => toast("Changes undone"))
+  : (fillMeta(saved), toast("Changes undone"));
 
-function loadSettings() {
-  fetch('/api/settings').then(r=>r.json()).then(d => {
-    document.getElementById('s-gemini').value       = d.gemini_key  || '';
-    document.getElementById('s-pexels').value       = d.pexels_key  || '';
-    document.getElementById('s-channel-name').value = d.channel_name|| '';
-    document.getElementById('s-channel-desc').value = d.channel_desc|| '';
-    document.getElementById('s-voice').value        = d.voice_id    || 'en-US-AndrewNeural';
-    // Rate: sync hidden input, range slider, and display span
-    const rate = d.voice_rate || '-5%';
-    const rateNum = parseInt(rate) || -5;
-    document.getElementById('s-voice-rate').value          = rate;
-    document.getElementById('s-voice-rate-range').value    = rateNum;
-    document.getElementById('s-voice-rate-val').textContent = rate;
-    // Pitch: sync hidden input, range slider, and display span
-    const pitch = d.voice_pitch || '-3Hz';
-    const pitchNum = parseInt(pitch) || -3;
-    document.getElementById('s-voice-pitch').value           = pitch;
-    document.getElementById('s-voice-pitch-range').value     = pitchNum;
-    document.getElementById('s-voice-pitch-val').textContent = pitch;
-    document.getElementById('s-model').value        = d.gemini_model|| 'gemini-2.0-flash';
-    const ov = Math.round((parseFloat(d.overlay)||0.62)*100);
-    document.getElementById('s-overlay').value      = ov;
-    document.getElementById('s-overlay-val').textContent = ov+'%';
-    document.getElementById('s-kb-start').value     = d.kb_start || '1.00';
-    document.getElementById('s-kb-end').value       = d.kb_end   || '1.10';
-    // Music settings
-    document.getElementById('s-music-enabled').checked = d.music_enabled !== false;
-    const mvol = Math.round((parseFloat(d.music_volume) || 0.12) * 100);
-    document.getElementById('s-music-vol').value = mvol;
-    document.getElementById('s-music-vol-val').textContent = mvol + '%';
-    // Sync quick-voice dropdown
-    document.getElementById('quick-voice').value = d.voice_id || 'en-US-AndrewNeural';
-    document.getElementById('quick-privacy').value = d.privacy || 'public';
-    document.getElementById('upload-privacy').value = d.privacy || 'public';
-
-    // Render preset
-    if (d.render_preset) document.getElementById('s-render-preset').value = d.render_preset;
-
-    // B-roll interval (stored as float seconds, slider is integer seconds)
-    const bri = Math.round(parseFloat(d.broll_interval) || 10);
-    document.getElementById('s-broll-interval').value = bri;
-    document.getElementById('s-broll-interval-val').textContent = bri + 's';
-
-    // B-roll crossfade (stored as float, slider is tenths of a second * 10)
-    const brx = Math.round((parseFloat(d.broll_xfade) || 1.2) * 10);
-    document.getElementById('s-broll-xfade').value = brx;
-    document.getElementById('s-broll-xfade-val').textContent = (brx / 10).toFixed(1) + 's';
-  });
-
-  // Load banned topics separately
-  fetch('/api/banned-topics').then(r=>r.json()).then(d => {
-    // Show only user-added topics (not the built-ins, which are always applied)
-    const builtin = ['The Boltzmann Brain', 'Simulation Theory', 'Quantum Immortality'];
-    const userTopics = (d.topics || []).filter(t => !builtin.includes(t));
-    document.getElementById('s-banned-topics').value = userTopics.join('\n');
-  });
-}
-
-function saveSettings() {
-  const rate  = document.getElementById('s-voice-rate').value;
-  const pitch = document.getElementById('s-voice-pitch').value;
-  const ov    = parseInt(document.getElementById('s-overlay').value)/100;
-  fetch('/api/save-settings', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      gemini_key:   document.getElementById('s-gemini').value,
-      pexels_key:   document.getElementById('s-pexels').value,
-      channel_name: document.getElementById('s-channel-name').value,
-      channel_desc: document.getElementById('s-channel-desc').value,
-      voice_id:     document.getElementById('s-voice').value,
-      voice_rate:   rate,
-      voice_pitch:  pitch,
-      gemini_model: document.getElementById('s-model').value,
-      overlay:      ov,
-      kb_start:     parseFloat(document.getElementById('s-kb-start').value),
-      kb_end:       parseFloat(document.getElementById('s-kb-end').value),
-      music_enabled: document.getElementById('s-music-enabled').checked,
-      music_volume:  parseInt(document.getElementById('s-music-vol').value) / 100,
-      privacy:      document.getElementById('quick-privacy').value,
-      render_preset: document.getElementById('s-render-preset').value,
-      broll_interval: parseInt(document.getElementById('s-broll-interval').value),
-      broll_xfade:    parseInt(document.getElementById('s-broll-xfade').value) / 10,
-    })
-  }).then(r=>r.json()).then(d => {
-    const msg = document.getElementById('settings-msg');
-    if (d.ok) {
-      msg.style.display = 'block'; msg.style.color='var(--green)';
-      msg.textContent = '✓ Settings saved to config.py';
-    } else {
-      msg.style.display = 'block'; msg.style.color='var(--red)';
-      msg.textContent = '✗ '+d.error;
-    }
-    setTimeout(()=>{msg.style.display='none';},3000);
-  });
-}
-
-function applyQuickVoice(val) {
-  document.getElementById('s-voice').value = val;
-  fetch('/api/save-settings', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({voice_id: val})
-  });
-}
-
-// ── Banned Topics ────────────────────────────────────────
-function saveBannedTopics() {
-  const raw    = document.getElementById('s-banned-topics').value;
-  const topics = raw.split('\n')
-    .map(t => t.trim())
-    .filter(t => t && !t.startsWith('#'));
-  fetch('/api/save-banned-topics', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({topics})
-  }).then(r=>r.json()).then(d => {
-    const msg = document.getElementById('banned-msg');
-    msg.style.display = 'inline';
-    msg.style.color   = d.ok ? 'var(--green)' : 'var(--red)';
-    msg.textContent   = d.ok ? '✓ Saved' : '✗ ' + (d.error || 'Error');
-    setTimeout(() => { msg.style.display = 'none'; }, 2500);
-  });
-}
-
-// ══════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════
-loadSettings();
+/* ═══════════════════════════ boot ═══════════════════════════ */
+Object.assign(loaders, {
+  home: loadLibrary,
+  review: loadReview,
+  library: loadLibrary,
+  settings: loadSettings,
+});
+setHero("form");
+route();
 pollStatus();
+loadTrends();
+loadHealth();
+loadSettings().catch(() => {});
+document.fonts && document.fonts.ready.then(moveIndicator);
 </script>
 </body>
 </html>

@@ -2,8 +2,20 @@
 Script Writer Agent — uses shared Gemini client with model fallback chain.
 """
 import json
-import re
 from agents.gemini_client import generate
+from agents.json_utils import extract_json
+
+
+def _facts_block(research: dict, limit: int = 4000) -> str:
+    """Verified background from Wikipedia / arXiv, if the researcher found any."""
+    facts = (research.get("grounding") or {}).get("facts", "")
+    if not facts:
+        return ""
+    return (
+        "\nVERIFIED BACKGROUND FACTS (Wikipedia / arXiv). Use concrete numbers, names and dates "
+        "from here. Never contradict them; if something is speculative, say so on air:\n"
+        f"{facts[:limit]}\n"
+    )
 
 
 def write_script(research: dict, video_type: str = "normal") -> dict:
@@ -24,7 +36,7 @@ Title: {research["video_title"]}
 Core hook question: {research.get("hook_question", "")}
 Key points to cover:
 {key_points_str}
-
+{_facts_block(research)}
 Write a GRIPPING, cinematic 6-8 minute script. Non-negotiable rules:
 
 PACING RULES (survival against the YouTube 2-minute drop):
@@ -168,16 +180,8 @@ IMPORTANT:
 - Every narration field must contain COMPLETE, broadcast-ready sentences — no placeholders.
 - The entire script must feel like Kurzgesagt wrote it: cinematic, urgent, human."""
 
-    print("   → Writing script with Gemini...")
-    raw = generate(prompt)
-    raw = re.sub(r"^```(?:json)?", "", raw).strip()
-    raw = re.sub(r"```$", "", raw).strip()
-
-    match = re.search(r"\{[\s\S]*\}", raw)
-    if not match:
-        raise ValueError(f"Scriptwriter returned no JSON.\n\nRaw:\n{raw[:600]}")
-
-    script = json.loads(match.group())
+    print("   → Writing script…")
+    script = extract_json(generate(prompt), "Scriptwriter")
 
     if "sections" not in script or len(script["sections"]) < 4:
         raise ValueError("Script returned too few sections.")
@@ -198,7 +202,7 @@ Title: {research["video_title"]}
 Hook question: {research.get("hook_question", "")}
 Key points:
 {key_points_str}
-
+{_facts_block(research, 2000)}
 Write a GRIPPING 50-60 second Shorts script. Rules:
 - Hooks in the FIRST 3 words — no slow intros
 - Short, punchy sentences. Every second counts.
@@ -263,16 +267,8 @@ IMPORTANT:
 - image_query and image_query_2/3/4 must all be DIFFERENT specific Pexels visual search strings
 - title fields are INTERNAL labels only — they are never shown on screen"""
 
-    print("   → Writing Shorts script with Gemini...")
-    raw = generate(prompt)
-    raw = re.sub(r"^```(?:json)?", "", raw).strip()
-    raw = re.sub(r"```$", "", raw).strip()
-
-    match = re.search(r"\{[\s\S]*\}", raw)
-    if not match:
-        raise ValueError(f"Shorts scriptwriter returned no JSON.\n\nRaw:\n{raw[:600]}")
-
-    script = json.loads(match.group())
+    print("   → Writing Shorts script…")
+    script = extract_json(generate(prompt), "Shorts scriptwriter")
 
     if "sections" not in script or len(script["sections"]) < 2:
         raise ValueError("Shorts script returned too few sections.")

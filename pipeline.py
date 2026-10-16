@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-YouTube AI Agent — Main Pipeline (Free Edition)
+YAAS — youtube-agentic-ai-studio · Main Pipeline (CLI)
 Uses: Gemini 2.5 Flash · Edge TTS · Pexels · MoviePy · Flask · YouTube Data API
 
 Run:  python pipeline.py
@@ -32,7 +32,7 @@ def run():
     Path(config.OUTPUT_DIR).mkdir(exist_ok=True)
     Path(config.IMAGES_DIR).mkdir(exist_ok=True)
 
-    print("\n🎬  YouTube AI Agent Studio  ·  Video Pipeline\n")
+    print("\n🎬  YAAS — youtube-agentic-ai-studio  ·  Video Pipeline\n")
 
     # ── 1. Research ───────────────────────────────────────────
     banner("1 / 6  ·  Researching trending topic  [Gemini]")

@@ -1,4 +1,4 @@
-# Contributing to YouTube AI Agent Studio
+# Contributing to YAAS — youtube-agentic-ai-studio
 
 Thanks for your interest in contributing! Here's how to get involved.
 

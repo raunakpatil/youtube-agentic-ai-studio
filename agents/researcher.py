@@ -4,12 +4,12 @@ Banned topics are read from banned_topics.txt (one topic per line) in the
 project root. Edit that file — or use the GUI textarea — instead of changing
 Python code.
 """
-import json
 import os
-import re
 import random
 import time
+import config
 from agents.gemini_client import generate
+from agents.json_utils import extract_json
 
 # Path to the banned-topics file (sits next to this package's parent directory)
 _BANNED_TOPICS_FILE = os.path.join(
@@ -73,9 +73,29 @@ def save_banned_topics(topics: list) -> None:
             f.write(t + "\n")
 
 
+def _grounding(topic: str) -> dict:
+    """Wikipedia + arXiv background facts for a topic (empty if disabled/offline)."""
+    if not getattr(config, "FACT_GROUNDING", True):
+        return {"facts": "", "sources": []}
+    from apis.knowledge import gather_context
+    print(f"   → Grounding facts: Wikipedia + arXiv for \"{topic[:60]}\"…")
+    ctx = gather_context(topic)
+    print(f"   → {len(ctx['sources'])} sources found")
+    return ctx
+
+
+def _parse(raw: str) -> dict:
+    data = extract_json(raw, "Researcher")
+    for field in ["topic", "video_title", "key_points", "tags"]:
+        if field not in data:
+            raise ValueError(f"Research JSON missing field: '{field}'")
+    return data
+
+
 def research_topic(channel_description: str,
                    topic_override: str = "",
-                   focus_angle: str = "") -> dict:
+                   focus_angle: str = "",
+                   trend_context: list | None = None) -> dict:
     """
     Research a video topic for the channel.
 
@@ -90,6 +110,11 @@ def research_topic(channel_description: str,
     focus_angle         : if non-empty (and topic_override is empty), use this
                           angle instead of picking one randomly. Allows the GUI
                           dropdown to steer AI picks without locking the topic.
+    trend_context       : optional list of headlines trending right now (Trend
+                          Radar). The AI may ride one if it fits the niche.
+
+    The result carries a "grounding" dict ({facts, sources}) from Wikipedia and
+    arXiv that the scriptwriter uses to stay factual and the description cites.
     """
     banned     = load_banned_topics()
     banned_str = ", ".join(f'"{t}"' for t in banned)
@@ -101,6 +126,9 @@ def research_topic(channel_description: str,
     if topic_override.strip():
         exact_topic = topic_override.strip()
         print(f"   → Exact topic override: \"{exact_topic}\"")
+        grounding = _grounding(exact_topic)
+        facts_block = (f"\nVERIFIED BACKGROUND (from Wikipedia / arXiv — build on these, don't contradict them):\n"
+                       f"{grounding['facts'][:3500]}\n") if grounding["facts"] else ""
 
         prompt = f"""You are a top YouTube content strategist for a viral science/tech channel.
 
@@ -117,7 +145,7 @@ BANNED TOPICS: Do NOT include any of these in the output: {banned_str}
 If the requested topic conflicts with a banned one, still write about it (user override).
 
 Your mission: Research and plan a compelling 6-8 minute YouTube video about "{exact_topic}".
-
+{facts_block}
 Respond with ONLY a valid JSON object. No markdown fences, no explanation:
 
 {{
@@ -139,16 +167,8 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
   "estimated_virality": "high"
 }}"""
 
-        raw = generate(prompt)
-        raw = re.sub(r"^```(?:json)?", "", raw).strip()
-        raw = re.sub(r"```$",          "", raw).strip()
-        match = re.search(r"\{[\s\S]*\}", raw)
-        if not match:
-            raise ValueError(f"Researcher returned no JSON.\nRaw:\n{raw[:600]}")
-        data = json.loads(match.group())
-        for field in ["topic", "video_title", "key_points", "tags"]:
-            if field not in data:
-                raise ValueError(f"Research JSON missing field: '{field}'")
+        data = _parse(generate(prompt))
+        data["grounding"] = grounding
         return data
 
     # ── MODE 2: AI PICKS THE TOPIC ───────────────────────────────────────────
@@ -160,7 +180,18 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
         chosen_angle = random.choice(FOCUS_ANGLES)
         print(f"   → Focus angle (random): {chosen_angle}")
 
-    print(f"   → Asking Gemini for topic ideas within: {chosen_angle}")
+    print(f"   → Asking the AI for topic ideas within: {chosen_angle}")
+
+    trend_block = ""
+    if trend_context:
+        print(f"   → Trend-aware: {len(trend_context)} live headlines from Trend Radar")
+        joined = "\n".join(f"  - {t}" for t in trend_context[:25])
+        trend_block = (
+            "4. TRENDING RIGHT NOW (news, papers, search spikes):\n"
+            f"{joined}\n"
+            "   If one of these connects naturally to the theme, build the video around it "
+            "for timeliness and say so in \"why_now\". If none fit, ignore them.\n"
+        )
 
     prompt = f"""You are a top YouTube content strategist for a viral science/tech channel.
 
@@ -171,7 +202,7 @@ CRITICAL INSTRUCTIONS FOR THIS RUN:
 1. Focus entirely on this specific theme: >>> {chosen_angle} <<<
 2. BANNED TOPICS: Do NOT suggest any of the following — we already made videos about them: {banned_str}. You must give me a brand new, highly original concept.
 3. Cache Bust ID: {time.time()} (Ensure completely unique output).
-
+{trend_block}
 Your mission:
 1. Think of 3-4 highly compelling video topic ideas within that specific theme.
 2. Select the single BEST topic that is genuinely mind-blowing, timely, and explainable in 6-8 minutes.
@@ -197,16 +228,6 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
   "estimated_virality": "high"
 }}"""
 
-    raw = generate(prompt)
-    raw = re.sub(r"^```(?:json)?", "", raw).strip()
-    raw = re.sub(r"```$",          "", raw).strip()
-
-    match = re.search(r"\{[\s\S]*\}", raw)
-    if not match:
-        raise ValueError(f"Researcher returned no JSON.\nRaw:\n{raw[:600]}")
-
-    data = json.loads(match.group())
-    for field in ["topic", "video_title", "key_points", "tags"]:
-        if field not in data:
-            raise ValueError(f"Research JSON missing field: '{field}'")
+    data = _parse(generate(prompt))
+    data["grounding"] = _grounding(data["topic"])
     return data
