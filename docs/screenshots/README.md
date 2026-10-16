@@ -1,13 +1,13 @@
 # Screenshots
 
-Add your screenshots here. The README.md references these files:
+Images used by the main README. They were captured from the running app (`python gui.py`) at 1440×900.
 
-| File | Description |
+| File | Shows |
 |---|---|
-| `banner.png` | Wide banner image (1280×400 recommended) |
-| `gui_main.png` | Main GUI dashboard screenshot |
-| `gui_settings.png` | Settings panel screenshot |
-| `review_dashboard.png` | Review dashboard screenshot |
-| `video_preview.png` | Sample video output frame |
-
-Take screenshots of the running app and drop them here before pushing to GitHub.
+| `home.png` | Home: type a topic, or let AI pick one; setup checklist; trending ideas |
+| `home-progress.png` | Home while a video is being made, with plain-English steps |
+| `review.png` | Review & publish: watch, title, findability score |
+| `thumbnail-designer.png` | Step 4 of Review: thumbnail text, styles and backgrounds |
+| `library.png` | My videos, with long videos and Shorts in separate sections |
+| `mobile-home.png` | Home at phone width |
+| `thumbnail-styles.png` | The four thumbnail styles in 16:9 and 9:16, rendered by `video/thumbnail.py` |

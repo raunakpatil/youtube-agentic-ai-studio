@@ -55,7 +55,8 @@ def chat(prompt: str, temperature: float = 0.9) -> str:
             except Exception as e:
                 msg = str(e)
                 # Free tiers rate-limit bursts (Pollinations answers 402/429) — back off and retry
-                if attempt < 2 and any(c in msg for c in ("402", "429", "503")):
+                if attempt < 2 and any(c in msg for c in ("402", "429", "503", "Max retries",
+                                                           "NameResolution", "timed out", "Connection")):
                     wait = 20 * (attempt + 1)
                     print(f"   ⚠ {name} is rate-limiting — retrying in {wait}s…")
                     time.sleep(wait)

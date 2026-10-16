@@ -123,6 +123,19 @@ def search(query: str, orientation: str = "landscape", count: int = 1,
     return []
 
 
+def strip_pollinations_logo(path: str) -> None:
+    """Pollinations' free tier stamps a logo in the bottom-right corner even with
+    nologo=true. Crop the bottom strip off so it never reaches a video."""
+    from PIL import Image
+    try:
+        with Image.open(path) as im:
+            w, h = im.size
+            cropped = im.convert("RGB").crop((0, 0, w, int(h * 0.93)))
+        cropped.save(path, "JPEG", quality=94)
+    except Exception as e:
+        print(f"   ⚠ Could not clean AI image {path}: {e}")
+
+
 def fetch(candidate: dict, path: str) -> bool:
     """Download a candidate, trying its fallback URL if the large size is missing."""
     for url in (candidate.get("url"), candidate.get("fallback_url")):
@@ -136,6 +149,8 @@ def fetch(candidate: dict, path: str) -> bool:
             with open(path, "wb") as f:
                 for chunk in r.iter_content(8192):
                     f.write(chunk)
+            if "pollinations" in url:
+                strip_pollinations_logo(path)
             return True
         except Exception:
             continue

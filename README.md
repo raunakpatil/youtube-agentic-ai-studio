@@ -10,6 +10,7 @@ YAAS researches a topic, checks the facts, writes the script, records a voiceove
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Cost](https://img.shields.io/badge/Cost-$0%20per%20video-brightgreen?style=flat-square)](SETUP.md)
 [![Free APIs](https://img.shields.io/badge/Free%20APIs-19-ff70f3?style=flat-square)](#-the-free-api-stack)
+[![Tests](https://github.com/raunakpatil/youtube-agentic-ai-studio/actions/workflows/tests.yml/badge.svg)](https://github.com/raunakpatil/youtube-agentic-ai-studio/actions/workflows/tests.yml)
 [![Stars](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=flat-square)](https://github.com/raunakpatil/youtube-agentic-ai-studio/stargazers)
 
 [**Quick start**](#-quick-start) · [**How it works**](#-how-it-works) · [**Free APIs**](#-the-free-api-stack) · [**Setup guide**](SETUP.md) · [**FAQ**](#-faq)
@@ -44,6 +45,23 @@ The app has three screens, in the order you use them:
 | **My videos** | Every finished video is saved automatically, with **Long videos** and **Shorts** in separate sections. Re-open, re-edit, re-publish, download or delete. |
 
 **Settings** (top right) holds your channel name, voice, optional keys and advanced options. Everything has a sensible default.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/home.png" alt="Home: one box to type your video idea"><br><sub><b>Home</b>: type an idea, or let AI pick one</sub></td>
+<td width="50%"><img src="docs/screenshots/home-progress.png" alt="Progress while a video is being made"><br><sub><b>Making a video</b>: plain-English progress, step by step</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/review.png" alt="Review and publish page"><br><sub><b>Review &amp; publish</b>: watch, title, findability score</sub></td>
+<td width="50%"><img src="docs/screenshots/thumbnail-designer.png" alt="Thumbnail designer"><br><sub><b>Thumbnail designer</b>: text, 4 styles, any background</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/library.png" alt="My videos with long videos and Shorts separated"><br><sub><b>My videos</b>: long videos and Shorts kept apart</sub></td>
+<td width="50%" align="center"><img src="docs/screenshots/mobile-home.png" alt="Home on a phone" width="45%"><br><sub><b>Works at phone width</b></sub></td>
+</tr>
+</table>
+
+![The four thumbnail styles in 16:9 and 9:16](docs/screenshots/thumbnail-styles.png)
 
 Behind the scenes:
 
@@ -147,14 +165,29 @@ Non-secret settings (voice, channel description, video style) are saved to `conf
 ├── video/
 │   ├── narrator.py         ← Edge TTS voiceover + captions
 │   ├── stock.py            ← image download chain + credits
-│   ├── creator.py          ← renderer (Ken Burns, captions, Shorts)
+│   ├── creator.py          ← renderer (Ken Burns, captions, Shorts, watermark)
+│   ├── thumbnail.py        ← thumbnail designer (4 styles, 16:9 + 9:16)
+│   ├── fonts.py            ← Google Fonts download + fallbacks
 │   └── music.py            ← background music mixer
 │
 ├── uploader/youtube.py     ← YouTube upload (used by pipeline.py)
 ├── gui_templates/index.html← the whole UI
+├── tests/                  ← pytest suite (offline, no keys needed)
+├── docs/screenshots/       ← README images
 └── output/                 ← generated files (git-ignored)
     └── library/            ← every finished video, archived
 ```
+
+---
+
+## 🧪 Running the tests
+
+```bash
+pip install pytest
+pytest
+```
+
+The suite runs offline with no API keys. It covers JSON repair, the findability score, every thumbnail style in both shapes, descriptions and credits, the watermark, `.env` handling and the AI model chain. GitHub Actions runs it on every push and pull request.
 
 ---
 

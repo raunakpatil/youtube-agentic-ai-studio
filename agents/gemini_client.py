@@ -79,6 +79,9 @@ def _should_switch_model(err: Exception) -> bool:
         "429", "RESOURCE_EXHAUSTED", "quota", "rate limit",  # 429 – quota
         "503", "UNAVAILABLE", "overloaded", "high demand",   # 503 – overloaded
         "500", "INTERNAL",                                    # 500 – transient
+        # dropped / flaky connections — worth a retry, not a failed run
+        "10053", "10054", "Connection aborted", "Connection reset", "ConnectError",
+        "RemoteDisconnected", "timed out", "Timeout", "Temporary failure", "NameResolution",
     ])
 
 

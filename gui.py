@@ -138,6 +138,8 @@ def _ai_thumbnail_bg(script, research):
     _log("Generating AI thumbnail art (Pollinations)…")
     w, h = (1080, 1920) if portrait else (1280, 720)
     download(pollinations_url(prompt, w, h), path, timeout=120)
+    from apis.images import strip_pollinations_logo
+    strip_pollinations_logo(path)
     return path
 
 

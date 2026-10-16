@@ -451,9 +451,11 @@ details.more > .more-body { margin-top: 14px; }
   position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(160%); z-index: 60;
   display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 16px; border-radius: 999px;
   background: var(--surface); box-shadow: var(--neu-out), 0 0 0 1px rgba(0,0,0,.05), 0 12px 40px rgba(0,0,0,.18);
-  transition: transform .5s var(--snap); font-size: 13px; color: #333; white-space: nowrap;
+  font-size: 13px; color: #333; white-space: nowrap;
+  visibility: hidden; opacity: 0;
+  transition: transform .5s var(--snap), opacity .3s, visibility 0s linear .5s;
 }
-.savebar.show { transform: translateX(-50%); }
+.savebar.show { transform: translateX(-50%); visibility: visible; opacity: 1; transition: transform .5s var(--snap), opacity .3s; }
 .savebar .btn-dark { background: #111; color: #fff; box-shadow: var(--key); }
 .savebar .btn-light { color: #333; }
 .savebar i { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); }
@@ -1059,7 +1061,11 @@ function applyStatus(d) {
   $("#status-pill").className = "status-pill " + state;
   $("#status-text").textContent = d.uploading ? "Uploading…" : d.running ? "Making video…" : d.error ? "Last run failed" : "Ready";
   if (d.running) {
-    if (heroMode !== "running") setHero("running");
+    if (heroMode !== "running") {
+      setHero("running");
+      // page opened mid-run: show the topic once research has picked it
+      if ((d.stages || {}).research === "done") showTopic();
+    }
     renderRun(d);
     if (!es) startSSE();
   }

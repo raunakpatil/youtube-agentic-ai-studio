@@ -37,7 +37,8 @@ output/images/
 *.jpg
 *.jpeg
 *.png
-!docs/screenshots/*.png    # allow docs screenshots
+# allow docs screenshots
+!docs/screenshots/*.png
 
 # ── OS junk ──────────────────────────────
 .DS_Store
