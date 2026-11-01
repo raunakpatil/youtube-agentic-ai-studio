@@ -18,8 +18,10 @@ env/
 ENV/
 
 # ── Secrets — NEVER commit these ─────────
-# Add your real client_secret.json here after copying from Google Cloud
-# The placeholder client_secret.json in the repo is safe to commit
+# Google OAuth credentials: keep the real file local.
+# client_secret.example.json shows the shape and is the only one committed.
+client_secret.json
+client_secret_*.json
 youtube_token.pickle
 .env
 *.pickle

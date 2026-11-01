@@ -115,7 +115,9 @@ Skip this step if you just want to generate videos locally without uploading.
    - Name: anything (e.g. "YT Agent Desktop")
 5. Click **Download JSON**
 6. Rename the downloaded file to `client_secret.json`
-7. Place it in the root of the project (replacing the placeholder)
+7. Put it in the root of the project, next to `client_secret.example.json`
+
+> `client_secret.json` is git-ignored, so your real credentials are never committed. Don't paste them into `client_secret.example.json`, which is tracked.
 
 ### 4d. First-time authentication
 
@@ -176,7 +178,7 @@ The repo includes a few dark cinematic tracks to get you started. Replace or add
 | `youtube_token.pickle` auth error | Delete the file and re-run to re-authenticate |
 | Tiny/ugly video text | Install DejaVu fonts: `sudo apt install fonts-dejavu` (Linux) |
 | Flask port already in use | Change `REVIEW_PORT` in `config.py` |
-| `client_secret.json` error | Ensure you replaced the placeholder with your real Google credentials |
+| `client_secret.json` error | Download your OAuth JSON from Google Cloud and save it as `client_secret.json` in the project root (step 4c) |
 | Captions out of sync | Switch to a different `VOICE_ID` in `config.py` (see voice list in file) |
 
 ---
