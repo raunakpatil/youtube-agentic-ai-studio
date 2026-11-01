@@ -19,6 +19,12 @@ YAAS researches a topic, checks the facts, writes the script, records a voiceove
 
 </div>
 
+
+
+https://github.com/user-attachments/assets/e94dab2d-3110-440c-b82e-b9289c0e6b51
+
+
+
 ---
 
 ## ⚡ Quick start
