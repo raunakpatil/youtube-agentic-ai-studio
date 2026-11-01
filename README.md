@@ -50,16 +50,12 @@ The app has three screens, in the order you use them:
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/home.png" alt="Home: one box to type your video idea"><br><sub><b>Home</b>: type an idea, or let AI pick one</sub></td>
-<td width="50%"><img src="docs/screenshots/home-progress.png" alt="Progress while a video is being made"><br><sub><b>Making a video</b>: plain-English progress, step by step</sub></td>
+<td width="50%" align="center"><img src="docs/screenshots/home.png" alt="Home: one box to type your video idea"><br><sub><b>Home</b>: type an idea, or let AI pick one</sub></td>
+<td width="50%" align="center"><img src="docs/screenshots/home-progress.png" alt="Progress while a video is being made"><br><sub><b>Making a video</b>: plain-English progress, step by step</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screenshots/review.png" alt="Review and publish page"><br><sub><b>Review &amp; publish</b>: watch, title, findability score</sub></td>
-<td width="50%"><img src="docs/screenshots/thumbnail-designer.png" alt="Thumbnail designer"><br><sub><b>Thumbnail designer</b>: text, 4 styles, any background</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/screenshots/library.png" alt="My videos with long videos and Shorts separated"><br><sub><b>My videos</b>: long videos and Shorts kept apart</sub></td>
-<td width="50%" align="center"><img src="docs/screenshots/mobile-home.png" alt="Home on a phone" width="45%"><br><sub><b>Works at phone width</b></sub></td>
+<td width="50%" align="center"><img src="docs/screenshots/review.png" alt="Review and publish page"><br><sub><b>Review &amp; publish</b>: watch, title, findability score</sub></td>
+<td width="50%" align="center"><img src="docs/screenshots/thumbnail-style-picker.png" alt="Thumbnail style picker: Impact, Cinematic, Split and Studio"><br><sub><b>Thumbnail styles</b>: pick Impact, Cinematic, Split or Studio</sub></td>
 </tr>
 </table>
 
