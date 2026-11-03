@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YAAS — youtube-agentic-ai-studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#home"><b>YAAS</b><small>youtube-agentic-ai-studio</small></a>
+  <nav class="tabs" id="tabs">
+    <span class="tabs-indicator" id="tabs-indicator"></span>
+    <a href="#home" data-view="home">Home</a>
+    <a href="#review" data-view="review">Review &amp; publish<span class="dot"></span></a>
+    <a href="#library" data-view="library">My videos</a>
+  </nav>
+  <div class="bar-right">
+    <div class="status-pill" id="status-pill"><i></i><span id="status-text">Ready</span></div>
+    <a class="settings-btn" id="settings-btn" href="#settings" title="Settings"><span><i></i><i></i><i></i><i></i></span><em>Settings</em></a>
+  </div>
+</header>
+
+<main>
+
+<!-- ════════════════════════ HOME ════════════════════════ -->
+<section class="view" id="view-home">
+
+  <article class="card s16 hero" id="hero">
+    <div class="hero-grid"></div>
+
+    <!-- Idle: ask for a topic -->
+    <div id="hero-form">
+      <h1 class="hello"><span data-t="Hello,">Hello,</span><span data-t="Creator">Creator</span></h1>
+      <p class="hero-sub">Type an idea. YAAS researches it, writes the script, records a voiceover, finds visuals and renders a finished YouTube video, free.</p>
+
+      <div class="ask">
+        <form class="ask-box" id="ask-form" autocomplete="off">
+          <input type="text" id="topic-input" placeholder="What's your video about?  e.g. Why time slows down near black holes">
+          <button class="btn-go" type="submit">Make video →</button>
+        </form>
+        <div class="ask-row">
+          <div class="or">no idea yet? <button class="surprise" type="button" id="surprise-btn"><b>✦</b> Let AI pick a topic</button></div>
+          <div class="seg" id="format-seg" title="Video format">
+            <button data-fmt="normal" class="on" type="button">Long video · 6–8 min</button>
+            <button data-fmt="shorts" type="button">Short · 60 s</button>
+          </div>
+        </div>
+      </div>
+
+      <details class="more" style="margin-top:18px">
+        <summary>More options</summary>
+        <div class="more-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px 24px">
+          <div class="field">
+            <div class="label">Voice <small>✓ = captions synced word by word</small></div>
+            <select id="quick-voice">
+              <option value="en-US-AndrewNeural">Andrew — US, warm ✓</option>
+              <option value="en-GB-LibbyNeural">Libby — UK, clear ✓</option>
+              <option value="en-US-BrianNeural">Brian — US, calm</option>
+              <option value="en-US-GuyNeural">Guy — US, neutral</option>
+              <option value="en-GB-RyanNeural">Ryan — UK, warm</option>
+              <option value="en-US-ChristopherNeural">Christopher — US, deep</option>
+              <option value="en-US-AriaNeural">Aria — US, expressive</option>
+              <option value="en-GB-SoniaNeural">Sonia — UK, clear</option>
+              <option value="en-AU-NatashaNeural">Natasha — AU</option>
+            </select>
+          </div>
+          <div class="field" style="margin-top:0">
+            <div class="label">When AI picks the topic <small>stay within a theme</small></div>
+            <select id="focus-angle">
+              <option value="">Any theme from my channel</option>
+              <option>Theoretical Physics &amp; Time Travel</option>
+              <option>The Dark Forest Theory &amp; Aliens</option>
+              <option>Existential Human Psychology &amp; Illusions</option>
+              <option>Frightening AI Futures &amp; Simulation Theory</option>
+              <option>Mind-bending Mathematical Paradoxes</option>
+              <option>The limits of Human Biology &amp; Immortality</option>
+              <option>Quantum Mechanics &amp; Alternate Realities</option>
+              <option>Cosmic scale, Black Holes, and the end of the Universe</option>
+              <option>Neuroscience &amp; the Mystery of Consciousness</option>
+              <option>Ancient Civilisations &amp; Lost History</option>
+              <option>Cutting-edge Biotechnology &amp; Genetic Engineering</option>
+              <option>The Future of Space Colonisation</option>
+            </select>
+          </div>
+          <div>
+            <label class="toggle first"><span><b>Check facts</b><small>Look up Wikipedia &amp; arXiv first and cite them</small></span><input type="checkbox" id="quick-grounding" checked><span class="switch"></span></label>
+            <label class="toggle"><span><b>Use today's trends</b><small>When AI picks, ride a trending story if it fits</small></span><input type="checkbox" id="quick-trends" checked><span class="switch"></span></label>
+          </div>
+          <div class="field" style="margin-top:0">
+            <div class="label">Redo only some steps <small>to re-render your last video</small></div>
+            <div class="chips" id="steps">
+              <label class="chip on"><input type="checkbox" value="research" checked>Research</label>
+              <label class="chip on"><input type="checkbox" value="script" checked>Script</label>
+              <label class="chip on"><input type="checkbox" value="images" checked>Visuals</label>
+              <label class="chip on"><input type="checkbox" value="narration" checked>Voice</label>
+              <label class="chip on"><input type="checkbox" value="music" checked>Music</label>
+              <label class="chip on"><input type="checkbox" value="video" checked>Render</label>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="how">
+        <div><b>STEP 1</b><span>You give a topic, or let AI pick one</span></div>
+        <div><b>STEP 2</b><span>AI researches, checks facts &amp; writes</span></div>
+        <div><b>STEP 3</b><span>Voice, visuals &amp; video are made for you</span></div>
+        <div><b>STEP 4</b><span>You review, tweak and publish</span></div>
+      </div>
+    </div>
+
+    <!-- Running / finished / failed -->
+    <div id="hero-run" hidden>
+      <div class="prog-head">
+        <div>
+          <div class="prog-title" id="run-title">Making your video…</div>
+          <div class="prog-topic" id="run-topic">Starting up</div>
+        </div>
+        <button class="btn btn-red btn-sm" id="stop-btn">Stop</button>
+      </div>
+      <div id="run-progress">
+        <div class="prog-bar"><b id="prog-fill"></b></div>
+        <div class="prog-meta"><span id="prog-step">Getting ready…</span><span id="prog-time"></span></div>
+        <div class="steps-list" id="steps-list"></div>
+        <p class="hint" style="margin-top:12px">You can leave this page open and do something else. It keeps going in the background.</p>
+      </div>
+      <div id="run-done" hidden></div>
+      <div id="run-error" hidden></div>
+      <details class="more" id="log-details" style="margin-top:auto;padding-top:16px">
+        <summary>Show technical log</summary>
+        <div class="more-body console" id="console"><span class="l-dim">// waiting for output</span></div>
+      </details>
+    </div>
+  </article>
+
+  <div class="col s8">
+    <article class="card">
+      <div class="card-label"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Your setup</div>
+      <div class="ready-meter"><strong id="ready-num">–</strong><span id="ready-text">checking…</span></div>
+      <div id="checklist"></div>
+    </article>
+
+    <article class="card">
+      <div class="card-label"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Your latest video</div>
+      <div id="latest"><div class="empty" style="min-height:110px">Your videos will show up here.</div></div>
+    </article>
+  </div>
+
+  <article class="card s16">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Need an idea? Trending today</div>
+    <div class="card-tools"><span class="card-note" id="trend-age"></span><button class="icon-btn" id="trend-refresh" title="Refresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button></div>
+    <p class="card-intro">Click any idea to use it as your topic. Pulled live from news, science papers and search trends.</p>
+    <div class="src-filter" id="src-filter"></div>
+    <div class="trend-list" id="trend-list"><div class="empty" style="grid-column:1/-1">Loading what's trending…</div></div>
+  </article>
+
+  <article class="card s8">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Your stats</div>
+    <div class="card-tools"><span class="card-note" id="pulse-src"></span></div>
+    <div class="stat-row" id="pulse-stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+    <div class="bars" id="pulse-bars"></div>
+    <div class="bars-foot" id="pulse-foot"><span></span><span></span></div>
+    <p class="hint" id="pulse-hint" style="margin-top:10px"></p>
+  </article>
+
+  <article class="card s24">
+    <div class="card-label"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Connected services <span class="count" id="api-count">–</span></div>
+    <div class="card-tools"><button class="btn btn-ghost btn-xs" id="api-probe">Test connections</button></div>
+    <details class="more" id="api-details">
+      <summary>See the free services YAAS uses. Green = working. Most need no account at all.</summary>
+      <div class="more-body api-grid" id="api-grid"></div>
+    </details>
+  </article>
+</section>
+
+<!-- ════════════════════════ REVIEW ════════════════════════ -->
+<section class="view" id="view-review">
+
+  <article class="card s24 flat" id="review-empty" hidden>
+    <div class="empty" style="min-height:320px">
+      <div style="font-size:28px;font-weight:300;color:var(--on-card)">No video to review yet</div>
+      <div>Make one on Home. When it's done it appears here, ready to polish and publish.</div>
+      <div style="display:flex;gap:8px;justify-content:center"><a class="btn btn-white" href="#home">Make a video</a><a class="btn btn-ghost" href="#library">Open a past video</a></div>
+    </div>
+  </article>
+
+  <article class="card s24 flat review-part">
+    <div class="guide">
+      <div>
+        <h2>Review &amp; publish</h2>
+        <p>Watch your video, polish the title, description and thumbnail, then upload it. Nothing goes to YouTube until you press Upload.</p>
+      </div>
+      <nav class="guide-steps">
+        <a href="#rv-watch"><i>1</i>Watch</a>
+        <a href="#rv-title"><i>2</i>Title</a>
+        <a href="#rv-desc"><i>3</i>Description &amp; tags</a>
+        <a href="#rv-thumb"><i>4</i>Thumbnail</a>
+        <a href="#rv-publish"><i>5</i>Publish</a>
+      </nav>
+    </div>
+  </article>
+
+  <article class="card s14 review-part" id="rv-watch">
+    <div class="card-label"><span class="num">1</span>Watch it</div>
+    <div class="card-tools"><span class="card-note" id="review-src"></span></div>
+    <div class="thumb-frame player contain" id="player"></div>
+    <div class="dl-row">
+      <span class="hint" style="margin-right:4px">Download:</span>
+      <a class="btn btn-ghost btn-sm" id="dl-video" href="/video?download=1">Video (MP4)</a>
+      <a class="btn btn-ghost btn-sm" id="dl-thumb" href="/thumbnail?download=1">Thumbnail</a>
+      <a class="btn btn-ghost btn-sm" id="dl-srt" href="/captions?download=1">Captions (SRT)</a>
+    </div>
+  </article>
+
+  <div class="col s10 review-part">
+    <article class="card" id="rv-title">
+      <div class="card-label"><span class="num">2</span>Title</div>
+      <div class="field">
+        <div class="label">Video title <span class="counter" id="title-count">0/70</span></div>
+        <input type="text" id="edit-title" placeholder="Video title…">
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="title-lab-btn">✦ Suggest better titles</button>
+        <span class="hint">6 options based on what people search</span>
+      </div>
+      <div class="ideas" id="ideas" style="margin-top:10px"></div>
+    </article>
+
+    <article class="card">
+      <div class="card-label"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>How easy is it to find?</div>
+      <div class="score">
+        <div class="ring"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="seo-ring" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="263.9"/></svg><div><span><b id="seo-num">–</b><small>/ 100</small></span></div></div>
+        <div class="score-text"><b id="seo-verdict">—</b><span id="seo-sub">Updates as you edit the title, description and tags.</span></div>
+      </div>
+      <div class="checks" id="seo-checks"></div>
+    </article>
+  </div>
+
+  <article class="card s14 review-part" id="rv-desc">
+    <div class="card-label"><span class="num">3</span>Description &amp; tags</div>
+    <div class="field">
+      <div class="label">Description <span style="display:flex;gap:10px;align-items:center"><span class="counter" id="desc-count">0/5000</span><button class="btn btn-ghost btn-xs" id="regen-desc">✦ Rewrite with AI</button></span></div>
+      <textarea id="edit-desc" rows="12" placeholder="Video description…"></textarea>
+      <div class="hint">Chapters, sources and image credits are added for you. Keep them: they help viewers, and some images require credit.</div>
+    </div>
+    <div class="field">
+      <div class="label">Tags <span class="counter" id="tag-count">0/500</span></div>
+      <div class="tags" id="tag-list"></div>
+      <input type="text" id="new-tag" placeholder="Type a tag and press Enter">
+    </div>
+    <div class="field">
+      <div class="label">Popular searches <small>click one to add it as a tag</small></div>
+      <div class="chips" id="kw-chips"></div>
+    </div>
+  </article>
+
+  <article class="card s10 review-part" id="rv-thumb">
+    <div class="card-label"><span class="num">4</span>Thumbnail</div>
+    <div class="thumb-frame" id="thumb-wrap"></div>
+
+    <div class="field" style="margin-top:16px">
+      <div class="label">Text on the thumbnail <small>2–5 words work best</small></div>
+      <div class="row2"><input type="text" id="thumb-text" maxlength="60" placeholder="e.g. Time *stops* here"><button class="btn btn-ghost btn-sm" id="thumb-ideas-btn" style="height:auto">✦ Ideas</button></div>
+      <div class="hint">Put <span class="mono" style="color:var(--on-card)">*stars*</span> around a word to make it pop. Leave empty to use your title.</div>
+      <div class="chips" id="thumb-ideas"></div>
+    </div>
+
+    <div class="field">
+      <div class="label">Style <small>click one to use it</small></div>
+      <div class="styles" id="thumb-styles"></div>
+    </div>
+
+    <div class="field">
+      <div class="label">Background <small id="bg-note"></small></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="bg-prev">← Previous photo</button>
+        <button class="btn btn-ghost btn-sm" id="bg-next">Next photo →</button>
+        <button class="btn btn-ghost btn-sm" id="bg-ai">✦ New AI artwork</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="card s14 review-part" id="rv-publish">
+    <div class="card-label"><span class="num">5</span>Publish to YouTube</div>
+    <div id="yt-setup" class="hint" style="margin-bottom:14px"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+      <div class="field">
+        <div class="label">When</div>
+        <div class="seg full" id="upload-seg"><button data-um="now" class="on">Right now</button><button data-um="schedule">Schedule</button></div>
+      </div>
+      <div class="field" style="margin-top:0" id="upane-now">
+        <div class="label">Who can see it</div>
+        <select id="upload-privacy"><option value="public">Everyone (public)</option><option value="unlisted">Anyone with the link (unlisted)</option><option value="private">Only me (private)</option></select>
+      </div>
+      <div class="field" style="margin-top:0" id="upane-schedule" hidden>
+        <div class="label">Goes public at</div>
+        <input type="datetime-local" id="schedule-dt">
+      </div>
+    </div>
+    <button class="btn btn-green btn-lg btn-block" id="upload-btn" style="margin-top:16px">Upload to YouTube</button>
+    <div class="progress" id="upload-progress" hidden><b id="upload-fill"></b></div>
+    <div class="hint" id="upload-status" style="margin-top:8px"></div>
+  </article>
+
+  <article class="card s10 review-part">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Script &amp; sources</div>
+    <details class="more">
+      <summary>Read the script, section by section</summary>
+      <div class="more-body sections" id="sections"></div>
+    </details>
+    <div id="review-sources" style="margin-top:16px"></div>
+  </article>
+</section>
+
+<!-- ════════════════════════ LIBRARY ════════════════════════ -->
+<section class="view" id="view-library">
+  <article class="card s24">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M16 5l3.8-1 3 15.5-3.8 1z"/></svg>My videos</div>
+    <p class="card-intro">Every video you finish is saved here automatically. Open one to edit and publish it.</p>
+    <div class="stat-row" id="lib-stats"></div>
+    <div class="bars" id="lib-bars" style="height:70px"></div>
+    <div class="bars-foot"><span>60 days ago</span><span>videos made per day</span><span>today</span></div>
+  </article>
+  <div id="lib-grid" style="display:contents"></div>
+</section>
+
+<!-- ════════════════════════ SETTINGS ════════════════════════ -->
+<section class="view" id="view-settings">
+
+  <article class="card s24 flat">
+    <div class="guide">
+      <div>
+        <h2>Settings</h2>
+        <p>YAAS works without any keys. Free keys make scripts and photos better and let you publish. Keys stay on this computer in a <span class="mono">.env</span> file.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="card s12 r2">
+    <div class="card-label"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Free API keys</div>
+    <p class="card-intro">All optional. The first one makes the biggest difference.</p>
+    <div id="key-fields"></div>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Your channel</div>
+    <div class="field"><div class="label">Channel name</div><input type="text" id="s-channel_name" placeholder="Your YouTube channel name"></div>
+    <label class="toggle" style="margin-top:6px"><span><b>Show channel name in videos</b><small>“▶ NAME” tag in the intro, on Shorts and on thumbnails</small></span><input type="checkbox" id="s-show_brand"><span class="switch"></span></label>
+    <div class="field" id="brand-field" style="margin-top:4px"><div class="label">Text to show <small>optional, defaults to channel name</small></div><input type="text" id="s-brand_text" placeholder="Same as channel name"><div class="hint" id="brand-preview"></div></div>
+    <div class="field"><div class="label">Default thumbnail style <small>change it per video on Review</small></div>
+      <select id="s-thumb_style">
+        <option value="impact">Impact — huge outlined text, classic YouTube</option>
+        <option value="cinematic">Cinematic — full-bleed photo, film letterbox</option>
+        <option value="split">Split — bold colour panel + angled photo</option>
+        <option value="studio">Studio — clean dark card, light type</option>
+      </select></div>
+    <div class="field"><div class="label">What your channel is about</div><textarea id="s-channel_desc" rows="5"></textarea><div class="hint">The AI uses this to pick topics and match your style. Be specific about subjects, tone and audience.</div></div>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>Voice</div>
+    <div class="field">
+      <div class="label">Narrator</div>
+      <select id="s-voice_id">
+        <optgroup label="Captions synced word by word">
+          <option value="en-US-AndrewNeural">Andrew — US, warm male</option>
+          <option value="en-GB-LibbyNeural">Libby — UK, clear female</option>
+        </optgroup>
+        <optgroup label="Captions synced by sentence">
+          <option value="en-US-BrianNeural">Brian — US, calm male</option>
+          <option value="en-US-GuyNeural">Guy — US, neutral male</option>
+          <option value="en-GB-RyanNeural">Ryan — UK, warm male</option>
+          <option value="en-US-ChristopherNeural">Christopher — US, deep male</option>
+          <option value="en-US-AriaNeural">Aria — US, expressive female</option>
+          <option value="en-GB-SoniaNeural">Sonia — UK, clear female</option>
+          <option value="en-AU-NatashaNeural">Natasha — AU, female</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field"><div class="label">Speed</div><div class="range-row"><input type="range" id="r-voice_rate" min="-20" max="20"><span id="v-voice_rate"></span></div></div>
+    <div class="field"><div class="label">Pitch</div><div class="range-row"><input type="range" id="r-voice_pitch" min="-10" max="10"><span id="v-voice_pitch"></span></div></div>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Music &amp; publishing</div>
+    <label class="toggle first"><span><b>Background music</b><small>Drop MP3s into the <span class="mono">music library</span> folder</small></span><input type="checkbox" id="s-music_enabled"><span class="switch"></span></label>
+    <label class="toggle"><span><b>Credit YAAS in descriptions</b><small>Adds “Made with YAAS by Raunak Patil · raunakpatil.com”</small></span><input type="checkbox" id="s-credit_yaas"><span class="switch"></span></label>
+    <div class="field"><div class="label">Music volume</div><div class="range-row"><input type="range" id="r-music_volume" min="0" max="100"><span id="v-music_volume"></span></div></div>
+    <div class="field"><div class="label">Default visibility</div>
+      <select id="s-privacy"><option value="public">Everyone (public)</option><option value="unlisted">Anyone with the link (unlisted)</option><option value="private">Only me (private)</option></select></div>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Topics to avoid</div>
+    <p class="card-intro">One per line. The AI never picks these. Add a topic after you've covered it so you don't repeat yourself.</p>
+    <textarea id="s-banned" rows="6" class="mono" placeholder="The Fermi Paradox&#10;Dark Matter"></textarea>
+    <button class="btn btn-ghost btn-sm" id="save-banned" style="margin-top:10px">Save list</button>
+  </article>
+
+  <article class="card s12">
+    <div class="card-label"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Advanced</div>
+    <details class="more">
+      <summary>AI models, image sources and video style</summary>
+      <div class="more-body">
+        <label class="toggle first"><span><b>Free backup AI</b><small>If every other AI fails, Pollinations writes the script (no key)</small></span><input type="checkbox" id="s-keyless_llm"><span class="switch"></span></label>
+        <label class="toggle"><span><b>Check facts</b><small>Wikipedia + arXiv lookups before writing</small></span><input type="checkbox" id="s-fact_grounding"><span class="switch"></span></label>
+        <div class="field" style="margin-top:12px">
+          <div class="label">Image sources after Pexels <small>tried in this order</small></div>
+          <div class="chips" id="img-sources">
+            <label class="chip"><input type="checkbox" value="pixabay">Pixabay</label>
+            <label class="chip"><input type="checkbox" value="nasa">NASA</label>
+            <label class="chip"><input type="checkbox" value="openverse">Openverse (CC)</label>
+            <label class="chip"><input type="checkbox" value="pollinations">AI-generated</label>
+          </div>
+        </div>
+        <div class="field"><div class="label">Gemini model to try first</div>
+          <select id="s-gemini_model">
+            <option value="gemini-2.5-flash">gemini-2.5-flash — best quality</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — fast + smart</option>
+            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash — most free quota</option>
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite — fastest</option>
+            <option value="gemma-3-27b-it">gemma-3-27b-it</option>
+          </select></div>
+        <div class="field"><div class="label">Groq model</div><input type="text" id="s-groq_model"></div>
+        <div class="field"><div class="label">OpenRouter model</div><input type="text" id="s-openrouter_model"></div>
+        <div class="field"><div class="label">Trending ideas from</div>
+          <select id="s-trends_geo"><option value="US">United States</option><option value="GB">United Kingdom</option><option value="IN">India</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option><option value="BR">Brazil</option><option value="JP">Japan</option></select></div>
+        <div class="field"><div class="label">Render quality</div>
+          <select id="s-render_preset"><option value="ultrafast">Fast (bigger file)</option><option value="veryfast">Balanced</option><option value="medium">Best (about 3× slower)</option></select></div>
+        <div class="field"><div class="label">Darken images behind text</div><div class="range-row"><input type="range" id="r-overlay" min="0" max="100"><span id="v-overlay"></span></div></div>
+        <div class="field"><div class="label">Seconds per image</div><div class="range-row"><input type="range" id="r-broll_interval" min="4" max="30"><span id="v-broll_interval"></span></div></div>
+        <div class="field"><div class="label">Crossfade length</div><div class="range-row"><input type="range" id="r-broll_xfade" min="2" max="20"><span id="v-broll_xfade"></span></div></div>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><div class="label">Zoom start</div><input type="text" id="s-kb_start"></div>
+          <div class="field" style="margin-top:0"><div class="label">Zoom end</div><input type="text" id="s-kb_end"></div>
+        </div>
+      </div>
+    </details>
+  </article>
+</section>
+
+</main>
+
+<footer class="foot">
+  <span><b style="font-weight:500;color:var(--ink)">YAAS</b> <span class="mono">youtube-agentic-ai-studio</span></span>
+  <span>made by <a href="https://raunakpatil.com" target="_blank" rel="noopener">Raunak Patil · raunakpatil.com</a></span>
+  <a href="https://github.com/raunakpatil/youtube-agentic-ai-studio" target="_blank" rel="noopener">GitHub</a>
+</footer>
+
+<div class="savebar" id="savebar">
+  <i></i><span>Unsaved changes</span>
+  <button class="btn btn-light btn-sm" id="savebar-undo">Undo</button>
+  <button class="btn btn-dark btn-sm" id="savebar-save">Save</button>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script src="/static/js/core.js"></script>
+<script src="/static/js/run.js"></script>
+<script src="/static/js/home.js"></script>
+<script src="/static/js/review.js"></script>
+<script src="/static/js/library.js"></script>
+<script src="/static/js/settings.js"></script>
+<script src="/static/js/boot.js"></script>
+</body>
+</html>

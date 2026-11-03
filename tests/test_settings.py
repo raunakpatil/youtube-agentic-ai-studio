@@ -9,6 +9,7 @@ import pytest
 
 import config
 import gui
+from studio import settings as studio_settings
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL = {"Host": "localhost:7070"}
@@ -152,6 +153,6 @@ def test_import_legacy_config_reads_values_without_running_it(tmp_path, monkeypa
 def test_import_settings_command(tmp_path, settings_file, capsys):
     old = tmp_path / "old_config.py"
     old.write_text(OLD_CONFIG)
-    gui._import_settings(str(old))
+    studio_settings.import_settings(str(old))
     assert json.loads(settings_file.read_text())["CHANNEL_NAME"] == "Old Channel"
     assert "Imported 4 setting(s)" in capsys.readouterr().out

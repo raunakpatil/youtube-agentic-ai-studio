@@ -4,6 +4,7 @@ import pytest
 
 import config
 import gui
+from studio import description, settings
 from agents import gemini_client
 from video import creator, stock
 
@@ -23,12 +24,12 @@ RESEARCH = {
 
 @pytest.fixture(autouse=True)
 def _no_credits_file(monkeypatch):
-    monkeypatch.setattr(gui, "_load_credits", lambda: [])
+    monkeypatch.setattr(description, "load_credits", lambda: [])
 
 
 def test_description_has_chapters_sources_and_credit(monkeypatch):
     monkeypatch.setattr(config, "CREDIT_YAAS", True, raising=False)
-    d = gui._build_description(SCRIPT, RESEARCH, "normal")
+    d = description.build_description(SCRIPT, RESEARCH, "normal")
     assert "⏱ CHAPTERS" in d and "\n0:00 Part 1" in d
     assert "https://en.wikipedia.org/wiki/Moon" in d
     assert "https://raunakpatil.com" in d
@@ -37,21 +38,21 @@ def test_description_has_chapters_sources_and_credit(monkeypatch):
 
 
 def test_shorts_description_has_no_chapters():
-    d = gui._build_description({**SCRIPT, "video_type": "shorts"}, RESEARCH, "shorts")
+    d = description.build_description({**SCRIPT, "video_type": "shorts"}, RESEARCH, "shorts")
     assert "CHAPTERS" not in d
     assert "#Shorts" in d
 
 
 def test_credit_can_be_turned_off(monkeypatch):
     monkeypatch.setattr(config, "CREDIT_YAAS", False, raising=False)
-    assert "raunakpatil.com" not in gui._build_description(SCRIPT, RESEARCH, "normal")
+    assert "raunakpatil.com" not in description.build_description(SCRIPT, RESEARCH, "normal")
 
 
 def test_old_descriptions_get_the_credit(monkeypatch):
     monkeypatch.setattr(config, "CREDIT_YAAS", True, raising=False)
-    assert gui._with_credit("Old text").endswith(gui.CREDIT_LINE)
-    already = "x\n" + gui.CREDIT_LINE
-    assert gui._with_credit(already) == already
+    assert description.with_credit("Old text").endswith(description.CREDIT_LINE)
+    already = "x\n" + description.CREDIT_LINE
+    assert description.with_credit(already) == already
 
 
 @pytest.mark.parametrize("w, h", [(1920, 1080), (1080, 1920)])
@@ -76,7 +77,7 @@ def test_watermark_is_burned_into_frames():
 
 def test_watermark_text_is_not_a_setting():
     assert creator.WATERMARK_TEXT == "raunakpatil.com"
-    assert not any("WATERMARK" in k for k, _ in gui._SETTINGS.values())
+    assert not any("WATERMARK" in k for k, _ in settings._SETTINGS.values())
 
 
 def test_save_env_updates_in_place(tmp_path):
@@ -90,9 +91,9 @@ def test_save_env_updates_in_place(tmp_path):
 
 
 def test_keys_are_masked_for_the_browser():
-    assert gui._mask("") == ""
-    assert gui._mask("YOUR_GEMINI_API_KEY") == ""
-    assert gui._mask("abcdefghijkl") == "••••ijkl"
+    assert settings._mask("") == ""
+    assert settings._mask("YOUR_GEMINI_API_KEY") == ""
+    assert settings._mask("abcdefghijkl") == "••••ijkl"
 
 
 def test_model_chain_starts_at_preference():
@@ -126,3 +127,22 @@ def test_pollinations_logo_strip_is_cropped(tmp_path):
     strip_pollinations_logo(str(p))
     with Image.open(p) as im:
         assert im.size == (1024, int(576 * 0.93))
+
+
+def test_page_and_every_static_file_it_references_are_served():
+    import re
+    client = gui.app.test_client()
+    page = client.get("/", headers={"Host": "localhost:7070"})
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assets = re.findall(r'(?:src|href)="(/static/[^"]+)"', html)
+    assert "/static/app.css" in assets and "/static/js/boot.js" in assets
+    assert assets.index("/static/js/core.js") < assets.index("/static/js/boot.js")  # load order
+    for path in assets:
+        r = client.get(path, headers={"Host": "localhost:7070"})
+        assert r.status_code == 200 and r.data, path
+        r.close()
+
+
+def test_blueprints_are_registered():
+    assert set(gui.app.blueprints) == {"pipeline", "review", "library", "upload", "settings", "dashboard"}

@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 import gui
+from studio import security
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SELF = "http://localhost"          # Flask's test client sends Host: localhost
@@ -75,7 +76,7 @@ def test_local_hosts_are_allowed(client, host):
     ("[::1]:7070", "[::1]"), ("LOCALHOST:80", "localhost"),
 ])
 def test_hostname_parsing(netloc, name):
-    assert gui._hostname(netloc) == name
+    assert security._hostname(netloc) == name
 
 
 def test_real_oauth_secret_is_never_committed():

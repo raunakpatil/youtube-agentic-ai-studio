@@ -149,7 +149,7 @@ Non-secret settings (voice, channel description, video style) are saved to `sett
 ## 📁 Project structure
 
 ```
-├── gui.py                  ← run this: the app (Flask, http://localhost:7070)
+├── gui.py                  ← run this: starts the app (Flask, http://localhost:7070)
 ├── config.py               ← every default, documented (+ .env / settings.json loaders)
 ├── .env.example            ← copy to .env for your keys
 │
@@ -176,7 +176,18 @@ Non-secret settings (voice, channel description, video style) are saved to `sett
 │   └── music.py            ← background music mixer
 │
 ├── uploader/youtube.py     ← YouTube sign-in + upload
-├── gui_templates/index.html← the whole UI
+├── studio/                 ← the app behind gui.py
+│   ├── pipeline.py         ← blueprint: run / stop, live progress, status
+│   ├── review.py           ← blueprint: description, thumbnail designer, Title Lab + SEO
+│   ├── library.py          ← blueprint: saved videos
+│   ├── upload.py           ← blueprint: YouTube publishing
+│   ├── settings.py         ← blueprint: keys + settings
+│   ├── dashboard.py        ← blueprint: trends, channel stats, API health
+│   ├── runner.py           ← the pipeline thread
+│   ├── state.py            ← the current video + live log
+│   ├── security.py         ← localhost-only guard
+│   ├── templates/index.html← the page
+│   └── static/             ← app.css + js/ (one file per screen)
 ├── tests/                  ← pytest suite (offline, no keys needed)
 ├── docs/screenshots/       ← README images
 └── output/                 ← generated files (git-ignored)
