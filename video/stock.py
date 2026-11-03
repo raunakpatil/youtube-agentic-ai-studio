@@ -8,6 +8,7 @@ For Shorts        : 1 image per query, up to 4 per section (fast slideshow)
 Images saved to output/images/section_NN_imgMM.jpg
 Credits saved to output/credits.json (used for the description's attribution).
 """
+import logging
 import glob
 import json
 import os
@@ -15,6 +16,8 @@ import random
 import requests
 import config
 from apis import images as image_apis
+
+logger = logging.getLogger(__name__)
 
 PEXELS_SEARCH = "https://api.pexels.com/v1/search"
 
@@ -46,7 +49,7 @@ def _pexels(query: str, orientation: str, count: int) -> list:
     params = {"query": query, "per_page": per_page, "page": page, "orientation": orientation}
     r = requests.get(PEXELS_SEARCH, headers=headers, params=params, timeout=15)
     if r.status_code == 401:
-        print("   ⚠ Pexels API key invalid — using free fallback sources")
+        logger.warning("   ⚠ Pexels API key invalid — using free fallback sources")
         config.PEXELS_API_KEY = ""
         return []
     r.raise_for_status()
@@ -75,7 +78,7 @@ def _candidates(query: str, orientation: str, count: int) -> list:
             if c:
                 return c
         except Exception as e:
-            print(f"   ⚠ Pexels search failed for '{query}': {e}")
+            logger.warning(f"   ⚠ Pexels search failed for '{query}': {e}")
     return image_apis.search(query, orientation, count, exclude_urls=_used_urls)
 
 
@@ -104,7 +107,7 @@ def _fetch_images(query: str, section_index: int, images_dir: str,
                 _used_urls.add(cand["url"])
                 _credits.append({"file": fname, "query": attempt_query, **cand["credit"]})
             else:
-                print(f"   ⚠ Download failed ({cand['url'][:60]}…)")
+                logger.warning(f"   ⚠ Download failed ({cand['url'][:60]}…)")
             if len(saved) >= count:
                 return saved
         if saved:
@@ -136,7 +139,7 @@ def download_images(script: dict, output_dir: str) -> dict:
 
     if not _pexels_ready():
         order = " → ".join(getattr(config, "IMAGE_SOURCES", []))
-        print(f"   → No Pexels key — using free sources: {order}")
+        logger.info(f"   → No Pexels key — using free sources: {order}")
 
     is_shorts        = script.get("video_type") == "shorts"
     orientation      = "portrait" if is_shorts else "landscape"
@@ -158,14 +161,14 @@ def download_images(script: dict, output_dir: str) -> dict:
 
         # Shorts: one image per query; normal: first 3 queries for B-roll cuts
         use = queries if is_shorts else queries[:3]
-        print(f"   → [{sid}] {len(use)} queries × 1 image each")
+        logger.info(f"   → [{sid}] {len(use)} queries × 1 image each")
         paths = []
         for qi, q in enumerate(use):
             paths.extend(_fetch_images(q, sid, images_dir,
                                        count=1, orientation=orientation,
                                        img_num_start=qi, topic_hint=topic_hint))
         image_map[sid] = paths if (paths or is_shorts) else None
-        print(f"         saved {len(paths)} images")
+        logger.info(f"         saved {len(paths)} images")
 
     with open(os.path.join(output_dir, "credits.json"), "w", encoding="utf-8") as f:
         json.dump(_credits, f, indent=2)
@@ -173,5 +176,5 @@ def download_images(script: dict, output_dir: str) -> dict:
     for c in _credits:
         by_source[c["source"]] = by_source.get(c["source"], 0) + 1
     if by_source:
-        print("   → Image sources: " + ", ".join(f"{k} ×{v}" for k, v in by_source.items()))
+        logger.info("   → Image sources: " + ", ".join(f"{k} ×{v}" for k, v in by_source.items()))
     return image_map

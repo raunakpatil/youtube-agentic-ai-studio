@@ -8,12 +8,15 @@ Shorts  : Fast-paced 1080×1920, image slideshow (cuts every 2-3 s),
 
 Runs fully offline: MoviePy 1.0.3 + Pillow + NumPy.
 """
+import logging
 import os, re, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from moviepy.editor import VideoClip, AudioFileClip, concatenate_videoclips
 
 import config
+
+logger = logging.getLogger(__name__)
 
 # ── globals (overwritten per call) ────────────────────────────
 W   = config.VIDEO_WIDTH
@@ -57,14 +60,14 @@ def _parse_srt(srt_path: str) -> list:
     Prints a clear warning if the file is missing or empty.
     """
     if not srt_path or not os.path.exists(srt_path):
-        print(f"   ⚠ SRT file not found: {srt_path}")
-        print("      Captions will not appear. Run the Narration step first.")
+        logger.warning(f"   ⚠ SRT file not found: {srt_path}")
+        logger.warning("      Captions will not appear. Run the Narration step first.")
         return []
 
     raw = open(srt_path, encoding="utf-8").read().strip()
     if not raw:
-        print(f"   ⚠ SRT file exists but is empty: {srt_path}")
-        print("      This usually means edge-tts returned no word-boundary events.")
+        logger.warning(f"   ⚠ SRT file exists but is empty: {srt_path}")
+        logger.warning("      This usually means edge-tts returned no word-boundary events.")
         return []
 
     def _ts(s):
@@ -88,8 +91,8 @@ def _parse_srt(srt_path: str) -> list:
             continue
 
     if not captions:
-        print(f"   ⚠ SRT file has content but no valid cues could be parsed.")
-        print(f"      First 300 chars: {raw[:300]!r}")
+        logger.warning(f"   ⚠ SRT file has content but no valid cues could be parsed.")
+        logger.warning(f"      First 300 chars: {raw[:300]!r}")
 
     return captions
 
@@ -801,7 +804,7 @@ def _apply_watermark(clip, w: int, h: int):
         out[y:y + ph, x:x + pw] = (region * (1 - alpha) + rgb * alpha).astype(np.uint8)
         return out
 
-    print(f"   → Watermark: {WATERMARK_TEXT}")
+    logger.info(f"   → Watermark: {WATERMARK_TEXT}")
     return clip.fl_image(stamp)
 
 
@@ -833,7 +836,7 @@ def create_video(script: dict, audio_path: str, output_dir: str,
 
     # ── SHORTS PATH ────────────────────────────────────────────
     if is_shorts:
-        print(f"\n   Building Shorts ({W}×{H}, {FPS} fps) …")
+        logger.info(f"\n   Building Shorts ({W}×{H}, {FPS} fps) …")
 
         # Flatten all section image lists into one ordered list
         all_images = []
@@ -848,28 +851,28 @@ def create_video(script: dict, audio_path: str, output_dir: str,
                     all_images.append(arr)
 
         if not all_images:
-            print("   ⚠ No images loaded — using animated gradient")
+            logger.warning("   ⚠ No images loaded — using animated gradient")
 
         # ── FIX: Load and validate SRT with clear diagnostics ──
         srt_path = os.path.join(output_dir, "narration.srt")
         captions = _parse_srt(srt_path)
         if captions:
-            print(f"   → {len(captions)} caption cues loaded  ✓")
+            logger.info(f"   → {len(captions)} caption cues loaded  ✓")
             # Sanity check: do timecodes fit within likely audio duration?
             last_end = max(c["end"] for c in captions)
-            print(f"   → Caption range: 0.0s → {last_end:.1f}s")
+            logger.info(f"   → Caption range: 0.0s → {last_end:.1f}s")
         else:
-            print("   ⚠ 0 caption cues — Shorts will render WITHOUT captions.")
-            print("      To fix: delete narration.mp3 + narration.srt and re-run")
-            print("      the Narration step, then re-run Video.")
+            logger.warning("   ⚠ 0 caption cues — Shorts will render WITHOUT captions.")
+            logger.warning("      To fix: delete narration.mp3 + narration.srt and re-run")
+            logger.warning("      the Narration step, then re-run Video.")
 
-        print(f"   → {len(all_images)} images → "
+        logger.info(f"   → {len(all_images)} images → "
               f"~{len(all_images) * SHORTS_IMG_DURATION:.0f}s slideshow material")
 
         # Attach audio first to know true duration
         audio      = AudioFileClip(audio_path)
         total_dur  = audio.duration
-        print(f"   → Audio duration: {total_dur:.1f}s")
+        logger.info(f"   → Audio duration: {total_dur:.1f}s")
 
         final = _build_shorts_clip(all_images, total_dur, captions)
         final = final.set_audio(audio)
@@ -885,11 +888,11 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         srt_path = os.path.join(output_dir, "narration.srt")
         captions = _parse_srt(srt_path)
         if captions:
-            print(f"   → {len(captions)} SRT cues loaded for normal video subtitles ✓")
+            logger.info(f"   → {len(captions)} SRT cues loaded for normal video subtitles ✓")
         else:
-            print("   → No SRT captions — subtitles will be disabled for this render.")
+            logger.info("   → No SRT captions — subtitles will be disabled for this render.")
 
-        print(f"\n   Building {total_sections} section clips (B-roll cycling every {BROLL_INTERVAL:.0f}s):")
+        logger.info(f"\n   Building {total_sections} section clips (B-roll cycling every {BROLL_INTERVAL:.0f}s):")
         clips           = []
         section_start_t = 0.0   # running global timestamp for SRT lookup
 
@@ -897,7 +900,7 @@ def create_video(script: dict, audio_path: str, output_dir: str,
             words    = len(section.get("narration", "").split())
             duration = max(8.0, (words / 110) * 60)
             s_type   = section.get("section_type", "content")
-            print(f"     [{section['id']:02d}] {section['title']:<42} {duration:5.1f}s  [{s_type}]")
+            logger.info(f"     [{section['id']:02d}] {section['title']:<42} {duration:5.1f}s  [{s_type}]")
 
             # Load all B-roll images for this section (list of np arrays)
             bg_images = []
@@ -912,19 +915,19 @@ def create_video(script: dict, audio_path: str, output_dir: str,
                     if arr is not None:
                         bg_images.append(arr)
             if not bg_images:
-                print(f"          ⚠ no images for section {section['id']} — gradient fallback")
+                logger.warning(f"          ⚠ no images for section {section['id']} — gradient fallback")
 
             clip = _make_clip(section, duration, bg_images, i + 1, total_sections,
                               captions=captions, section_start_t=section_start_t)
             clips.append(clip)
             section_start_t += duration   # advance global timestamp
 
-        print("\n   → Crossfading sections…")
+        logger.info("\n   → Crossfading sections…")
         final = clips[0]
         for clip in clips[1:]:
             final = _crossfade(final, clip, fade_dur=0.7)
 
-        print("   → Attaching narration…")
+        logger.info("   → Attaching narration…")
         audio = AudioFileClip(audio_path)
         if audio.duration > final.duration:
             audio = audio.subclip(0, final.duration)
@@ -939,8 +942,8 @@ def create_video(script: dict, audio_path: str, output_dir: str,
 
     # ── EXPORT ─────────────────────────────────────────────────
     total_secs = int(final.duration)
-    print(f"\n   → Rendering {total_secs // 60}m {total_secs % 60}s video…")
-    print(f"      (~{max(1, total_secs // 10)} min — go get a coffee ☕)\n")
+    logger.info(f"\n   → Rendering {total_secs // 60}m {total_secs % 60}s video…")
+    logger.info(f"      (~{max(1, total_secs // 10)} min — go get a coffee ☕)\n")
 
     final.write_videofile(
         output_path,
@@ -954,5 +957,5 @@ def create_video(script: dict, audio_path: str, output_dir: str,
     )
 
     size_mb = os.path.getsize(output_path) // (1024 * 1024)
-    print(f"\n   ✅ Video rendered: {output_path} ({size_mb} MB)")
+    logger.info(f"\n   ✅ Video rendered: {output_path} ({size_mb} MB)")
     return output_path

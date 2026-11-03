@@ -9,6 +9,7 @@ The app itself lives in the studio/ package; this file only starts it.
   python gui.py --import-settings old_config.py
       carry over settings an older version saved into config.py
 """
+import logging
 import os
 import sys
 import threading
@@ -22,8 +23,23 @@ from studio import create_app  # noqa: E402  (needs sys.path above)
 app = create_app()
 
 
+def _setup_terminal_logging():
+    # Emoji in log lines must not crash on consoles that can't show them (Windows cp1252)
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+    # Not basicConfig(): it does nothing once the root logger has a handler, and
+    # create_app() has already added the browser-log handler there.
+    terminal = logging.StreamHandler(sys.stdout)
+    terminal.setFormatter(logging.Formatter("%(message)s"))
+    root = logging.getLogger()
+    root.addHandler(terminal)
+    root.setLevel(logging.INFO)
+
+
 if __name__ == "__main__":
     import webbrowser
+    _setup_terminal_logging()
     if len(sys.argv) == 3 and sys.argv[1] == "--import-settings":
         from studio.settings import import_settings
         import_settings(sys.argv[2])

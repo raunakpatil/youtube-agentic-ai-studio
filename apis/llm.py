@@ -6,10 +6,13 @@ out of quota. All three speak the OpenAI chat-completions format.
   openrouter    free key   · ":free" community models
   pollinations  keyless    · last resort so the pipeline never dead-ends
 """
+import logging
 import time
 
 import config
 from apis.http import post_json
+
+logger = logging.getLogger(__name__)
 
 
 def _real_key(value: str) -> bool:
@@ -41,7 +44,7 @@ def chat(prompt: str, temperature: float = 0.9) -> str:
     for name, url, model, headers in providers():
         for attempt in range(3):
             try:
-                print(f"   → Fallback LLM: {name} ({model})…")
+                logger.info(f"   → Fallback LLM: {name} ({model})…")
                 d = post_json(url, {
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
@@ -58,10 +61,10 @@ def chat(prompt: str, temperature: float = 0.9) -> str:
                 if attempt < 2 and any(c in msg for c in ("402", "429", "503", "Max retries",
                                                            "NameResolution", "timed out", "Connection")):
                     wait = 20 * (attempt + 1)
-                    print(f"   ⚠ {name} is rate-limiting — retrying in {wait}s…")
+                    logger.warning(f"   ⚠ {name} is rate-limiting — retrying in {wait}s…")
                     time.sleep(wait)
                     continue
-                print(f"   ⚠ {name} failed: {msg[:160]}")
+                logger.warning(f"   ⚠ {name} failed: {msg[:160]}")
                 errors.append(f"{name}: {msg[:160]}")
                 break
     raise RuntimeError("All fallback LLMs failed — " + " | ".join(errors or ["none configured"]))

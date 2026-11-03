@@ -9,9 +9,12 @@ YouTube Uploader — the one place YAAS talks to the YouTube Data API v3.
 The token is stored as JSON (youtube_token.json), never pickled.
 Google libraries are imported lazily so importing this module stays cheap.
 """
+import logging
 import os
 
 import config
+
+logger = logging.getLogger(__name__)
 
 # Older versions pickled the token to youtube_token.pickle. That file is never
 # loaded (unpickling runs code); users sign in once more and can delete it.
@@ -40,7 +43,7 @@ def _load_token():
     try:
         return Credentials.from_authorized_user_file(TOKEN_FILE, config.YOUTUBE_SCOPES)
     except ValueError as e:              # malformed / missing fields → sign in again
-        print(f"   ⚠ Ignoring unreadable {TOKEN_FILE}: {e}")
+        logger.warning(f"   ⚠ Ignoring unreadable {TOKEN_FILE}: {e}")
         return None
 
 

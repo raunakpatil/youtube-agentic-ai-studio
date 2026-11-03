@@ -1,7 +1,8 @@
 """
 YAAS studio — the local web app behind `python gui.py`.
 
-  state.py        the one video being worked on + the live-log queue
+  state.py        the one video being worked on
+  events.py       the live log each browser tab reads (fed by `logging`)
   runner.py       the pipeline thread (research → script → visuals → voice → render)
   security.py     localhost-only / cross-site guard for every route
   description.py  YouTube description builder
@@ -22,8 +23,9 @@ from flask import Flask
 
 
 def create_app() -> Flask:
-    from studio import dashboard, library, pipeline, review, security, settings, upload
+    from studio import dashboard, events, library, pipeline, review, security, settings, upload
 
+    events.install()
     app = Flask(__name__)
     security.init_app(app)
     for module in (pipeline, review, library, upload, settings, dashboard):

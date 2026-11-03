@@ -2,7 +2,8 @@
 import os
 
 import config
-from studio.state import is_shorts, log, state
+from studio.events import log
+from studio.state import is_shorts, state
 
 def thumb_backgrounds(image_map):
     """Every usable background photo from the video, in scene order."""

@@ -13,8 +13,11 @@ Free-tier daily limits (approximate):
   gemini-2.0-flash-lite → 1,500 req/day
   gemma-4-31b-it        → 500 req/day
 """
+import logging
 import time
 import config
+
+logger = logging.getLogger(__name__)
 
 # Full list of supported models in preference order.
 # The actual runtime order is determined by build_chain() below,
@@ -94,7 +97,7 @@ def _generate_gemini(prompt: str, starting_model: str | None) -> str:
     for model in chain:
         for attempt in range(3):   # up to 3 attempts per model before moving on
             try:
-                print(f"   → Using {model}…")
+                logger.info(f"   → Using {model}…")
                 response = client.models.generate_content(
                     model=model,
                     contents=prompt,
@@ -105,15 +108,15 @@ def _generate_gemini(prompt: str, starting_model: str | None) -> str:
 
             except Exception as e:
                 if _is_gone(e):
-                    print(f"   ⚠ {model} unavailable — trying next model…")
+                    logger.warning(f"   ⚠ {model} unavailable — trying next model…")
                     break
                 if _should_switch_model(e):
                     if attempt < 2:
                         wait = 15 * (attempt + 1)   # 15s then 30s
-                        print(f"   ⚠ {model} error (attempt {attempt+1}/3) — waiting {wait}s…")
+                        logger.warning(f"   ⚠ {model} error (attempt {attempt+1}/3) — waiting {wait}s…")
                         time.sleep(wait)
                     else:
-                        print(f"   ⚠ {model} failed 3 times — trying next model…")
+                        logger.warning(f"   ⚠ {model} failed 3 times — trying next model…")
                 else:
                     raise   # auth error or bug — surface immediately
 
@@ -135,9 +138,9 @@ def generate(prompt: str, starting_model: str | None = None) -> str:
             gemini_err = e
             if not llm.providers():
                 raise
-            print(f"   ⚠ Gemini unavailable ({str(e)[:120]}) — switching to fallback LLMs…")
+            logger.warning(f"   ⚠ Gemini unavailable ({str(e)[:120]}) — switching to fallback LLMs…")
     else:
-        print("   → No Gemini key set — using free fallback LLMs")
+        logger.info("   → No Gemini key set — using free fallback LLMs")
 
     try:
         text = llm.chat(prompt)

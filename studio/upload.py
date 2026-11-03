@@ -6,7 +6,8 @@ from flask import Blueprint, jsonify, request
 
 import config
 from studio.library import sync_library
-from studio.state import log, state
+from studio.events import log
+from studio.state import state
 from uploader import youtube as yt_uploader
 
 bp = Blueprint("upload", __name__)

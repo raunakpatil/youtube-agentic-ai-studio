@@ -7,6 +7,7 @@ Object.assign(loaders, {
 });
 setHero("form");
 route();
+startSSE();
 pollStatus();
 loadTrends();
 loadHealth();

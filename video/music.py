@@ -15,9 +15,12 @@ Public API
   mix_music_with_narration(narration_path, output_path, music_volume) -> str
 """
 
+import logging
 import os
 import math
 import random
+
+logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = (".mp3", ".wav", ".ogg", ".m4a", ".flac")
 
@@ -32,7 +35,7 @@ def _get_library_tracks(library_dir: str) -> list[str]:
     in library_dir.  Returns [] if the folder doesn't exist or is empty.
     """
     if not library_dir or not os.path.isdir(library_dir):
-        print(f"   ⚠ Music library not found: {library_dir!r}")
+        logger.warning(f"   ⚠ Music library not found: {library_dir!r}")
         return []
 
     tracks = [
@@ -42,11 +45,11 @@ def _get_library_tracks(library_dir: str) -> list[str]:
     ]
 
     if not tracks:
-        print(f"   ⚠ Music library is empty — add MP3/WAV files to: {library_dir}")
+        logger.warning(f"   ⚠ Music library is empty — add MP3/WAV files to: {library_dir}")
         return []
 
     random.shuffle(tracks)
-    print(f"   → Music library: {len(tracks)} track(s) found, shuffled")
+    logger.info(f"   → Music library: {len(tracks)} track(s) found, shuffled")
     return tracks
 
 
@@ -83,29 +86,29 @@ def _build_music_clip(tracks: list[str], target_duration: float):
             if clip.duration <= needed:
                 segments.append(clip)
                 total_so_far += clip.duration
-                print(f"      + {os.path.basename(path)}  ({clip.duration:.1f}s)")
+                logger.info(f"      + {os.path.basename(path)}  ({clip.duration:.1f}s)")
             else:
                 # This track alone covers the remainder — trim it
                 segments.append(clip.subclip(0, needed))
                 total_so_far += needed
-                print(f"      + {os.path.basename(path)}  (trimmed to {needed:.1f}s)")
+                logger.info(f"      + {os.path.basename(path)}  (trimmed to {needed:.1f}s)")
                 break
 
         except Exception as e:
-            print(f"      ⚠ Could not load {os.path.basename(path)}: {e}")
+            logger.warning(f"      ⚠ Could not load {os.path.basename(path)}: {e}")
 
         track_index += 1
 
         # Safety: if we've looped the whole library 10× something is wrong
         if loops >= 10:
-            print("   ⚠ Looped library 10× — giving up")
+            logger.warning("   ⚠ Looped library 10× — giving up")
             break
 
     if not segments:
         raise RuntimeError("No music tracks could be loaded from the library.")
 
     if loops > 0:
-        print(f"   → Playlist looped {loops}× to fill {target_duration:.1f}s")
+        logger.info(f"   → Playlist looped {loops}× to fill {target_duration:.1f}s")
 
     music = concatenate_audioclips(segments)
     # Guarantee exact length (floating-point rounding can drift by a few ms)
@@ -145,17 +148,17 @@ def mix_music_with_narration(narration_path: str,
     # ── Scan library ─────────────────────────────────────────
     tracks = _get_library_tracks(library_dir)
     if not tracks:
-        print("   → No music tracks available — using narration only")
+        logger.info("   → No music tracks available — using narration only")
         narr.close()
         shutil.copy2(narration_path, output_path)
         return output_path
 
     # ── Build music bed ──────────────────────────────────────
-    print(f"   → Building {target_dur:.1f}s music bed…")
+    logger.info(f"   → Building {target_dur:.1f}s music bed…")
     try:
         music = _build_music_clip(tracks, target_dur)
     except RuntimeError as e:
-        print(f"   ⚠ Music build failed ({e}) — narration only")
+        logger.warning(f"   ⚠ Music build failed ({e}) — narration only")
         narr.close()
         shutil.copy2(narration_path, output_path)
         return output_path
@@ -176,13 +179,13 @@ def mix_music_with_narration(narration_path: str,
         narr.close()
         music.close()
         size_kb = os.path.getsize(output_path) // 1024
-        print(f"   → Mixed audio: {size_kb} KB  "
+        logger.info(f"   → Mixed audio: {size_kb} KB  "
               f"(narration + music @ {int(music_volume * 100)}% vol, "
               f"{target_dur:.1f}s)")
         return output_path
 
     except Exception as e:
-        print(f"   ⚠ Mix write failed ({e}) — narration only")
+        logger.warning(f"   ⚠ Mix write failed ({e}) — narration only")
         try:
             narr.close()
             music.close()

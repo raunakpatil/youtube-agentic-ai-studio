@@ -1,7 +1,5 @@
 """Pipeline blueprint: the page itself, starting/stopping runs, live progress, status."""
-import json
 import os
-import queue
 import threading
 
 from flask import Blueprint, Response, current_app, jsonify, request
@@ -9,9 +7,12 @@ from flask import Blueprint, Response, current_app, jsonify, request
 import config
 from studio.files import send, slug
 from studio.runner import run_pipeline_thread
-from studio.state import log, log_queue, state, stop_event
+from studio.events import events, log
+from studio.state import state, stop_event
 
 bp = Blueprint("pipeline", __name__)
+_start_lock = threading.Lock()     # two quick clicks must not start two runs
+PING_SECS = 15
 
 @bp.route("/")
 def index():
@@ -20,36 +21,48 @@ def index():
 
 @bp.route("/api/stream")
 def stream():
+    """
+    Server-sent events for the live log. Stays open across runs; each tab keeps
+    its own position (see studio/events.py), so tabs never take each other's
+    messages. A reconnect resumes from Last-Event-ID; a new tab replays the
+    current run.
+    """
+    after = events.cursor(request.headers.get("Last-Event-ID"))
+
     def gen():
+        nonlocal after
+        yield "retry: 3000\n\n"
         while True:
-            try:
-                kind, msg = log_queue.get(timeout=30)
-                data = json.dumps({"kind": kind, "msg": msg})
-                yield f"data: {data}\n\n"
-                if kind in ("done", "error", "stopped"):
-                    break
-            except queue.Empty:
-                yield "data: {\"kind\":\"ping\"}\n\n"
+            batch = events.wait(after, timeout=PING_SECS)
+            if not batch:
+                yield ": ping\n\n"          # comment line: keeps the connection alive
+                continue
+            for event in batch:
+                yield events.sse(event)
+            after = batch[-1]["id"]
     return Response(gen(), mimetype="text/event-stream",
-                    headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 @bp.route("/api/run", methods=["POST"])
 def start_run():
-    if state["running"]:
-        return jsonify({"ok": False, "error": "Pipeline already running"})
     body       = request.get_json(force=True) or {}
     steps       = body.get("steps", ["research","script","images","narration","music","video"])
     topic       = body.get("topic", "").strip()
     focus_angle = body.get("focus_angle", "").strip()
     video_type  = body.get("video_type", "normal")
     use_trends  = bool(body.get("use_trends", False))
-    for s in steps:
-        if s in state["stages"]: state["stages"][s] = "pending"
-    state["video_type"] = video_type
-    stop_event.clear()
-    t = threading.Thread(target=run_pipeline_thread,
-                         args=(steps, topic, video_type, focus_angle, use_trends), daemon=True)
-    t.start()
+    with _start_lock:
+        if state["running"]:
+            return jsonify({"ok": False, "error": "Pipeline already running"})
+        state["running"] = True
+        for s in steps:
+            if s in state["stages"]: state["stages"][s] = "pending"
+        state["video_type"] = video_type
+        stop_event.clear()
+        events.new_run()
+        t = threading.Thread(target=run_pipeline_thread, name="yaas-pipeline",
+                             args=(steps, topic, video_type, focus_angle, use_trends), daemon=True)
+        t.start()
     return jsonify({"ok": True})
 
 @bp.route("/api/stop", methods=["POST"])

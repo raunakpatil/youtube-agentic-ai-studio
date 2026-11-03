@@ -15,7 +15,8 @@ from flask import Blueprint, abort, jsonify
 import config
 from studio.description import build_description, load_credits, with_credit
 from studio.files import send, slug
-from studio.state import log, state
+from studio.events import log
+from studio.state import state
 from studio.thumbs import thumb_backgrounds, thumb_settings
 
 bp = Blueprint("library", __name__)

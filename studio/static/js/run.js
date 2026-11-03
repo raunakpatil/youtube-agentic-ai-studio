@@ -49,7 +49,6 @@ function applyStatus(d) {
       if ((d.stages || {}).research === "done") showTopic();
     }
     renderRun(d);
-    if (!es) startSSE();
   }
   if (was && !d.running) onFinished(d);
 }
@@ -95,31 +94,33 @@ async function onFinished(d) {
   toast("Your video is ready", "ok");
 }
 
+// One stream for the page's lifetime. The server replays the current run to a
+// new tab, and the browser reconnects by itself, resuming from the last event.
 function startSSE() {
-  if (es) es.close();
+  if (es) return;
   es = new EventSource("/api/stream");
   es.onmessage = ev => {
     const d = JSON.parse(ev.data);
-    if (d.kind === "log") log(d.msg);
+    if (d.kind === "start") { $("#console").innerHTML = ""; lastRunError = ""; }
+    else if (d.kind === "log") log(d.msg, d.level);
     else if (d.kind === "stage") pollOnce();
     else if (d.kind === "research") showTopic();
     else if (["done", "error", "stopped"].includes(d.kind)) {
       if (d.kind === "error") lastRunError = d.msg;
-      es.close(); es = null; pollOnce();
+      pollOnce();
     }
   };
-  es.onerror = () => { es && es.close(); es = null; };
 }
 async function showTopic() {
   const r = await api("/api/research").catch(() => null);
   if (r && r.title) $("#run-topic").innerHTML = `“${esc(r.title)}”${r.sources.length ? ` <span class="tag green" style="margin-left:6px">${r.sources.length} sources found</span>` : ""}`;
 }
-function log(msg) {
+function log(msg, level) {
   const c = $("#console");
   if (c.firstElementChild && c.firstElementChild.classList.contains("l-dim")) c.innerHTML = "";
   let cls = "";
-  if (/\[ERROR\]|ERROR|Traceback|❌/.test(msg)) cls = "l-err";
-  else if (/⚠|\[WARN\]/.test(msg)) cls = "l-warn";
+  if (level === "error" || /ERROR|Traceback|❌/.test(msg)) cls = "l-err";
+  else if (level === "warn" || /⚠/.test(msg)) cls = "l-warn";
   else if (/✅|complete|saved|Uploaded|Saved to Library/i.test(msg)) cls = "l-ok";
   const line = document.createElement("div");
   line.innerHTML = `<span class="t">${new Date().toTimeString().slice(0, 8)}</span><span class="${cls}">${esc(msg)}</span>`;
@@ -148,7 +149,7 @@ async function startRun(topic, surprise) {
   }).catch(e => ({ ok: false, error: e.message }));
   if (!r.ok) { setHero("form"); return toast(r.error, "err"); }
   status.running = true;
-  startSSE(); pollOnce();
+  pollOnce();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function retry() { lastRequest ? startRun(lastRequest[0], lastRequest[1]) : setHero("form"); }

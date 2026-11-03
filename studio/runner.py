@@ -1,20 +1,22 @@
 """The video pipeline, run in a background thread by POST /api/run."""
 import json
+import logging
 import os
-import sys
 import time
 from pathlib import Path
 
 import config
 from studio.description import build_description
+from studio.events import events, in_run, log
 from studio.library import archive_project
-from studio.state import Capture, log, log_queue, stage, state, stop_event
+from studio.state import stage, state, stop_event
 from studio.thumbs import make_thumbnail
+
+logger = logging.getLogger(__name__)
 
 def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str = "normal",
                   focus_angle: str = "", use_trends: bool = False):
-    orig_stdout = sys.stdout
-    sys.stdout = Capture(orig_stdout)
+    in_run.set(True)      # this thread's log records go to the browser log
     state["running"] = True
     state["error"]   = None
     state["stop_requested"] = False
@@ -58,7 +60,7 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
             with open(f"{config.OUTPUT_DIR}/research.json", "w", encoding="utf-8") as f:
                 json.dump(research, f, indent=2)
             stage("research", "done")
-            log_queue.put(("research", ""))
+            events.emit("research")
             log(f"Topic: {research['video_title']}")
         else:
             try:
@@ -176,24 +178,22 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
             except Exception as e: log(f"Library archive failed (non-fatal): {e}", "warn")
 
         log("Pipeline complete!", "info")
-        log_queue.put(("done", ""))
+        events.emit("done")
 
     except InterruptedError as e:
         log(f"⏹ {e}", "warn")
         for s in state["stages"]:
             if state["stages"][s] == "running":
                 state["stages"][s] = "pending"
-        log_queue.put(("stopped", ""))
+        events.emit("stopped")
 
     except Exception as e:
-        import traceback
-        traceback.print_exc(file=orig_stdout)
+        logger.error("Pipeline failed", exc_info=True, extra={"yaas_event": True})  # terminal only
         state["error"] = str(e)
         for s in state["stages"]:
             if state["stages"][s] == "running":
                 state["stages"][s] = "error"
         log(f"ERROR: {e}", "error")
-        log_queue.put(("error", str(e)))
+        events.emit("error", str(e))
     finally:
         state["running"] = False
-        sys.stdout = orig_stdout

@@ -5,10 +5,13 @@ plus a transparent, rule-based score for title / description / tags.
   YouTube autocomplete  suggestqueries.google.com (keyless)
   Datamuse              related words (keyless)
 """
+import logging
 import json
 import re
 
 from apis.http import get, get_json, ttl_cache
+
+logger = logging.getLogger(__name__)
 
 
 @ttl_cache(60 * 60)
@@ -37,11 +40,11 @@ def keyword_ideas(seed: str) -> dict:
         try:
             suggestions += youtube_suggestions(q)
         except Exception as e:
-            print(f"   ⚠ YouTube suggest failed: {e}")
+            logger.warning(f"   ⚠ YouTube suggest failed: {e}")
     try:
         related = related_words(short)
     except Exception as e:
-        print(f"   ⚠ Datamuse failed: {e}")
+        logger.warning(f"   ⚠ Datamuse failed: {e}")
 
     seen, uniq = set(), []
     for s in suggestions:

@@ -1,9 +1,12 @@
 """
 Script Writer Agent — uses shared Gemini client with model fallback chain.
 """
+import logging
 import json
 from agents.gemini_client import generate
 from agents.json_utils import extract_json
+
+logger = logging.getLogger(__name__)
 
 
 def _facts_block(research: dict, limit: int = 4000) -> str:
@@ -180,7 +183,7 @@ IMPORTANT:
 - Every narration field must contain COMPLETE, broadcast-ready sentences — no placeholders.
 - The entire script must feel like Kurzgesagt wrote it: cinematic, urgent, human."""
 
-    print("   → Writing script…")
+    logger.info("   → Writing script…")
     script = extract_json(generate(prompt), "Scriptwriter")
 
     if "sections" not in script or len(script["sections"]) < 4:
@@ -267,7 +270,7 @@ IMPORTANT:
 - image_query and image_query_2/3/4 must all be DIFFERENT specific Pexels visual search strings
 - title fields are INTERNAL labels only — they are never shown on screen"""
 
-    print("   → Writing Shorts script…")
+    logger.info("   → Writing Shorts script…")
     script = extract_json(generate(prompt), "Shorts scriptwriter")
 
     if "sections" not in script or len(script["sections"]) < 2:

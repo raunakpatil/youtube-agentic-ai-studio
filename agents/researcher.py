@@ -4,12 +4,15 @@ Banned topics are read from banned_topics.txt (one topic per line) in the
 project root. Edit that file — or use the GUI textarea — instead of changing
 Python code.
 """
+import logging
 import os
 import random
 import time
 import config
 from agents.gemini_client import generate
 from agents.json_utils import extract_json
+
+logger = logging.getLogger(__name__)
 
 # Path to the banned-topics file (sits next to this package's parent directory)
 _BANNED_TOPICS_FILE = os.path.join(
@@ -55,7 +58,7 @@ def load_banned_topics() -> list:
                     if t and not t.startswith("#") and t not in topics:
                         topics.append(t)
     except Exception as e:
-        print(f"   ⚠ Could not read banned_topics.txt: {e}")
+        logger.warning(f"   ⚠ Could not read banned_topics.txt: {e}")
     return topics
 
 
@@ -78,9 +81,9 @@ def _grounding(topic: str) -> dict:
     if not getattr(config, "FACT_GROUNDING", True):
         return {"facts": "", "sources": []}
     from apis.knowledge import gather_context
-    print(f"   → Grounding facts: Wikipedia + arXiv for \"{topic[:60]}\"…")
+    logger.info(f"   → Grounding facts: Wikipedia + arXiv for \"{topic[:60]}\"…")
     ctx = gather_context(topic)
-    print(f"   → {len(ctx['sources'])} sources found")
+    logger.info(f"   → {len(ctx['sources'])} sources found")
     return ctx
 
 
@@ -125,7 +128,7 @@ def research_topic(channel_description: str,
     # Fix: bypass the angle system entirely and issue a direct instruction.
     if topic_override.strip():
         exact_topic = topic_override.strip()
-        print(f"   → Exact topic override: \"{exact_topic}\"")
+        logger.info(f"   → Exact topic override: \"{exact_topic}\"")
         grounding = _grounding(exact_topic)
         facts_block = (f"\nVERIFIED BACKGROUND (from Wikipedia / arXiv — build on these, don't contradict them):\n"
                        f"{grounding['facts'][:3500]}\n") if grounding["facts"] else ""
@@ -175,16 +178,16 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
     # Use focus_angle if supplied by the GUI dropdown; otherwise pick randomly.
     if focus_angle.strip():
         chosen_angle = focus_angle.strip()
-        print(f"   → Focus angle (GUI selected): {chosen_angle}")
+        logger.info(f"   → Focus angle (GUI selected): {chosen_angle}")
     else:
         chosen_angle = random.choice(FOCUS_ANGLES)
-        print(f"   → Focus angle (random): {chosen_angle}")
+        logger.info(f"   → Focus angle (random): {chosen_angle}")
 
-    print(f"   → Asking the AI for topic ideas within: {chosen_angle}")
+    logger.info(f"   → Asking the AI for topic ideas within: {chosen_angle}")
 
     trend_block = ""
     if trend_context:
-        print(f"   → Trend-aware: {len(trend_context)} live headlines from Trend Radar")
+        logger.info(f"   → Trend-aware: {len(trend_context)} live headlines from Trend Radar")
         joined = "\n".join(f"  - {t}" for t in trend_context[:25])
         trend_block = (
             "4. TRENDING RIGHT NOW (news, papers, search spikes):\n"

@@ -6,11 +6,14 @@ The SRT is used by the Shorts creator to burn in synced captions.
 Compatible with all edge-tts versions (6.0 → 7.x).
 Uses MoviePy's AudioFileClip for duration — guaranteed to match the video render.
 """
+import logging
 import os
 import re
 import asyncio
 import edge_tts
 import config
+
+logger = logging.getLogger(__name__)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -41,7 +44,7 @@ def _get_audio_duration_ms(audio_path: str) -> float:
         clip.close()
         return dur * 1000
     except Exception as e:
-        print(f"   ⚠ AudioFileClip duration failed ({e}); using file-size estimate")
+        logger.warning(f"   ⚠ AudioFileClip duration failed ({e}); using file-size estimate")
 
     # Rough fallback: 128 kbps assumption
     try:
@@ -104,7 +107,7 @@ def _try_submaker_srt(submaker, srt_path: str) -> int:
                     srt_content = result
                     break
             except Exception as e:
-                print(f"   → SubMaker.{method}() error: {e}")
+                logger.info(f"   → SubMaker.{method}() error: {e}")
 
     # .srt property (7.x)
     if not srt_content:
@@ -196,7 +199,7 @@ def _build_sentence_srt(text: str, audio_path: str, srt_path: str) -> int:
 
     cues       = _write_srt_blocks(blocks, srt_path)
     actual_end = blocks[-1][1] / 1000 if blocks else 0.0
-    print(f"   → Sentence-level SRT: {cues} cues, 0.0s → {actual_end:.1f}s "
+    logger.info(f"   → Sentence-level SRT: {cues} cues, 0.0s → {actual_end:.1f}s "
           f"(audio: {total_ms/1000:.1f}s) — exact match ✓")
     return cues
 
@@ -273,15 +276,15 @@ async def _synthesise(text: str, audio_path: str, srt_path: str) -> int:
     if use_submaker and submaker is not None:
         cue_count = _try_submaker_srt(submaker, srt_path)
         if cue_count:
-            print(f"   → SubMaker SRT: {cue_count} cues  ✓")
+            logger.info(f"   → SubMaker SRT: {cue_count} cues  ✓")
 
     # 2. Raw WordBoundary events (covers 6.0.x)
     if cue_count == 0 and word_events:
-        print(f"   → SubMaker empty; building from {len(word_events)} WordBoundary events…")
+        logger.info(f"   → SubMaker empty; building from {len(word_events)} WordBoundary events…")
         blocks    = _group_word_events(word_events)
         cue_count = _write_srt_blocks(blocks, srt_path)
         if cue_count:
-            print(f"   → WordBoundary SRT: {cue_count} cues  ✓")
+            logger.info(f"   → WordBoundary SRT: {cue_count} cues  ✓")
 
     # 3. Sentence-level fallback (always works, uses AudioFileClip for duration)
     if cue_count == 0:
@@ -294,13 +297,13 @@ async def _synthesise(text: str, audio_path: str, srt_path: str) -> int:
                 ("en-GB-LibbyNeural",  "Libby  (UK, Clear female)"),
             ]
             alternatives = [(v, n) for v, n in WORD_SYNCED if v != config.VOICE_ID]
-            print(f"   ⚠ '{config.VOICE_ID}' sent no word-timing data (Microsoft server change).")
-            print( "      Captions are sentence-level (timing is correct, sync is approximate).")
+            logger.warning(f"   ⚠ '{config.VOICE_ID}' sent no word-timing data (Microsoft server change).")
+            logger.warning( "      Captions are sentence-level (timing is correct, sync is approximate).")
             if alternatives:
-                print( "      For word-synced captions, switch voice in Settings → Voice:")
+                logger.warning( "      For word-synced captions, switch voice in Settings → Voice:")
                 for voice_id, label in alternatives:
-                    print(f"        {label:<28}  VOICE_ID = \"{voice_id}\"")
-        print("   → Using sentence-level caption fallback (approximate sync)…")
+                    logger.warning(f"        {label:<28}  VOICE_ID = \"{voice_id}\"")
+        logger.info("   → Using sentence-level caption fallback (approximate sync)…")
         cue_count = _build_sentence_srt(text, audio_path, srt_path)
 
     return cue_count
@@ -328,7 +331,7 @@ def generate_narration(script: dict, output_dir: str) -> str:
     audio_path = os.path.join(output_dir, "narration.mp3")
     srt_path   = os.path.join(output_dir, "narration.srt")
 
-    print(f"   → Synthesising {len(full_text.split())} words via Edge TTS…")
+    logger.info(f"   → Synthesising {len(full_text.split())} words via Edge TTS…")
     try:
         asyncio.run(_synthesise(full_text, audio_path, srt_path))
     except Exception as e:
@@ -344,7 +347,7 @@ def generate_narration(script: dict, output_dir: str) -> str:
     audio_dur_s = _get_audio_duration_ms(audio_path) / 1000
 
     if not os.path.exists(srt_path):
-        print(f"   ⚠ ERROR: SRT file missing at {srt_path}")
+        logger.error(f"   ⚠ ERROR: SRT file missing at {srt_path}")
         return audio_path
 
     content        = open(srt_path, encoding="utf-8").read()
@@ -363,12 +366,12 @@ def generate_narration(script: dict, output_dir: str) -> str:
 
     coverage = (cap_end_s / audio_dur_s * 100) if audio_dur_s > 0 else 0
 
-    print(f"   → Audio : {size_kb} KB  |  {audio_dur_s:.1f}s")
-    print(f"   → SRT   : {verified_count} cues  |  covers 0s → {cap_end_s:.1f}s  ({coverage:.0f}%)")
+    logger.info(f"   → Audio : {size_kb} KB  |  {audio_dur_s:.1f}s")
+    logger.info(f"   → SRT   : {verified_count} cues  |  covers 0s → {cap_end_s:.1f}s  ({coverage:.0f}%)")
 
     if coverage < 85:
-        print(f"   ⚠ Caption coverage {coverage:.0f}% — captions will disappear before audio ends.")
-        print( "      Fix: switch the voice in Settings to  en-GB-RyanNeural")
-        print( "      That voice emits proper word-level timing events.")
+        logger.warning(f"   ⚠ Caption coverage {coverage:.0f}% — captions will disappear before audio ends.")
+        logger.warning( "      Fix: switch the voice in Settings to  en-GB-RyanNeural")
+        logger.warning( "      That voice emits proper word-level timing events.")
 
     return audio_path

@@ -1,12 +1,12 @@
 """
 Shared run state for the studio: one video is worked on at a time, so the
 pipeline thread and every route read and write this single dict.
-Also the live-log queue that /api/stream sends to the browser.
+The live log the browser shows is in studio/events.py.
 """
-import queue
 import threading
 
-log_queue  = queue.Queue()
+from studio.events import events
+
 stop_event = threading.Event()   # set() to request pipeline stop
 
 state = {
@@ -39,21 +39,9 @@ state = {
     "started_at":   None,
 }
 
-class Capture:
-    """Redirect stdout into the log queue so pipeline prints appear in GUI."""
-    def __init__(self, orig): self._orig = orig
-    def write(self, t):
-        if t.strip(): log_queue.put(("log", t.rstrip()))
-        try: self._orig.write(t)
-        except UnicodeEncodeError: self._orig.write(t.encode("ascii", "replace").decode())
-    def flush(self): self._orig.flush()
-
-def log(msg, level="info"):
-    log_queue.put(("log", f"[{level.upper()}] {msg}"))
-
 def stage(name, status):
     state["stages"][name] = status
-    log_queue.put(("stage", f"{name}:{status}"))
+    events.emit("stage", f"{name}:{status}")
 
 def is_shorts(script=None):
     script = script if script is not None else (state.get("script") or {})

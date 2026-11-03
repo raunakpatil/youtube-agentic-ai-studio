@@ -1,7 +1,10 @@
+import logging
 import ast
 import copy
 import json
 import os
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  YAAS — youtube-agentic-ai-studio · Configuration (defaults)
@@ -281,14 +284,14 @@ def load_settings(path: str | None = None) -> dict:
     except FileNotFoundError:
         return {}
     except (OSError, ValueError) as e:
-        print(f"   ⚠ Ignoring {os.path.basename(path)}: {e}")
+        logger.warning(f"   ⚠ Ignoring {os.path.basename(path)}: {e}")
         return {}
     if not isinstance(data, dict):
-        print(f"   ⚠ Ignoring {os.path.basename(path)}: expected a JSON object")
+        logger.warning(f"   ⚠ Ignoring {os.path.basename(path)}: expected a JSON object")
         return {}
     good = {k: v for k, v in data.items() if _valid_setting(k, v)}
     for k in data.keys() - good.keys():
-        print(f"   ⚠ Ignoring unknown or invalid setting in {os.path.basename(path)}: {k}")
+        logger.warning(f"   ⚠ Ignoring unknown or invalid setting in {os.path.basename(path)}: {k}")
     return good
 
 

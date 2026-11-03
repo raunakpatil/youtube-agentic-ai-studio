@@ -10,12 +10,15 @@ until one returns results, so videos still get B-roll with no Pexels key.
 Each candidate carries a `credit` dict; stock.py writes them to credits.json
 and the description builder turns them into an attribution block.
 """
+import logging
 import random
 import re
 from urllib.parse import quote
 
 import config
 from apis.http import get, get_json
+
+logger = logging.getLogger(__name__)
 
 _SPACE_WORDS = re.compile(
     r"\b(space|galax|star|planet|nebula|black hole|moon|mars|jupiter|saturn|"
@@ -113,7 +116,7 @@ def search(query: str, orientation: str = "landscape", count: int = 1,
             cands = [c for c in PROVIDERS[name](query, orientation, count)
                      if c.get("url") and c["url"] not in exclude_urls]
         except Exception as e:
-            print(f"   ⚠ {name} image search failed for '{query[:40]}': {e}")
+            logger.warning(f"   ⚠ {name} image search failed for '{query[:40]}': {e}")
             continue
         if cands:
             pool = cands[:max(count * 2, 6)]
@@ -133,7 +136,7 @@ def strip_pollinations_logo(path: str) -> None:
             cropped = im.convert("RGB").crop((0, 0, w, int(h * 0.93)))
         cropped.save(path, "JPEG", quality=94)
     except Exception as e:
-        print(f"   ⚠ Could not clean AI image {path}: {e}")
+        logger.warning(f"   ⚠ Could not clean AI image {path}: {e}")
 
 
 def fetch(candidate: dict, path: str) -> bool:

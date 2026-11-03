@@ -3,10 +3,13 @@ Display fonts for thumbnails — free Google Fonts (SIL Open Font License),
 downloaded once into assets/fonts/ on first use. Falls back to system fonts
 when offline, so rendering never fails.
 """
+import logging
 import os
 import threading
 
 from PIL import ImageFont
+
+logger = logging.getLogger(__name__)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, "assets", "fonts")
@@ -50,12 +53,12 @@ def _ensure(name: str) -> str | None:
         try:
             from apis.http import download
             os.makedirs(FONT_DIR, exist_ok=True)
-            print(f"   -> Downloading font {fname} (Google Fonts, one-time)...")
+            logger.info(f"   -> Downloading font {fname} (Google Fonts, one-time)...")
             download(_GF + gf_path, path + ".part", timeout=30)
             os.replace(path + ".part", path)
             return path
         except Exception as e:
-            print(f"   ! Font download failed ({fname}): {e} - using a system font")
+            logger.warning(f"   ! Font download failed ({fname}): {e} - using a system font")
             _failed.add(name)
             return None
 

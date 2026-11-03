@@ -5,11 +5,15 @@ so the scriptwriter works from verified material instead of guessing.
   Wikipedia  search → REST summary (keyless)
   arXiv      matching paper abstracts (keyless)
 """
+import contextvars
+import logging
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
 
 from apis.http import get, get_json, ttl_cache
+
+logger = logging.getLogger(__name__)
 
 _ATOM = {"a": "http://www.w3.org/2005/Atom"}
 
@@ -75,11 +79,14 @@ def gather_context(topic: str) -> dict:
         try:
             return fn(topic)
         except Exception as e:
-            print(f"   ⚠ {fn.__name__} grounding failed: {e}")
+            logger.warning(f"   ⚠ {fn.__name__} grounding failed: {e}")
             return []
 
     with ThreadPoolExecutor(max_workers=2) as ex:
-        wiki, papers = ex.map(_run, (wikipedia, arxiv))
+        # Run each worker in a copy of the caller's context, so its log lines are
+        # still tagged as part of the pipeline run (see studio/events.py)
+        futures = [ex.submit(contextvars.copy_context().run, _run, fn) for fn in (wikipedia, arxiv)]
+        wiki, papers = (f.result() for f in futures)
 
     docs = wiki + papers
     facts = "\n\n".join(f"[{d['source']}: {d['title']}]\n{d['text']}" for d in docs)
