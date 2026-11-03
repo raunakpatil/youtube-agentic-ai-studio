@@ -1508,7 +1508,8 @@ $("#upload-btn").onclick = async () => {
     if (s.uploading) { $("#upload-status").textContent = `Uploading… ${s.upload_pct}%. Keep this window open.`; return setTimeout(tick, 1200); }
     $("#upload-btn").disabled = false;
     if (s.yt_url) {
-      $("#upload-status").innerHTML = `${publish_at ? "Scheduled! It goes public at the time you picked." : "It's live!"} <a class="link" href="${esc(s.yt_url)}" target="_blank" rel="noopener">${esc(s.yt_url)}</a>`;
+      $("#upload-status").innerHTML = `${publish_at ? "Scheduled! It goes public at the time you picked." : "It's live!"} <a class="link" href="${esc(s.yt_url)}" target="_blank" rel="noopener">${esc(s.yt_url)}</a>` +
+        (s.upload_warning ? `<br><span class="hint">${esc(s.upload_warning)}</span>` : "");
       toast(publish_at ? "Scheduled on YouTube" : "Published on YouTube", "ok"); loadLibrary(); checkYt();
     } else { $("#upload-status").textContent = "Upload failed: " + (s.error || "unknown error"); toast("Upload failed", "err"); }
   };

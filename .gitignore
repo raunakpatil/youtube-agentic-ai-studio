@@ -22,6 +22,7 @@ ENV/
 # client_secret.example.json shows the shape and is the only one committed.
 client_secret.json
 client_secret_*.json
+youtube_token.json
 youtube_token.pickle
 .env
 *.pickle
