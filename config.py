@@ -205,11 +205,6 @@ FONT_PATHS = {
 }
 
 # ─────────────────────────────────────────
-#  Review Server
-# ─────────────────────────────────────────
-REVIEW_PORT = 5050
-
-# ─────────────────────────────────────────
 #  YouTube Upload
 # ─────────────────────────────────────────
 YOUTUBE_CLIENT_SECRET = "client_secret.json"   # OAuth credentials file (see SETUP.md)

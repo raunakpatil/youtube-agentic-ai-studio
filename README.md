@@ -8,7 +8,7 @@
 
 YAAS researches a topic, checks the facts, writes the script, records a voiceover, finds visuals, renders the video, and helps you title, tag and publish it, all from one simple local app.
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10%E2%80%933.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Cost](https://img.shields.io/badge/Cost-$0%20per%20video-brightgreen?style=flat-square)](SETUP.md)
 [![Free APIs](https://img.shields.io/badge/Free%20APIs-19-ff70f3?style=flat-square)](#-the-free-api-stack)
@@ -37,6 +37,8 @@ python gui.py          # opens http://localhost:7070
 ```
 
 Then type a topic on the Home screen and press **Make video**. That's it.
+
+Use **Python 3.10, 3.11 or 3.12**. Python 3.13+ isn't supported yet (the pinned `numpy<2` has no prebuilt wheels for it).
 
 No keys are required to try it. A free [Gemini key](https://aistudio.google.com/apikey) (1 minute to get) makes the scripts much better. Paste it in **Settings** and it's stored locally in `.env`. Uploading straight to YouTube needs a one-time Google setup, covered in the [Setup guide](SETUP.md). You can always download the MP4 and upload it yourself instead.
 
@@ -148,7 +150,6 @@ Non-secret settings (voice, channel description, video style) are saved to `conf
 
 ```
 ├── gui.py                  ← run this: the app (Flask, http://localhost:7070)
-├── pipeline.py             ← headless CLI version of the pipeline
 ├── config.py               ← every setting, documented (+ .env loader)
 ├── .env.example            ← copy to .env for your keys
 │
@@ -174,7 +175,7 @@ Non-secret settings (voice, channel description, video style) are saved to `conf
 │   ├── fonts.py            ← Google Fonts download + fallbacks
 │   └── music.py            ← background music mixer
 │
-├── uploader/youtube.py     ← YouTube upload (used by pipeline.py)
+├── uploader/youtube.py     ← YouTube sign-in + upload
 ├── gui_templates/index.html← the whole UI
 ├── tests/                  ← pytest suite (offline, no keys needed)
 ├── docs/screenshots/       ← README images
@@ -248,7 +249,7 @@ Your system is missing the fonts the renderer looks for. Install DejaVu (`sudo a
 <details>
 <summary><b>YouTube upload fails with "access denied"</b></summary>
 
-Delete `youtube_token.pickle` and upload again to redo sign-in. Make sure your Google account is a **Test user** on the OAuth consent screen.
+Delete `youtube_token.json` and upload again to redo sign-in. Make sure your Google account is a **Test user** on the OAuth consent screen.
 </details>
 
 ---

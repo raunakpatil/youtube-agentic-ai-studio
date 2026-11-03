@@ -3,7 +3,6 @@ YAAS — youtube-agentic-ai-studio · Desktop GUI
 Run:  python gui.py
 Open: http://localhost:7070
 
-Replaces pipeline.py + review/app.py entirely.
 One page controls everything: dashboard, generate, review, library, upload.
 """
 import os, sys, json, queue, threading, time, re, shutil, glob
@@ -21,6 +20,7 @@ from agents.researcher import load_banned_topics, save_banned_topics
 from flask import Flask, Response, jsonify, request, send_file, abort
 
 import config
+from uploader import youtube as yt_uploader
 
 LIB_DIR = os.path.join(config.OUTPUT_DIR, "library")
 
@@ -56,6 +56,7 @@ _state = {
     "error":        None,
     "upload_pct":   0,
     "uploading":    False,
+    "upload_warning": None,       # e.g. thumbnail refused; the video itself uploaded
     "library_id":   None,         # set once the run is archived to the Library
     "started_at":   None,
 }
@@ -677,6 +678,7 @@ def status():
         "error":          _state.get("error"),
         "upload_pct":     _state.get("upload_pct", 0),
         "uploading":      _state.get("uploading", False),
+        "upload_warning": _state.get("upload_warning"),
         "video_type":     _state.get("video_type", "normal"),
         "library_id":     _state.get("library_id"),
         "llm":            gemini_client.last_provider,
@@ -1134,8 +1136,7 @@ def library_delete(pid):
 
 @app.route("/api/yt-status")
 def yt_status():
-    token_ok = os.path.exists("youtube_token.pickle")
-    return jsonify({"token": token_ok, "secret": _secret_ok()})
+    return jsonify({"token": yt_uploader.has_token(), "secret": _secret_ok()})
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
@@ -1151,79 +1152,27 @@ def upload():
     publish_at = body.get("publish_at", "").strip()   # RFC 3339 datetime or ""
 
     def _do_upload():
-        _state["uploading"]  = True
-        _state["upload_pct"] = 0
-        _state["yt_url"]     = None
-        _state["error"]      = None
+        _state["uploading"]      = True
+        _state["upload_pct"]     = 0
+        _state["yt_url"]         = None
+        _state["upload_warning"] = None
+        _state["error"]          = None
         try:
-            import pickle as pkl
-            from googleapiclient.discovery import build
-            from googleapiclient.http import MediaFileUpload
-            from google_auth_oauthlib.flow import InstalledAppFlow
-            from google.auth.transport.requests import Request
-
-            TOKEN_FILE = "youtube_token.pickle"
-            creds = None
-            if os.path.exists(TOKEN_FILE):
-                with open(TOKEN_FILE, "rb") as f: creds = pkl.load(f)
-            if creds and not creds.valid and creds.expired and creds.refresh_token:
-                try:
-                    creds.refresh(Request())
-                    with open(TOKEN_FILE, "wb") as f: pkl.dump(creds, f)
-                except Exception:
-                    creds = None
-            if not creds or not creds.valid:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    config.YOUTUBE_CLIENT_SECRET, config.YOUTUBE_SCOPES)
-                creds = flow.run_local_server(port=8080)
-                with open(TOKEN_FILE, "wb") as f: pkl.dump(creds, f)
-
-            yt = build("youtube", "v3", credentials=creds)
             script = _state["script"] or {}
-            desc   = _state.get("description", script.get("description",""))
-
-            body_data = {
-                "snippet": {
-                    "title":       script.get("title","")[:100],
-                    "description": desc[:5000],
-                    "tags":        script.get("tags",[]),
-                    "categoryId":  config.VIDEO_CATEGORY_ID,
-                },
-                "status": {
-                    # If scheduling: upload as private, YouTube publishes at publishAt
-                    "privacyStatus":           "private" if publish_at else privacy,
-                    "selfDeclaredMadeForKids": False,
-                },
-            }
-            if publish_at:
-                body_data["status"]["publishAt"] = publish_at
-
-            media = MediaFileUpload(
-                _state["video_path"], mimetype="video/mp4",
-                resumable=True, chunksize=5*1024*1024,
+            result = yt_uploader.upload_video(
+                _state["video_path"],
+                title=script.get("title", ""),
+                description=_state.get("description", script.get("description", "")),
+                tags=script.get("tags", []),
+                privacy=privacy,
+                publish_at=publish_at,
+                thumb_path=_state.get("thumb_path"),
+                on_progress=lambda pct: _state.__setitem__("upload_pct", pct),
+                log=lambda msg: _log(msg, "warn"),
             )
-            req = yt.videos().insert(part=",".join(body_data.keys()),
-                                     body=body_data, media_body=media)
-            response = None
-            while response is None:
-                status_chunk, response = req.next_chunk()
-                if status_chunk:
-                    _state["upload_pct"] = int(status_chunk.progress() * 100)
-
-            video_id = response["id"]
-
-            # Upload thumbnail if available
-            if _state.get("thumb_path") and os.path.exists(_state["thumb_path"]):
-                try:
-                    yt.thumbnails().set(
-                        videoId=video_id,
-                        media_body=MediaFileUpload(
-                            _state["thumb_path"], mimetype="image/jpeg")
-                    ).execute()
-                except: pass
-
-            _state["yt_url"]     = f"https://www.youtube.com/watch?v={video_id}"
-            _state["upload_pct"] = 100
+            _state["yt_url"]         = result["url"]
+            _state["upload_warning"] = result["thumbnail_error"]
+            _state["upload_pct"]     = 100
             _sync_library()
             _log(f"Uploaded! {_state['yt_url']}")
 

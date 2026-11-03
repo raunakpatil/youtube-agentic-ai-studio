@@ -18,7 +18,7 @@ Open an issue with the **enhancement** label. Describe what you'd like and why i
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature-name`
 3. Make your changes — keep them focused on a single improvement
-4. Test locally: run `python pipeline.py` end-to-end at least once
+4. Test locally: run `pytest` and make one video end-to-end with `python gui.py`
 5. Commit with a clear message: `git commit -m "Add: short description"`
 6. Push and open a PR against `main`
 

@@ -8,7 +8,8 @@ Complete step-by-step instructions to get YAAS (youtube-agentic-ai-studio) runni
 
 ## Prerequisites
 
-- Python **3.10 or newer** — [python.org/downloads](https://www.python.org/downloads/)
+- Python **3.10, 3.11 or 3.12** — [python.org/downloads](https://www.python.org/downloads/)
+  (3.13+ is not supported yet: the pinned `numpy<2` has no prebuilt wheels for it, so `pip install` tries to compile numpy and usually fails)
 - `ffmpeg` installed and on your PATH (see [Step 1b](#1b-install-ffmpeg))
 - A Google account (for Gemini + YouTube)
 - A Pexels account (free image API)
@@ -121,7 +122,7 @@ Skip this step if you just want to generate videos locally without uploading.
 
 ### 4d. First-time authentication
 
-On your first run, a browser window will open asking you to sign in with Google and grant permission. This only happens once — the token is saved locally as `youtube_token.pickle`.
+On your first run, a browser window will open asking you to sign in with Google and grant permission. This only happens once — the token is saved locally as `youtube_token.json` (git-ignored). If you used an older version, you'll sign in once more and can delete the old `youtube_token.pickle`.
 
 > If you see a "Google hasn't verified this app" warning, click **Advanced → Go to (app name) (unsafe)**. This is expected for personal OAuth apps in testing mode.
 
@@ -141,21 +142,11 @@ These are saved to `config.py` (`CHANNEL_NAME`, `CHANNEL_DESCRIPTION`, `SHOW_CHA
 
 ## Step 6 — Launch
 
-### GUI mode (recommended)
-
 ```bash
 python gui.py
 ```
 
 Opens at **http://localhost:7070**. Type a topic on Home and press **Make video**.
-
-### CLI mode
-
-```bash
-python pipeline.py
-```
-
-Runs the full pipeline in the terminal. The review dashboard opens automatically in your browser when the video is ready.
 
 ---
 
@@ -175,9 +166,9 @@ The repo includes a few dark cinematic tracks to get you started. Replace or add
 | `No module named 'moviepy'` | Run `pip install -r requirements.txt` again |
 | `ffmpeg not found` | Install ffmpeg and ensure it's on your PATH |
 | `RESOURCE_EXHAUSTED` / 429 | Gemini quota hit — wait until midnight Pacific or switch starting model |
-| `youtube_token.pickle` auth error | Delete the file and re-run to re-authenticate |
+| YouTube sign-in / token error | Delete `youtube_token.json` and upload again to re-authenticate |
 | Tiny/ugly video text | Install DejaVu fonts: `sudo apt install fonts-dejavu` (Linux) |
-| Flask port already in use | Change `REVIEW_PORT` in `config.py` |
+| Port 7070 already in use | Set the `STUDIO_PORT` environment variable, e.g. `STUDIO_PORT=7071 python gui.py` |
 | `client_secret.json` error | Download your OAuth JSON from Google Cloud and save it as `client_secret.json` in the project root (step 4c) |
 | Captions out of sync | Switch to a different `VOICE_ID` in `config.py` (see voice list in file) |
 
