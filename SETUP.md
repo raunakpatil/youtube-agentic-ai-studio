@@ -136,7 +136,7 @@ In the app, open **Settings → Your channel** and set:
 - **What your channel is about**: the more specific, the better the AI's topics and scripts.
   Example: *"Educational science channel for curious adults, style of Veritasium."*
 
-These are saved to `config.py` (`CHANNEL_NAME`, `CHANNEL_DESCRIPTION`, `SHOW_CHANNEL_BRAND`, `BRAND_TEXT`) if you prefer editing it directly.
+Everything you change in Settings is saved to `settings.json` in the project folder (git-ignored, next to `.env`). It only holds what differs from the defaults in `config.py`, and it wins over them. Delete it to go back to the defaults.
 
 ---
 
@@ -170,7 +170,32 @@ The repo includes a few dark cinematic tracks to get you started. Replace or add
 | Tiny/ugly video text | Install DejaVu fonts: `sudo apt install fonts-dejavu` (Linux) |
 | Port 7070 already in use | Set the `STUDIO_PORT` environment variable, e.g. `STUDIO_PORT=7071 python gui.py` |
 | `client_secret.json` error | Download your OAuth JSON from Google Cloud and save it as `client_secret.json` in the project root (step 4c) |
-| Captions out of sync | Switch to a different `VOICE_ID` in `config.py` (see voice list in file) |
+| Captions out of sync | Switch to a different voice in **Settings** (the voices with word timing are listed in `config.py`) |
+| A setting won't stick | Values in `settings.json` win over `config.py`. Change it in **Settings**, or remove it from `settings.json` |
+
+---
+
+## Upgrading from an older version
+
+Older versions saved the Settings page into `config.py` itself. If you changed settings there, `git pull` will refuse to overwrite your edited `config.py`. Move your settings across once:
+
+```bash
+git stash
+```
+
+```bash
+git pull
+```
+
+```bash
+git show "stash@{0}:config.py" > old_config.py
+```
+
+```bash
+python gui.py --import-settings old_config.py
+```
+
+The import only reads plain values from the file, it never runs it. Check **Settings**, then delete `old_config.py` and drop the stash with `git stash drop`.
 
 ---
 

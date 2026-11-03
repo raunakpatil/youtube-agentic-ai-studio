@@ -142,15 +142,15 @@ Keys live in `.env` (git-ignored) and nothing else stores them. Either paste the
 cp .env.example .env
 ```
 
-Non-secret settings (voice, channel description, video style) are saved to `config.py`, which is also documented line by line.
+Non-secret settings (voice, channel description, video style) are saved to `settings.json` (git-ignored), so `git pull` never clashes with them. The defaults live in `config.py`, documented line by line.
 
 ---
 
 ## 📁 Project structure
 
 ```
-├── gui.py                  ← run this: the app (Flask, http://localhost:7070)
-├── config.py               ← every setting, documented (+ .env loader)
+├── gui.py                  ← run this: starts the app (Flask, http://localhost:7070)
+├── config.py               ← every default, documented (+ .env / settings.json loaders)
 ├── .env.example            ← copy to .env for your keys
 │
 ├── apis/                   ← free API integrations (all fail-soft)
@@ -176,7 +176,18 @@ Non-secret settings (voice, channel description, video style) are saved to `conf
 │   └── music.py            ← background music mixer
 │
 ├── uploader/youtube.py     ← YouTube sign-in + upload
-├── gui_templates/index.html← the whole UI
+├── studio/                 ← the app behind gui.py
+│   ├── pipeline.py         ← blueprint: run / stop, live progress, status
+│   ├── review.py           ← blueprint: description, thumbnail designer, Title Lab + SEO
+│   ├── library.py          ← blueprint: saved videos
+│   ├── upload.py           ← blueprint: YouTube publishing
+│   ├── settings.py         ← blueprint: keys + settings
+│   ├── dashboard.py        ← blueprint: trends, channel stats, API health
+│   ├── runner.py           ← the pipeline thread
+│   ├── state.py            ← the current video + live log
+│   ├── security.py         ← localhost-only guard
+│   ├── templates/index.html← the page
+│   └── static/             ← app.css + js/ (one file per screen)
 ├── tests/                  ← pytest suite (offline, no keys needed)
 ├── docs/screenshots/       ← README images
 └── output/                 ← generated files (git-ignored)

@@ -28,11 +28,12 @@ Open an issue with the **enhancement** label. Describe what you'd like and why i
 - Keep functions small and single-purpose
 - Add a comment if the intent isn't immediately obvious
 - Do not commit API keys, tokens, or any personal data
+- New routes go in the matching blueprint in `studio/`; UI code goes in `studio/static/js/<screen>.js`
 
 ## Areas most in need of help
 
 - Thumbnail generation (AI-designed cover art)
-- A proper test suite
+- More tests (pytest, offline, in `tests/`)
 - Docker / one-click install packaging
 - Non-English voice and channel support
 - UI improvements to the GUI

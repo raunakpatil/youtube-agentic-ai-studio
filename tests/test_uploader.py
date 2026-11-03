@@ -6,6 +6,7 @@ import pytest
 
 import config
 import gui
+from studio import state as studio_state, upload as studio_upload
 from uploader import youtube
 
 
@@ -173,17 +174,17 @@ def test_thumbnail_failure_is_reported_not_swallowed(fake_yt):
 def test_gui_upload_uses_the_uploader(fake_yt, monkeypatch):
     fake_yt.thumb_error = _ThumbError("forbidden")
     fake_yt_dir = os.getcwd()
-    monkeypatch.setattr(gui, "_secret_ok", lambda: True)
-    monkeypatch.setattr(gui, "_sync_library", lambda: None)
-    monkeypatch.setitem(gui._state, "video_path", os.path.join(fake_yt_dir, "v.mp4"))
-    monkeypatch.setitem(gui._state, "thumb_path", os.path.join(fake_yt_dir, "t.jpg"))
-    monkeypatch.setitem(gui._state, "script", {"title": "Hi", "tags": ["a"]})
-    monkeypatch.setitem(gui._state, "description", "desc")
+    monkeypatch.setattr(studio_upload, "secret_ok", lambda: True)
+    monkeypatch.setattr(studio_upload, "sync_library", lambda: None)
+    monkeypatch.setitem(studio_state.state, "video_path", os.path.join(fake_yt_dir, "v.mp4"))
+    monkeypatch.setitem(studio_state.state, "thumb_path", os.path.join(fake_yt_dir, "t.jpg"))
+    monkeypatch.setitem(studio_state.state, "script", {"title": "Hi", "tags": ["a"]})
+    monkeypatch.setitem(studio_state.state, "description", "desc")
 
     class _NowThread:                                        # run the upload inline
         def __init__(self, target, daemon=None): self.target = target
         def start(self): self.target()
-    monkeypatch.setattr(gui.threading, "Thread", _NowThread)
+    monkeypatch.setattr(studio_upload.threading, "Thread", _NowThread)
 
     r = gui.app.test_client().post("/api/upload", json={"privacy": "private"},
                                    headers={"Host": "localhost:7070"})
