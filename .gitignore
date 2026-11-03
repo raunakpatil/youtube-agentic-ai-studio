@@ -25,6 +25,8 @@ client_secret_*.json
 youtube_token.json
 youtube_token.pickle
 .env
+settings.json
+settings.json.tmp
 *.pickle
 *.pkl
 

@@ -142,7 +142,7 @@ Keys live in `.env` (git-ignored) and nothing else stores them. Either paste the
 cp .env.example .env
 ```
 
-Non-secret settings (voice, channel description, video style) are saved to `config.py`, which is also documented line by line.
+Non-secret settings (voice, channel description, video style) are saved to `settings.json` (git-ignored), so `git pull` never clashes with them. The defaults live in `config.py`, documented line by line.
 
 ---
 
@@ -150,7 +150,7 @@ Non-secret settings (voice, channel description, video style) are saved to `conf
 
 ```
 ├── gui.py                  ← run this: the app (Flask, http://localhost:7070)
-├── config.py               ← every setting, documented (+ .env loader)
+├── config.py               ← every default, documented (+ .env / settings.json loaders)
 ├── .env.example            ← copy to .env for your keys
 │
 ├── apis/                   ← free API integrations (all fail-soft)

@@ -1,13 +1,22 @@
+import ast
+import copy
+import json
 import os
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  YAAS — youtube-agentic-ai-studio · Configuration
-#  API keys live in .env (git-ignored) — copy .env.example to .env, or paste
-#  them into the GUI's Settings page, which writes .env for you.
-#  All settings are documented. Change only what you need.
+#  YAAS — youtube-agentic-ai-studio · Configuration (defaults)
+#  This file holds the DEFAULTS and is never written by the app.
+#  · API keys live in .env (git-ignored): copy .env.example to .env, or paste
+#    them into the GUI's Settings page, which writes .env for you.
+#  · Everything you change on the Settings page is saved to settings.json
+#    (git-ignored) and wins over the defaults below, so `git pull` never
+#    clashes with your settings. To change a default by hand, edit it here;
+#    a value saved in settings.json still takes priority.
 # ─────────────────────────────────────────────────────────────────────────────
 
-ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+ROOT_DIR      = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH      = os.path.join(ROOT_DIR, ".env")
+SETTINGS_PATH = os.path.join(ROOT_DIR, "settings.json")
 
 
 def _load_env(path: str = ENV_PATH) -> None:
@@ -91,7 +100,7 @@ We focus heavily on deep, existential "What If" scenarios, the extreme future of
 theoretical physics, and mind-expanding thought experiments.
 Every video should explore the absolute limits of science, space, or tech, making the viewer question reality.
 Target audience: highly curious thinkers who want their minds blown by deep scientific and philosophical dives.
-"""
+""".strip()
 CHANNEL_NAME = "My AI Channel"   # shown on-screen and in upload metadata
 
 # On-video branding: the "▶ CHANNEL NAME" tag in the hook and on Shorts,
@@ -129,7 +138,7 @@ VOICE_PITCH = "-3Hz"    # slightly deeper = more cinematic
 #  AI Model
 #  Starting model for the fallback chain — the system auto-switches
 #  through all models below if quota or errors are hit.
-#  Change this in the GUI under Settings → AI Model, or here directly.
+#  Change this in the GUI under Settings → AI Model (saved to settings.json).
 #  Options (free tier):
 #    gemini-2.5-flash        — highest quality   (500 req/day)
 #    gemma-4-31b-it          — Gemma 4 31B       (500 req/day)
@@ -226,3 +235,105 @@ MUSIC_LIBRARY_DIR = os.path.join(os.path.dirname(__file__), "music library")
 # ─────────────────────────────────────────
 OUTPUT_DIR   = "output"
 IMAGES_DIR   = "output/images"
+
+
+# ─────────────────────────────────────────
+#  Your saved settings  (settings.json — keep this block at the end)
+# ─────────────────────────────────────────
+# Settings the GUI may save. Secrets are never stored here; they go to .env.
+USER_SETTINGS = (
+    "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
+    "THUMB_STYLE", "CREDIT_YAAS",
+    "VOICE_ID", "VOICE_RATE", "VOICE_PITCH",
+    "GEMINI_MODEL", "GROQ_MODEL", "OPENROUTER_MODEL",
+    "FACT_GROUNDING", "KEYLESS_LLM_FALLBACK", "IMAGE_SOURCES", "TRENDS_GEO",
+    "MUSIC_ENABLED", "MUSIC_VOLUME",
+    "OVERLAY_OPACITY", "KB_ZOOM_START", "KB_ZOOM_END",
+    "BROLL_INTERVAL", "BROLL_XFADE_DUR", "RENDER_PRESET", "VIDEO_PRIVACY",
+)
+
+# The defaults above, before settings.json is applied
+DEFAULTS = {k: copy.deepcopy(globals()[k]) for k in USER_SETTINGS}
+
+
+def _valid_setting(key: str, value) -> bool:
+    """A saved value must be a known setting with the same type as its default."""
+    if key not in DEFAULTS:
+        return False
+    default = DEFAULTS[key]
+    if isinstance(default, bool):
+        return isinstance(value, bool)
+    if isinstance(default, float):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if isinstance(default, str):
+        return isinstance(value, str)
+    if isinstance(default, list):
+        return isinstance(value, list) and all(isinstance(v, str) for v in value)
+    return False
+
+
+def load_settings(path: str | None = None) -> dict:
+    """Saved settings, skipping unknown keys and wrong types. Missing file → {}."""
+    path = path or SETTINGS_PATH
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError) as e:
+        print(f"   ⚠ Ignoring {os.path.basename(path)}: {e}")
+        return {}
+    if not isinstance(data, dict):
+        print(f"   ⚠ Ignoring {os.path.basename(path)}: expected a JSON object")
+        return {}
+    good = {k: v for k, v in data.items() if _valid_setting(k, v)}
+    for k in data.keys() - good.keys():
+        print(f"   ⚠ Ignoring unknown or invalid setting in {os.path.basename(path)}: {k}")
+    return good
+
+
+def save_settings(values: dict, path: str | None = None) -> None:
+    """
+    Merge values into settings.json. Only values that differ from the defaults
+    are kept, so a later change to a default in this file still reaches you.
+    Written to a temp file and renamed, so a crash never leaves half a file.
+    """
+    bad = [k for k, v in values.items() if not _valid_setting(k, v)]
+    if bad:
+        raise ValueError("Not a valid setting: " + ", ".join(sorted(bad)))
+    path = path or SETTINGS_PATH
+    merged = {**load_settings(path), **values}
+    merged = {k: v for k, v in merged.items() if v != DEFAULTS[k]}
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(merged, f, indent=2, sort_keys=True, ensure_ascii=False)
+        f.write("\n")
+    os.replace(tmp, path)
+
+
+def import_legacy_config(path: str) -> dict:
+    """
+    Read the settings an older YAAS saved into its config.py, without running it
+    (only literal values are parsed). Returns the values that differ from today's
+    defaults, ready for save_settings().
+    """
+    with open(path, encoding="utf-8") as f:
+        tree = ast.parse(f.read(), filename=path)
+    found = {}
+    for node in tree.body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in DEFAULTS):
+            try:
+                value = ast.literal_eval(node.value)
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+                continue                  # not a plain literal (e.g. an expression)
+            key = node.targets[0].id
+            if key == "CHANNEL_DESCRIPTION" and isinstance(value, str):
+                value = value.strip()     # older versions kept surrounding newlines
+            if _valid_setting(key, value) and value != DEFAULTS[key]:
+                found[key] = value
+    return found
+
+
+globals().update(load_settings())

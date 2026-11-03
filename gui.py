@@ -1195,7 +1195,8 @@ def _mask(v):
     if not v or v.upper().startswith("YOUR_"): return ""
     return _MASK + v[-4:] if len(v) > 8 else _MASK
 
-# body key → (config attr, type). "env" types are written to .env, never config.py
+# body key → (config attr, type). "env" types are written to .env; the rest to
+# settings.json (config.save_settings). config.py is never written.
 _SETTINGS = {
     "gemini_key":       ("GEMINI_API_KEY",     "env"),
     "pexels_key":       ("PEXELS_API_KEY",     "env"),
@@ -1269,25 +1270,15 @@ def save_settings():
             src_updates[attr] = str(val)
         setattr(config, attr, val)
 
+    if body.get("channel_desc") is not None:
+        cd = str(body["channel_desc"]).strip()
+        src_updates["CHANNEL_DESCRIPTION"] = config.CHANNEL_DESCRIPTION = cd
+
     try:
         if env_updates:
             config.save_env(env_updates)
-
-        # Patch non-secret settings in config.py
-        cfg_path = os.path.join(ROOT, "config.py")
-        with open(cfg_path, encoding="utf-8") as f: src = f.read()
-        for attr, val in src_updates.items():
-            pat = rf'(?m)^({re.escape(attr)}\s*=\s*)[^\n#]+?(\s*(#[^\n]*)?)$'
-            src = re.sub(pat, lambda m, v=val: m.group(1) + repr(v) + m.group(2), src, count=1)
-
-        # Channel description (multiline)
-        if "channel_desc" in body:
-            cd = body["channel_desc"].replace('"""', "'''")
-            config.CHANNEL_DESCRIPTION = cd
-            src = re.sub(r'(CHANNEL_DESCRIPTION\s*=\s*)"""[\s\S]*?"""',
-                         lambda m: f'CHANNEL_DESCRIPTION = """\n{cd.strip()}\n"""', src, count=1)
-
-        with open(cfg_path, "w", encoding="utf-8") as f: f.write(src)
+        if src_updates:
+            config.save_settings(src_updates)
     except Exception as e:
         return jsonify({"ok": False, "error": f"Saved to memory but disk write failed: {e}"})
 
@@ -1319,8 +1310,24 @@ def post_banned_topics():
 #  ENTRY POINT
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _import_settings(path):
+    """`python gui.py --import-settings old_config.py`: carry over settings an older
+    YAAS saved into config.py. The file is parsed, never run."""
+    values = config.import_legacy_config(path)
+    if not values:
+        print(f"No changed settings found in {path}; nothing to import.")
+        return
+    config.save_settings(values)
+    print(f"Imported {len(values)} setting(s) into {config.SETTINGS_PATH}:")
+    for k in sorted(values):
+        print(f"  {k}")
+
+
 if __name__ == "__main__":
     import webbrowser
+    if len(sys.argv) == 3 and sys.argv[1] == "--import-settings":
+        _import_settings(sys.argv[2])
+        sys.exit(0)
     port = int(os.getenv("STUDIO_PORT", 7070))
     print(f"\n🎬  YAAS — youtube-agentic-ai-studio")
     print(f"   Opening at  http://localhost:{port}\n")
