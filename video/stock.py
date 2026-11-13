@@ -11,21 +11,13 @@ Credits saved to output/credits.json (used for the description's attribution).
 import glob
 import json
 import os
+import re
 import random
 import requests
 import config
 from apis import images as image_apis
 
 PEXELS_SEARCH = "https://api.pexels.com/v1/search"
-
-FALLBACK_QUERIES = [
-    "space universe stars galaxy",
-    "science technology futuristic",
-    "earth atmosphere clouds aerial",
-    "abstract light particles dark",
-    "dramatic landscape nature",
-    "neon city night lights",
-]
 
 # Every image downloaded this run → credits.json
 _credits: list = []
@@ -95,7 +87,7 @@ def _fetch_images(query: str, section_index: int, images_dir: str,
         search_query = query
 
     saved = []
-    for attempt_query in [search_query, query] + FALLBACK_QUERIES:
+    for attempt_query in dict.fromkeys((search_query, query)):
         for cand in _candidates(attempt_query, orientation, count - len(saved)):
             fname = f"section_{section_index:02d}_img{img_num_start + len(saved) + 1:02d}.jpg"
             path = os.path.join(images_dir, fname)
@@ -113,8 +105,13 @@ def _fetch_images(query: str, section_index: int, images_dir: str,
 
 
 def section_images(images_dir: str, section_id: int) -> list:
-    """Images already on disk for a section (used when the Images step is skipped)."""
-    return sorted(glob.glob(os.path.join(images_dir, f"section_{section_id:02d}_img*.jpg")))
+    """Images already on disk in query order, preserving missing scene slots."""
+    indexed = {}
+    for path in glob.glob(os.path.join(images_dir, f"section_{section_id:02d}_img*.jpg")):
+        match = re.search(r"_img(\d+)\.jpg$", path)
+        if match:
+            indexed[int(match.group(1))] = path
+    return [indexed.get(i) for i in range(1, max(indexed, default=0) + 1)]
 
 
 def download_images(script: dict, output_dir: str) -> dict:
@@ -149,23 +146,28 @@ def download_images(script: dict, output_dir: str) -> dict:
     image_map = {}
     for section in script.get("sections", []):
         sid   = section["id"]
-        # Collect all image queries defined for this section
-        queries = [section.get("image_query", "science universe space")]
-        for extra_key in ("image_query_2", "image_query_3", "image_query_4"):
-            q = section.get(extra_key, "").strip()
-            if q:
-                queries.append(q)
+        # Prefer the narration-matched video searches for still fallbacks.
+        visuals = section.get("visuals") or []
+        queries = [str(v.get("search_query", "")).strip()
+                   for v in visuals if isinstance(v, dict) and v.get("search_query")]
+        if not queries:
+            queries = [section.get("image_query", "science")]
+            for extra_key in ("image_query_2", "image_query_3", "image_query_4"):
+                q = section.get(extra_key, "").strip()
+                if q:
+                    queries.append(q)
 
         # Shorts: one image per query; normal: first 3 queries for B-roll cuts
         use = queries if is_shorts else queries[:3]
         print(f"   → [{sid}] {len(use)} queries × 1 image each")
         paths = []
         for qi, q in enumerate(use):
-            paths.extend(_fetch_images(q, sid, images_dir,
-                                       count=1, orientation=orientation,
-                                       img_num_start=qi, topic_hint=topic_hint))
-        image_map[sid] = paths if (paths or is_shorts) else None
-        print(f"         saved {len(paths)} images")
+            found = _fetch_images(q, sid, images_dir,
+                                  count=1, orientation=orientation,
+                                  img_num_start=qi, topic_hint=topic_hint)
+            paths.append(found[0] if found else None)
+        image_map[sid] = paths if (any(paths) or is_shorts) else None
+        print(f"         saved {sum(bool(path) for path in paths)} images")
 
     with open(os.path.join(output_dir, "credits.json"), "w", encoding="utf-8") as f:
         json.dump(_credits, f, indent=2)

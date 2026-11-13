@@ -2,7 +2,7 @@
 const STEPS = [
   ["research",  "Researching the topic",   "Picking the angle and checking facts"],
   ["script",    "Writing the script",      "Hook, story and a strong ending"],
-  ["images",    "Finding visuals",         "Photos and artwork for every scene"],
+  ["images",    "Finding visuals",         "Video clips when available, with narration-matched stills as backup"],
   ["narration", "Recording the voiceover", "Natural AI voice with synced captions"],
   ["video",     "Rendering the video",     "The slow part, usually 2–10 minutes"],
 ];

@@ -92,10 +92,46 @@ def _parse(raw: str) -> dict:
     return data
 
 
+def _episode_history_text(context: dict) -> str:
+    lines = []
+    for video in (context.get("recent_videos") or [])[:16]:
+        parts = []
+        if video.get("series_episode"):
+            parts.append(f"episode {video['series_episode']} of {video.get('series_name') or 'the series'}")
+        parts.append("published" if video.get("published") else "saved render")
+        if video.get("title"):
+            parts.append(f"title: {video['title']}")
+        if video.get("topic"):
+            parts.append(f"topic: {video['topic']}")
+        points = video.get("key_points") or []
+        if points:
+            parts.append("covered: " + "; ".join(str(point) for point in points[:2]))
+        if video.get("series_connection"):
+            parts.append(f"series link: {video['series_connection']}")
+        if video.get("next_episode_hint"):
+            parts.append(f"planned next: {video['next_episode_hint']}")
+        lines.append("  - " + " | ".join(parts))
+    return "\n".join(lines) or "  - None yet"
+
+
+def _track_series(data: dict, channel_series: str, episode_context: dict) -> dict:
+    name = channel_series.strip()
+    data.update({
+        "series_name": name,
+        "series_episode": episode_context.get("next_episode") if name else None,
+        "previous_episode_title": episode_context.get("previous_episode_title", "") if name else "",
+        "series_connection": str(data.get("series_connection") or "").strip() if name else "",
+        "next_episode_hint": str(data.get("next_episode_hint") or "").strip() if name else "",
+    })
+    return data
+
+
 def research_topic(channel_description: str,
                    topic_override: str = "",
                    focus_angle: str = "",
-                   trend_context: list | None = None) -> dict:
+                   trend_context: list | None = None,
+                   channel_series: str = "",
+                   episode_context: dict | None = None) -> dict:
     """
     Research a video topic for the channel.
 
@@ -118,6 +154,14 @@ def research_topic(channel_description: str,
     """
     banned     = load_banned_topics()
     banned_str = ", ".join(f'"{t}"' for t in banned)
+    channel_series = channel_series.strip()
+    episode_context = episode_context or {}
+    series_text = channel_series or "No ongoing series was specified."
+    recent_text = _episode_history_text(episode_context)
+    episode_number = episode_context.get("next_episode") or 1
+    next_step = episode_context.get("previous_next_step") or "No next-step note has been saved yet."
+    episode_plan = (f"This is tracked episode #{episode_number}. Continue prior coverage and use the saved next-step hint when it fits: {next_step}"
+                    if channel_series else "No named series is set; use recent videos only to avoid repetition.")
 
     # ── MODE 1: USER-SPECIFIED EXACT TOPIC ───────────────────────────────────
     # The old bug: topic_override was prepended to channel_description, but the
@@ -135,6 +179,15 @@ def research_topic(channel_description: str,
 Channel description:
 {channel_description}
 
+Ongoing channel series or theme:
+{series_text}
+
+Recent videos in the channel library (do not repeat them; build on them when a series is set):
+{recent_text}
+
+Series progression:
+{episode_plan}
+
 MANDATORY INSTRUCTION: You MUST make a video about this EXACT topic:
 >>> {exact_topic} <<<
 
@@ -145,6 +198,7 @@ BANNED TOPICS: Do NOT include any of these in the output: {banned_str}
 If the requested topic conflicts with a banned one, still write about it (user override).
 
 Your mission: Research and plan a compelling 6-8 minute YouTube video about "{exact_topic}".
+If it fits the saved series, explain the connection honestly and suggest one concrete next episode. Do not change the exact topic or claim a connection that is not real.
 {facts_block}
 Respond with ONLY a valid JSON object. No markdown fences, no explanation:
 
@@ -164,21 +218,26 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
   "target_audience": "Exactly who will watch and share this",
   "tags": ["tag1","tag2","tag3","tag4","tag5","tag6","tag7","tag8"],
   "thumbnail_concept": "Describe the perfect YouTube thumbnail for this topic",
+  "series_connection": "One sentence on how this fits the prior episode, or say it is standalone",
+  "next_episode_hint": "One concrete, non-repeating direction for the next episode",
   "estimated_virality": "high"
 }}"""
 
         data = _parse(generate(prompt))
         data["grounding"] = grounding
-        return data
+        return _track_series(data, channel_series, episode_context)
 
     # ── MODE 2: AI PICKS THE TOPIC ───────────────────────────────────────────
-    # Use focus_angle if supplied by the GUI dropdown; otherwise pick randomly.
-    if focus_angle.strip():
+    # A saved series is the channel's main direction; a GUI angle is secondary.
+    if channel_series:
+        chosen_angle = channel_series
+        print(f"   → Ongoing channel series: {chosen_angle}")
+    elif focus_angle.strip():
         chosen_angle = focus_angle.strip()
         print(f"   → Focus angle (GUI selected): {chosen_angle}")
     else:
-        chosen_angle = random.choice(FOCUS_ANGLES)
-        print(f"   → Focus angle (random): {chosen_angle}")
+        chosen_angle = channel_description.strip() or random.choice(FOCUS_ANGLES)
+        print(f"   → Channel direction: {chosen_angle[:100]}")
 
     print(f"   → Asking the AI for topic ideas within: {chosen_angle}")
 
@@ -187,7 +246,7 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
         print(f"   → Trend-aware: {len(trend_context)} live headlines from Trend Radar")
         joined = "\n".join(f"  - {t}" for t in trend_context[:25])
         trend_block = (
-            "4. TRENDING RIGHT NOW (news, papers, search spikes):\n"
+            "OPTIONAL TRENDING RIGHT NOW (news, papers, search spikes):\n"
             f"{joined}\n"
             "   If one of these connects naturally to the theme, build the video around it "
             "for timeliness and say so in \"why_now\". If none fit, ignore them.\n"
@@ -198,14 +257,23 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
 Channel description:
 {channel_description}
 
+Ongoing channel series or theme:
+{series_text}
+
+Recent videos in the channel library (do not repeat them; choose the next useful step when a series is set):
+{recent_text}
+
 CRITICAL INSTRUCTIONS FOR THIS RUN:
-1. Focus entirely on this specific theme: >>> {chosen_angle} <<<
-2. BANNED TOPICS: Do NOT suggest any of the following — we already made videos about them: {banned_str}. You must give me a brand new, highly original concept.
-3. Cache Bust ID: {time.time()} (Ensure completely unique output).
+1. The channel's main theme is: >>> {chosen_angle} <<<. Keep the selected topic inside this niche.
+2. If a GUI focus angle was selected, use it only when it fits the saved series/theme: {focus_angle.strip() or "none"}.
+3. BANNED TOPICS: Do NOT repeat any of these: {banned_str}.
+4. Continue tracked episode #{episode_number} when a series is set. Avoid re-teaching covered points; use the prior next-step hint when it fits: {next_step}
+5. Return "series_connection" (one honest sentence linking this episode to prior coverage) and "next_episode_hint" (one concrete follow-up for the next video). Do not put episode numbers in the public title.
+6. Cache Bust ID: {time.time()} (Ensure completely unique output).
 {trend_block}
 Your mission:
-1. Think of 3-4 highly compelling video topic ideas within that specific theme.
-2. Select the single BEST topic that is genuinely mind-blowing, timely, and explainable in 6-8 minutes.
+1. Think of 3-4 compelling video topics that advance the channel's series without repeating recent coverage.
+2. Select the single best next topic that is genuinely compelling, timely, and explainable in 6-8 minutes.
 
 Respond with ONLY a valid JSON object. No markdown fences, no explanation:
 
@@ -224,10 +292,12 @@ Respond with ONLY a valid JSON object. No markdown fences, no explanation:
   ],
   "target_audience": "Exactly who will watch and share this",
   "tags": ["tag1","tag2","tag3","tag4","tag5","tag6","tag7","tag8"],
+  "series_connection": "One sentence on how this episode builds on prior coverage",
+  "next_episode_hint": "One concrete, non-repeating direction for the following episode",
   "thumbnail_concept": "Describe the perfect YouTube thumbnail",
   "estimated_virality": "high"
 }}"""
 
     data = _parse(generate(prompt))
     data["grounding"] = _grounding(data["topic"])
-    return data
+    return _track_series(data, channel_series, episode_context)

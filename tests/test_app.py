@@ -1,5 +1,4 @@
-"""Description builder, credits, watermark, config and model-chain behaviour."""
-import numpy as np
+"""Description builder, credits, config and model-chain behaviour."""
 import pytest
 
 import config
@@ -55,29 +54,17 @@ def test_old_descriptions_get_the_credit(monkeypatch):
     assert description.with_credit(already) == already
 
 
-@pytest.mark.parametrize("w, h", [(1920, 1080), (1080, 1920)])
-def test_watermark_fits_inside_frame_and_is_semi_transparent(w, h):
-    x, y, rgb, alpha = creator._watermark_patch(w, h)
-    ph, pw = alpha.shape[:2]
-    assert 0 <= x and x + pw <= w and 0 <= y and y + ph <= h
-    assert 0 < alpha.max() <= creator.WATERMARK_OPACITY + 1e-6
+def test_render_has_no_author_watermark():
+    assert not hasattr(creator, "WATERMARK_TEXT")
+    assert not hasattr(creator, "_apply_watermark")
 
 
-def test_watermark_is_burned_into_frames():
-    class FakeClip:
-        def fl_image(self, fn):
-            self.fn = fn
-            return self
-    clip = creator._apply_watermark(FakeClip(), 1280, 720)
-    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    out = clip.fn(frame)
-    assert out.shape == frame.shape and out.sum() > 0     # white text on black
-    assert frame.sum() == 0                               # original frame untouched
-
-
-def test_watermark_text_is_not_a_setting():
-    assert creator.WATERMARK_TEXT == "raunakpatil.com"
-    assert not any("WATERMARK" in k for k, _ in settings._SETTINGS.values())
+def test_pixabay_video_source_is_listed_in_description(monkeypatch):
+    monkeypatch.setattr(description, "load_credits", lambda: [{
+        "source": "Pixabay", "media_type": "video", "link": "https://pixabay.com/videos/example/",
+    }])
+    text = description.build_description(SCRIPT, RESEARCH, "normal")
+    assert "Stock video clips from Pixabay: https://pixabay.com/videos/" in text
 
 
 def test_save_env_updates_in_place(tmp_path):
@@ -117,6 +104,21 @@ def test_section_images_finds_downloaded_files(tmp_path):
     for name in ("section_01_img01.jpg", "section_01_img02.jpg", "section_02_img01.jpg"):
         (tmp_path / name).write_bytes(b"x")
     assert [p.split("section_")[-1] for p in stock.section_images(str(tmp_path), 1)] == ["01_img01.jpg", "01_img02.jpg"]
+
+
+def test_section_images_preserves_missing_scene_slots(tmp_path):
+    second = tmp_path / "section_01_img02.jpg"
+    second.write_bytes(b"x")
+    assert stock.section_images(str(tmp_path), 1) == [None, str(second)]
+
+
+def test_download_images_keeps_each_query_in_its_own_slot(tmp_path, monkeypatch):
+    monkeypatch.setattr(stock, "_fetch_images", lambda query, section, *args, **kwargs:
+                        [] if query == "first" else [query + ".jpg"])
+    script = {"title": "Topic", "sections": [{"id": 1, "visuals": [
+        {"search_query": "first"}, {"search_query": "second"}, {"search_query": "third"},
+    ]}]}
+    assert stock.download_images(script, str(tmp_path))[1] == [None, "second.jpg", "third.jpg"]
 
 
 def test_pollinations_logo_strip_is_cropped(tmp_path):

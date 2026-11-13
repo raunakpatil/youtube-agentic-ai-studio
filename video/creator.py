@@ -1,17 +1,18 @@
 """
 Video Creator — Cinematic Edition (Normal) + Shorts Edition
-Normal  : Kurzgesagt-style 1920×1080, one image per section, Ken Burns,
+Normal  : 1920×1080, narration-matched stock clips with still backups,
           animated title cards, bullet points, lower-third captions.
-Shorts  : Fast-paced 1080×1920, image slideshow (cuts every 2-3 s),
+Shorts  : Fast-paced 1080×1920, narration-matched clips with still backups,
           NO section-type labels, synced SRT captions burnt in,
           high-energy zoom pulses, gradient text overlay.
 
 Runs fully offline: MoviePy 1.0.3 + Pillow + NumPy.
 """
 import os, re, math
+from collections import OrderedDict
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from moviepy.editor import VideoClip, AudioFileClip, concatenate_videoclips
+from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, concatenate_videoclips
 
 import config
 
@@ -417,8 +418,131 @@ BROLL_INTERVAL  = float(getattr(config, "BROLL_INTERVAL",  10.0))
 BROLL_XFADE_DUR = float(getattr(config, "BROLL_XFADE_DUR",  1.2))
 
 
+def _cover_video_frame(frame: np.ndarray) -> np.ndarray:
+    """Resize and centre-crop a stock-video frame to the current output size."""
+    image = Image.fromarray(frame).convert("RGB")
+    iw, ih = image.size
+    scale = max(W / iw, H / ih)
+    nw, nh = int(iw * scale), int(ih * scale)
+    image = image.resize((nw, nh), Image.LANCZOS)
+    left, top = (nw - W) // 2, (nh - H) // 2
+    return np.asarray(image.crop((left, top, left + W, top + H)), dtype=np.uint8)
+
+
+def _read_video_frame(path: str, t: float, readers: OrderedDict) -> np.ndarray | None:
+    """Read one frame, keeping only two local video decoders open at a time."""
+    if not path:
+        return None
+    if path not in readers:
+        try:
+            readers[path] = VideoFileClip(path, audio=False)
+        except Exception as e:
+            readers[path] = None
+            print(f"   ⚠ Could not open footage {os.path.basename(path)} ({type(e).__name__})")
+        while len(readers) > 2:
+            _, old = readers.popitem(last=False)
+            if old:
+                old.close()
+    else:
+        readers.move_to_end(path)
+    clip = readers[path]
+    if not clip or not clip.duration:
+        return None
+    try:
+        src_t = float(t) % max(clip.duration - 0.04, 0.04)
+        return _cover_video_frame(clip.get_frame(src_t))
+    except Exception as e:
+        print(f"   ⚠ Could not read footage frame ({type(e).__name__})")
+        clip.close()
+        readers[path] = None
+        return None
+
+
+def _close_video_readers(readers: OrderedDict) -> None:
+    for clip in readers.values():
+        if clip:
+            clip.close()
+    readers.clear()
+
+
+def _cue_fraction(narration: str, cue: str) -> float | None:
+    words = re.findall(r"[\w'-]+", narration.casefold())
+    target = re.findall(r"[\w'-]+", cue.casefold())
+    if not target or not words:
+        return None
+    for index in range(len(words) - len(target) + 1):
+        if words[index:index + len(target)] == target:
+            return index / len(words)
+    return None
+
+
+def _visual_scenes(section: dict, duration: float, entries: list,
+                   images: list[np.ndarray]) -> list[dict]:
+    """Place each visual at its narration cue and pair a still backup by index."""
+    if not entries:
+        return []
+    narration = str(section.get("narration", ""))
+    starts = [0.0]
+    for index, item in enumerate(entries[1:], 1):
+        fraction = _cue_fraction(narration, item.get("narration_cue", ""))
+        if fraction is None:
+            fraction = index / len(entries)
+        start = max(starts[-1] + 0.05, duration * fraction)
+        starts.append(min(start, max(0.0, duration - 0.01)))
+    scenes = []
+    for index, item in enumerate(entries):
+        image = images[index] if index < len(images) else None
+        scenes.append({
+            "path": item.get("path"),
+            "image": image,
+            "start": starts[index],
+            "end": starts[index + 1] if index + 1 < len(starts) else duration,
+        })
+    return scenes
+
+
+def _scene_source(scene: dict, t: float, duration: float, index: int,
+                  readers: OrderedDict) -> np.ndarray | None:
+    if scene.get("path"):
+        frame = _read_video_frame(scene["path"], t, readers)
+        if frame is not None:
+            return frame
+    image = scene.get("image")
+    if image is not None:
+        pan_dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        frame = _ken_burns(image, t, max(duration, 0.01), pan_dir=pan_dirs[index % len(pan_dirs)])
+        return frame
+    return None
+
+
+def _visual_scenes_frame(t: float, scenes: list[dict], readers: OrderedDict,
+                         xfade: float) -> np.ndarray | None:
+    if not scenes:
+        return None
+    index = next((i for i, scene in enumerate(scenes) if t < scene["end"]), len(scenes) - 1)
+    scene = scenes[index]
+    local_t = max(0.0, t - scene["start"])
+    slot = max(0.01, scene["end"] - scene["start"])
+    current = _scene_source(scene, local_t, slot, index, readers)
+    if current is None:
+        return None
+    fade = min(xfade, slot * 0.25)
+    if index + 1 < len(scenes) and fade > 0 and local_t >= slot - fade:
+        nxt_scene = scenes[index + 1]
+        nxt_t = max(0.0, t - nxt_scene["start"])
+        following = _scene_source(nxt_scene, nxt_t, max(0.01, nxt_scene["end"] - nxt_scene["start"]), index + 1, readers)
+        if following is not None:
+            amount = min(1.0, (local_t - (slot - fade)) / fade)
+            amount = amount * amount * (3.0 - 2.0 * amount)
+            current = (current.astype(np.float32) * (1.0 - amount) +
+                       following.astype(np.float32) * amount).astype(np.uint8)
+    return current
+
+
 def _make_clip(section, duration, bg_images, section_num, total_sections,
-               pan_dir=(1, 0), captions: list = None, section_start_t: float = 0.0):
+               pan_dir=(1, 0), captions: list = None, section_start_t: float = 0.0,
+               bg_videos: list = None, video_readers: OrderedDict = None,
+               visual_images: list = None):
     """
     Build a single section clip with:
       • B-roll image cycling every BROLL_INTERVAL seconds with smooth crossfade
@@ -436,13 +560,21 @@ def _make_clip(section, duration, bg_images, section_num, total_sections,
     caption = section.get("caption_text", "")
     title   = section.get("title", "")
     n_imgs  = len(bg_images) if bg_images else 0
+    video_readers = video_readers if video_readers is not None else OrderedDict()
+    video_scenes = _visual_scenes(section, duration, bg_videos or [],
+                                  bg_images if visual_images is None else visual_images)
 
     # Pan directions cycle per B-roll image for alternating motion
     BROLL_PAN_DIRS = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1)]
 
     def make_frame(t):
         # ── Background: B-roll cycling with crossfade ──────────────────────
-        if n_imgs > 0:
+        if video_scenes:
+            frame_np = _visual_scenes_frame(t, video_scenes, video_readers, BROLL_XFADE_DUR)
+            if frame_np is None:
+                frame_np = _gradient_bg(t)
+            frame_np = _apply_overlay(frame_np)
+        elif n_imgs > 0:
             slot      = t / BROLL_INTERVAL
             cur_idx   = int(slot) % n_imgs
             img_t     = t % BROLL_INTERVAL          # time within this image slot
@@ -660,7 +792,8 @@ def _get_caption_at(captions: list, t_global: float) -> str:
 
 
 def _build_shorts_clip(all_images: list, total_duration: float,
-                       captions: list) -> VideoClip:
+                       captions: list, video_scenes: list = None,
+                       video_readers: OrderedDict = None) -> VideoClip:
     """
     Builds the full Shorts video as one VideoClip with smooth crossfades
     between images instead of hard cuts.
@@ -675,13 +808,21 @@ def _build_shorts_clip(all_images: list, total_duration: float,
       to render than concatenating dozens of small clips with transitions).
     """
     n_imgs    = len(all_images) if all_images else 0
+    video_scenes = video_scenes or []
+    has_video = bool(video_scenes)
+    video_readers = video_readers if video_readers is not None else OrderedDict()
     xfade_dur = float(getattr(config, "CROSSFADE_DURATION", 0.7))
     # Clamp so fade never exceeds half the image slot (avoids triple-blend)
     xfade_dur = min(xfade_dur, SHORTS_IMG_DURATION * 0.45)
 
     def make_frame(t):
         # ── Which image slot are we in? ──────────────────────
-        if n_imgs > 0:
+        if has_video:
+            frame_np = _visual_scenes_frame(t, video_scenes, video_readers, xfade_dur)
+            if frame_np is None:
+                frame_np = _gradient_bg(t)
+            frame_np = _apply_vignette(_apply_overlay(frame_np, opacity=0.45))
+        elif n_imgs > 0:
             slot      = t / SHORTS_IMG_DURATION          # float slot index
             cur_idx   = int(slot) % n_imgs
             img_t     = t % SHORTS_IMG_DURATION          # time within slot
@@ -754,59 +895,9 @@ def _build_shorts_clip(all_images: list, total_duration: float,
 #  MAIN ENTRY POINT
 # ══════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════════════════════
-#  WATERMARK — burned into every frame of every video.
-#  Deliberately not a setting: YAAS credits its author on all output.
-# ══════════════════════════════════════════════════════════════
-
-WATERMARK_TEXT    = "raunakpatil.com"
-WATERMARK_OPACITY = 0.55
-
-
-def _watermark_patch(w: int, h: int):
-    """Pre-rendered watermark: (x, y, rgb float array, alpha float array)."""
-    from video import fonts
-    portrait = h > w
-    size = max(18, int((h * 0.017) if portrait else (h * 0.024)))
-    font = fonts.get("inter", size, 600)
-    pad = size // 2
-    tw = int(font.getlength(WATERMARK_TEXT))
-    pw, ph = tw + pad * 2, int(size * 1.5) + pad
-    patch = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
-    d = ImageDraw.Draw(patch)
-    # soft dark halo keeps it legible on bright footage
-    halo = Image.new("L", (pw, ph), 0)
-    ImageDraw.Draw(halo).text((pad, pad // 2), WATERMARK_TEXT, font=font, fill=255,
-                              stroke_width=max(2, size // 8), stroke_fill=255)
-    halo = halo.filter(ImageFilter.GaussianBlur(max(2, size // 6)))
-    patch.paste((0, 0, 0, 255), (0, 0), halo.point(lambda v: int(v * .55)))
-    d.text((pad, pad // 2), WATERMARK_TEXT, font=font, fill=(255, 255, 255, 255))
-
-    arr = np.asarray(patch, dtype=np.float32) / 255.0
-    rgb, alpha = arr[..., :3] * 255.0, arr[..., 3:4] * WATERMARK_OPACITY
-    if portrait:      # top centre, under the channel tag — clear of the Shorts UI
-        x, y = (w - pw) // 2, int(h * 0.055)
-    else:             # top right corner
-        x, y = w - pw - int(w * 0.022), int(h * 0.035)
-    return x, y, rgb, alpha
-
-
-def _apply_watermark(clip, w: int, h: int):
-    x, y, rgb, alpha = _watermark_patch(w, h)
-    ph, pw = alpha.shape[:2]
-
-    def stamp(frame):
-        out = frame.copy()
-        region = out[y:y + ph, x:x + pw].astype(np.float32)
-        out[y:y + ph, x:x + pw] = (region * (1 - alpha) + rgb * alpha).astype(np.uint8)
-        return out
-
-    print(f"   → Watermark: {WATERMARK_TEXT}")
-    return clip.fl_image(stamp)
-
-
 def create_video(script: dict, audio_path: str, output_dir: str,
-                 image_map: dict = None, video_type: str = "normal") -> str:
+                 image_map: dict = None, video_type: str = "normal",
+                 video_map: dict = None) -> str:
     """
     Assembles the final video.
     image_map for Shorts: {section_id: [path, path, …]}
@@ -814,6 +905,7 @@ def create_video(script: dict, audio_path: str, output_dir: str,
     video_type: "normal" | "shorts"
     """
     global W, H, FPS
+    video_readers = OrderedDict()
 
     # Clear font cache when dimensions change (Shorts vs Normal have different
     # optimal sizes, but the same font object can be shared across renders).
@@ -835,15 +927,18 @@ def create_video(script: dict, audio_path: str, output_dir: str,
     if is_shorts:
         print(f"\n   Building Shorts ({W}×{H}, {FPS} fps) …")
 
-        # Flatten all section image lists into one ordered list
+        # Keep section images available as matched backups for beats without clips.
         all_images = []
+        section_images = {}
         for section in script["sections"]:
             sid   = section["id"]
             paths = (image_map or {}).get(sid, [])
             if isinstance(paths, str):
                 paths = [paths]   # handle single-path fallback
+            section_images[sid] = []
             for p in paths:
                 arr = _load_bg_image(p)
+                section_images[sid].append(arr)
                 if arr is not None:
                     all_images.append(arr)
 
@@ -871,7 +966,34 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         total_dur  = audio.duration
         print(f"   → Audio duration: {total_dur:.1f}s")
 
-        final = _build_shorts_clip(all_images, total_dur, captions)
+        short_scenes = []
+        total_words = max(1, sum(len(s.get("narration", "").split()) for s in script["sections"]))
+        cursor = 0.0
+        for section in script["sections"]:
+            sid = int(section["id"])
+            words = max(1, len(section.get("narration", "").split()))
+            section_duration = total_dur * words / total_words
+            entries = (video_map or {}).get(sid, (video_map or {}).get(str(sid), [])) or []
+            if not entries:
+                entries = [
+                    {"path": None, "narration_cue": str(v.get("narration_cue", ""))}
+                    for v in section.get("visuals", []) if isinstance(v, dict)
+                ]
+            if not entries:
+                entries = [{"path": None, "narration_cue": ""}
+                           for _ in section_images.get(sid, [])]
+            if not entries:
+                entries = [{"path": None, "narration_cue": ""}]
+            scenes = _visual_scenes(section, section_duration, entries,
+                                    section_images.get(sid, []))
+            for scene in scenes:
+                scene["start"] += cursor
+                scene["end"] += cursor
+            short_scenes.extend(scenes)
+            cursor += section_duration
+
+        final = _build_shorts_clip(all_images, total_dur, captions,
+                                   short_scenes, video_readers)
         final = final.set_audio(audio)
 
         output_path = os.path.join(output_dir, "final_short.mp4")
@@ -899,8 +1021,10 @@ def create_video(script: dict, audio_path: str, output_dir: str,
             s_type   = section.get("section_type", "content")
             print(f"     [{section['id']:02d}] {section['title']:<42} {duration:5.1f}s  [{s_type}]")
 
-            # Load all B-roll images for this section (list of np arrays)
+            # Load stills for this section. Each visual beat uses its matching
+            # still only when Pixabay did not return a usable video clip.
             bg_images = []
+            visual_images = []
             if image_map:
                 raw = image_map.get(section["id"])
                 if raw is None:
@@ -909,13 +1033,29 @@ def create_video(script: dict, audio_path: str, output_dir: str,
                     raw = [raw]   # single path → list
                 for p in raw:
                     arr = _load_bg_image(p)
+                    visual_images.append(arr)
                     if arr is not None:
                         bg_images.append(arr)
+            video_items = (video_map or {}).get(section["id"],
+                           (video_map or {}).get(str(section["id"]), [])) or []
+            if not video_items:
+                video_items = [
+                    {"path": None, "narration_cue": str(v.get("narration_cue", ""))}
+                    for v in section.get("visuals", []) if isinstance(v, dict)
+                ]
+            if not video_items:
+                video_items = [{"path": None, "narration_cue": ""} for _ in visual_images]
+            video_count = sum(1 for item in video_items if item.get("path"))
+            if video_count:
+                print(f"          {video_count} moving clips, matched to narration beats")
             if not bg_images:
-                print(f"          ⚠ no images for section {section['id']} — gradient fallback")
+                if not video_count:
+                    print(f"          ⚠ no matching video or still for section {section['id']} — gradient fallback")
 
             clip = _make_clip(section, duration, bg_images, i + 1, total_sections,
-                              captions=captions, section_start_t=section_start_t)
+                              captions=captions, section_start_t=section_start_t,
+                              bg_videos=video_items, video_readers=video_readers,
+                              visual_images=visual_images)
             clips.append(clip)
             section_start_t += duration   # advance global timestamp
 
@@ -934,24 +1074,32 @@ def create_video(script: dict, audio_path: str, output_dir: str,
 
         output_path = os.path.join(output_dir, "final_video.mp4")
 
-    # ── WATERMARK (always on) ──────────────────────────────────
-    final = _apply_watermark(final, W, H)
-
     # ── EXPORT ─────────────────────────────────────────────────
     total_secs = int(final.duration)
     print(f"\n   → Rendering {total_secs // 60}m {total_secs % 60}s video…")
     print(f"      (~{max(1, total_secs // 10)} min — go get a coffee ☕)\n")
 
-    final.write_videofile(
-        output_path,
-        fps=FPS,
-        codec="libx264",
-        audio_codec="aac",
-        threads=4,
-        preset=getattr(config, "RENDER_PRESET", "ultrafast"),
-        verbose=False,
-        logger=None,
-    )
+    try:
+        final.write_videofile(
+            output_path,
+            fps=FPS,
+            codec="libx264",
+            audio_codec="aac",
+            threads=4,
+            preset=getattr(config, "RENDER_PRESET", "ultrafast"),
+            verbose=False,
+            logger=None,
+        )
+    finally:
+        _close_video_readers(video_readers)
+        try:
+            final.close()
+        except Exception:
+            pass
+        try:
+            audio.close()
+        except Exception:
+            pass
 
     size_mb = os.path.getsize(output_path) // (1024 * 1024)
     print(f"\n   ✅ Video rendered: {output_path} ({size_mb} MB)")

@@ -56,6 +56,8 @@ The app has three screens, in the order you use them:
 
 **Settings** (top right) holds your channel name, voice, optional keys and advanced options. Everything has a sensible default.
 
+Describe your niche in **What your channel is about**. To make a connected series, also set **Ongoing series or main theme** before asking AI to choose a topic. Each finished video is saved with its key points and suggested follow-up; the first tracked episode is number 1. Recent YouTube upload titles can also guide topic choices when a YouTube Data API key and channel are configured.
+
 <table>
 <tr>
 <td width="50%" align="center"><img src="docs/screenshots/home.png" alt="Home: one box to type your video idea"><br><sub><b>Home</b>: type an idea, or let AI pick one</sub></td>
@@ -86,7 +88,7 @@ topic ──► Research ──► Fact-check ──► Script ──► Visuals
 | 🧠 **Trend-aware topics** | Live ideas from Google Trends, Wikipedia, Hacker News, Spaceflight News and arXiv. Click one, or let the AI ride a trend that fits your niche. |
 | 📚 **Fact-checked scripts** | Before writing, YAAS pulls background from Wikipedia and arXiv, tells the AI not to contradict it, and lists the sources in your description. |
 | ✍️ **Never-stuck AI** | Gemini model chain → Groq → OpenRouter → Pollinations (keyless), so a quota error doesn't kill the run. Broken JSON from models is repaired automatically. |
-| 🖼️ **Visuals without a key** | Pexels → Pixabay → NASA (public domain, space topics) → Openverse (CC, credited) → AI-generated images. Credits are written into the description for you. |
+| 🎥 **Narration-matched visuals** | Pixabay video clips are matched to spoken story beats. Relevant still images remain as a backup when a free clip is unavailable; generic unrelated filler is not used. Sources are listed in the description. |
 | 🎙️ **Free voice** | Microsoft Edge neural voices with word-synced captions. |
 | 🎞️ **Long videos & Shorts** | 16:9 with chapters, Ken Burns motion and B-roll cuts, or 9:16 Shorts with big captions. Each format gets matching thumbnails and its own section in My videos. |
 | 🏷️ **Your brand** | Your channel name appears in the intro, on Shorts and on thumbnails. Change the text or switch it off in Settings. |
@@ -97,7 +99,7 @@ topic ──► Research ──► Fact-check ──► Script ──► Visuals
 | 📅 **Schedule uploads** | Upload now or pick a time. Downloads for MP4, thumbnail and captions (SRT). |
 | 📊 **Your stats** | Production history, plus live subscribers and views per upload with a free YouTube Data API key. |
 | 🗂️ **My videos** | Every render archived with its script, sources, photos and metadata. |
-| ©️ **Credits** | Every video carries a semi-transparent **raunakpatil.com** watermark, and descriptions end with *Made with YAAS by Raunak Patil · raunakpatil.com*. |
+| ©️ **Credits** | Video renders have no YAAS watermark. Source links and the optional YAAS description credit are handled separately. |
 | 🎵 **Background music** | Drop MP3s in `music library/` and they're shuffled and looped to fit. |
 
 ---
@@ -114,7 +116,7 @@ Everything below is free. **Keyless** ones work out of the box; the others need 
 | Pollinations (text) | Last-resort backup AI | keyless |
 | Edge TTS | Neural voiceover | keyless |
 | Pexels | Stock photos | free key, optional |
-| Pixabay | Stock photos | free key, optional |
+| Pixabay | Stock photos and narration-matched video clips | free key, optional |
 | NASA Image Library | Public-domain space imagery | keyless |
 | Openverse | Creative Commons images (credited) | keyless |
 | Pollinations (image) | AI B-roll & thumbnail art | keyless |
@@ -170,7 +172,8 @@ Non-secret settings (voice, channel description, video style) are saved to `sett
 ├── video/
 │   ├── narrator.py         ← Edge TTS voiceover + captions
 │   ├── stock.py            ← image download chain + credits
-│   ├── creator.py          ← renderer (Ken Burns, captions, Shorts, watermark)
+│   ├── footage.py          ← Pixabay video search, download and 24-hour result cache
+│   ├── creator.py          ← renderer (stock footage, captions, Shorts)
 │   ├── thumbnail.py        ← thumbnail designer (4 styles, 16:9 + 9:16)
 │   ├── fonts.py            ← Google Fonts download + fallbacks
 │   └── music.py            ← background music mixer
@@ -203,7 +206,7 @@ pip install pytest
 pytest
 ```
 
-The suite runs offline with no API keys. It covers JSON repair, the findability score, every thumbnail style in both shapes, descriptions and credits, the watermark, `.env` handling and the AI model chain. GitHub Actions runs it on every push and pull request.
+The suite runs offline with no API keys. It covers JSON repair, the findability score, thumbnail styles, descriptions and credits, watermark removal, narration-matched footage, `.env` handling and the AI model chain. GitHub Actions runs it on every push and pull request.
 
 ---
 
@@ -242,7 +245,7 @@ Yes. Download the MP4, thumbnail and captions from **Review & publish** and uplo
 <details>
 <summary><b>Can I turn off the raunakpatil.com watermark?</b></summary>
 
-No. The small semi-transparent watermark is part of every video YAAS renders, as credit for the free tool. The description credit line can be switched off in **Settings → Music & publishing**.
+Yes. New renders do not add the YAAS watermark. Older MP4s have it burned into the picture and need to be rendered again. The separate description credit can still be switched off in **Settings → Music & publishing**.
 </details>
 
 <details>

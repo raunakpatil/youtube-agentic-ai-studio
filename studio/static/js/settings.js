@@ -2,7 +2,7 @@
 const KEYS = [
   ["gemini_key", "Google Gemini", "Writes much better scripts. Recommended, takes 1 minute.", "https://aistudio.google.com/apikey"],
   ["pexels_key", "Pexels", "High-quality stock photos for your scenes.", "https://www.pexels.com/api/"],
-  ["pixabay_key", "Pixabay", "Even more stock photos.", "https://pixabay.com/api/docs/"],
+  ["pixabay_key", "Pixabay", "Free stock photos and video clips for your scenes.", "https://pixabay.com/api/docs/"],
   ["groq_key", "Groq", "Backup AI for when Gemini runs out of free quota.", "https://console.groq.com/keys"],
   ["openrouter_key", "OpenRouter", "Another backup AI.", "https://openrouter.ai/keys"],
   ["youtube_key", "YouTube Data API", "Shows your subscribers and views on Home.", "https://console.cloud.google.com/apis/library/youtube.googleapis.com"],
@@ -23,7 +23,7 @@ const RANGES = {
   broll_interval: { to: v => Math.round(v), from: v => +v, label: v => v + " s" },
   broll_xfade:    { to: v => Math.round(v * 10), from: v => v / 10, label: v => (v / 10).toFixed(1) + " s" },
 };
-const TEXT = ["channel_name", "channel_desc", "brand_text", "thumb_style", "gemini_model", "groq_model", "openrouter_model", "render_preset", "kb_start", "kb_end", "privacy", "voice_id", "trends_geo"];
+const TEXT = ["channel_name", "channel_desc", "channel_series", "brand_text", "thumb_style", "gemini_model", "groq_model", "openrouter_model", "render_preset", "kb_start", "kb_end", "privacy", "voice_id", "trends_geo"];
 const BOOLS = ["fact_grounding", "keyless_llm", "music_enabled", "show_brand", "credit_yaas"];
 Object.entries(RANGES).forEach(([k, r]) => { const el = $("#r-" + k); el.addEventListener("input", () => $("#v-" + k).textContent = r.label(+el.value)); });
 

@@ -157,6 +157,7 @@ input[type=text], input[type=password], input[type=datetime-local], textarea, se
   padding: 9px 12px; outline: none; transition: border-color .2s, background .2s; color-scheme: dark;
 }
 textarea { resize: vertical; line-height: 1.55; font-size: 12.5px; }
+#s-channel_series { min-height: 92px; }
 input:focus, textarea:focus, select:focus { border-color: #5a5a5a; background: var(--card-3); }
 input::placeholder, textarea::placeholder { color: #666; }
 select { appearance: none; padding-right: 32px; cursor: pointer;
