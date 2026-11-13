@@ -28,6 +28,7 @@ state = {
     "thumb_text":   None,         # None → auto from the title
     "audio_path":   None,
     "image_map":    {},
+    "video_map":    {},
     "script":       None,
     "research":     None,
     "yt_url":       None,

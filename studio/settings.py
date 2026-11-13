@@ -26,6 +26,7 @@ _SETTINGS = {
     "music_enabled":    ("MUSIC_ENABLED",      bool),
     "music_volume":     ("MUSIC_VOLUME",       float),
     "channel_name":     ("CHANNEL_NAME",       str),
+    "channel_series":   ("CHANNEL_SERIES",     str),
     "show_brand":       ("SHOW_CHANNEL_BRAND", bool),
     "thumb_style":      ("THUMB_STYLE",        str),
     "brand_text":       ("BRAND_TEXT",         str),
@@ -56,6 +57,7 @@ def get_settings():
         val = getattr(config, attr, "")
         out[k] = _mask(val) if typ == "env" else val
     out["channel_desc"]  = config.CHANNEL_DESCRIPTION.strip()
+    out["channel_series"] = config.CHANNEL_SERIES.strip()
     out["music_library"] = getattr(config, "MUSIC_LIBRARY_DIR", "")
     out["banned_topics"] = load_banned_topics()
     return jsonify(out)

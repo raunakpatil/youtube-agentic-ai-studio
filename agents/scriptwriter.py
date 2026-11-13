@@ -18,6 +18,25 @@ def _facts_block(research: dict, limit: int = 4000) -> str:
     )
 
 
+def _continuity_block(research: dict) -> str:
+    """Keep a connected series coherent while making each video standalone."""
+    series = str(research.get("series_name") or "").strip()
+    if not series:
+        return ""
+    episode = research.get("series_episode")
+    episode_label = f"Episode {episode}" if episode else "New tracked episode"
+    previous = str(research.get("previous_episode_title") or "").strip()
+    connection = str(research.get("series_connection") or "").strip()
+    next_hint = str(research.get("next_episode_hint") or "").strip()
+    return f"""
+SERIES CONTINUITY — {series} ({episode_label})
+Previous episode: {previous or "No earlier YAAS episode is on record."}
+Research plan for this episode: {connection or "Continue the channel theme without claiming a specific link."}
+Possible next episode: {next_hint or "Choose a useful follow-up after this video's main question is answered."}
+Keep this video understandable on its own: briefly recap only what viewers need, don't assume they watched earlier videos, and use the next-episode idea only if it fits the script naturally.
+"""
+
+
 def write_script(research: dict, video_type: str = "normal") -> dict:
     """
     Generates a narrated script for a YouTube video or YouTube Short.
@@ -36,6 +55,7 @@ Title: {research["video_title"]}
 Core hook question: {research.get("hook_question", "")}
 Key points to cover:
 {key_points_str}
+{_continuity_block(research)}
 {_facts_block(research)}
 Write a GRIPPING, cinematic 6-8 minute script. Non-negotiable rules:
 
@@ -48,11 +68,16 @@ PACING RULES (survival against the YouTube 2-minute drop):
   it in section 5 or 6 — this forces viewers to stay for the payoff.
 - Vary sentence length: punchy 4-word sentences followed by longer ones. Never three long sentences in a row.
 - Use "But wait.", "Here's the thing.", "Stay with me." to reset attention.
+- If series continuity is provided, connect this video to it in one short, natural line. Keep the story self-contained and don't repeat the prior episode.
+- When it fits, close by teasing the specific next-episode idea without making the current video feel incomplete.
 
 VISUAL RULES:
 - Each section needs 3 distinct image queries (image_query, image_query_2, image_query_3).
   These are used for B-roll cuts every 8-12 seconds within the section. Make them visually different:
   wide shot → close-up → abstract or concept art. NOT three variations of the same thing.
+- Each section also needs 3 "visuals" entries for actual stock video clips. Put them in spoken order.
+  Each entry has "narration_cue" (an exact short quote from that section's narration) and
+  "search_query" (a concrete shot that literally matches that beat). Avoid generic filler or metaphors.
 
 Respond with ONLY a valid JSON object. No markdown fences, no extra text:
 
@@ -69,6 +94,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "dramatic wide establishing shot matching the topic",
       "image_query_2": "close-up detail or human reaction shot",
       "image_query_3": "abstract or cosmic concept matching the mood",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "specific real video of the subject or action"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "specific real video matching that sentence"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "specific real video matching that sentence"}}
+      ],
       "bullet_points": [],
       "caption_text": "Short punchy caption shown on screen",
       "duration_seconds": 25
@@ -81,6 +111,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "scale or size comparison dramatic wide shot",
       "image_query_2": "scientists or researchers at work close-up",
       "image_query_3": "data visualization or diagram concept",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "literal video of the scale or object explained"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "specific real footage of the named people or experiment"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "specific footage illustrating the answer being set up"}}
+      ],
       "bullet_points": ["The open question we will answer", "Why the scale matters", "What most people get wrong"],
       "caption_text": "What we'll explore today",
       "duration_seconds": 40
@@ -93,6 +128,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "specific concept matching this section — dramatic wide",
       "image_query_2": "close-up detail of the concept",
       "image_query_3": "abstract or metaphorical visual for the analogy used",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage of the specific concept named"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage showing the concrete analogy"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the consequence or result described"}}
+      ],
       "bullet_points": ["Core fact A", "Core fact B — the surprising part"],
       "caption_text": "The first mind-blowing fact",
       "duration_seconds": 70
@@ -105,6 +145,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "dramatic reveal or twist — light breaking through darkness",
       "image_query_2": "shocked or awed human expression or reaction",
       "image_query_3": "abstract visual representing a paradigm shift",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage of the twist's named subject"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage showing the specific unexpected result"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the evidence or experiment described"}}
+      ],
       "bullet_points": ["What you thought was true", "What is actually true — the twist"],
       "caption_text": "Nothing is what it seems",
       "duration_seconds": 70
@@ -117,6 +162,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "the answer or resolution concept — dramatic and clear",
       "image_query_2": "scientific or mathematical concept close-up",
       "image_query_3": "wide cosmic or civilizational scale shot",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage showing the answer to the open question"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage of the named scientific process"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the implication described"}}
+      ],
       "bullet_points": ["The answer to the open question", "Implication A", "Implication B"],
       "caption_text": "The rabbit hole goes deeper",
       "duration_seconds": 70
@@ -129,6 +179,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "human civilization or society wide shot dramatic",
       "image_query_2": "technology or infrastructure close-up",
       "image_query_3": "individual human face or hands — personal scale",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage of the real-world system named"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage of the specific technology or place"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the people affected"}}
+      ],
       "bullet_points": ["Why this affects YOU personally", "The consequence most people ignore", "What happens if we do nothing"],
       "caption_text": "What this means for all of us",
       "duration_seconds": 65
@@ -141,6 +196,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "cosmos or infinite space — awe-inspiring wide",
       "image_query_2": "lone human figure against vast landscape or sky",
       "image_query_3": "philosophical or abstract concept — light or shadow",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage of the scientific question named"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage of the experts or evidence discussed"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the unresolved subject"}}
+      ],
       "bullet_points": ["The big unanswered question", "What experts disagree on"],
       "caption_text": "The question that keeps scientists up at night",
       "duration_seconds": 60
@@ -153,6 +213,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "hope or breakthrough — light emerging from darkness",
       "image_query_2": "discovery or revelation — close-up of something revealed",
       "image_query_3": "forward-looking future technology or cosmos",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage illustrating takeaway one"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage illustrating the central answer"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the closing question's subject"}}
+      ],
       "bullet_points": ["Core truth #1 — punchy and memorable", "Core truth #2 — the twist payoff", "Core truth #3 — the call to think"],
       "caption_text": "What have we learned?",
       "duration_seconds": 50
@@ -165,6 +230,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query": "space stars infinite universe night sky",
       "image_query_2": "community or crowd united by curiosity",
       "image_query_3": "cosmic overview shot — earth from space",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage of the specific video topic"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage of people discussing or studying it"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage that visually recalls the opening"}}
+      ],
       "bullet_points": [],
       "caption_text": "New video every week",
       "duration_seconds": 18
@@ -174,7 +244,9 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
 
 IMPORTANT:
 - image_query / image_query_2 / image_query_3 must be VISUALLY DISTINCT from each other (wide → close → abstract).
-- Use SPECIFIC Pexels search strings (e.g. "black hole accretion disk simulation" not just "space").
+- Each visual's narration_cue must be an exact 4–10 word quote from its narration, in order.
+- Use specific video search strings that show the spoken subject or action; never add unrelated space/tech filler.
+- Use specific stock photo search strings (e.g. "black hole accretion disk" not just "space").
 - Narration for sections 4 and 6 MUST start with the mandatory re-hook lines as described.
 - The open-loop question from section 2 MUST be answered in section 5.
 - Every narration field must contain COMPLETE, broadcast-ready sentences — no placeholders.
@@ -202,12 +274,14 @@ Title: {research["video_title"]}
 Hook question: {research.get("hook_question", "")}
 Key points:
 {key_points_str}
+{_continuity_block(research)}
 {_facts_block(research, 2000)}
 Write a GRIPPING 50-60 second Shorts script. Rules:
 - Hooks in the FIRST 3 words — no slow intros
 - Short, punchy sentences. Every second counts.
 - Vertical video style: one idea per second
 - End with a cliffhanger or question that forces them to follow/subscribe
+- If series continuity is provided, add a brief callback only when it helps, and keep this Short understandable by itself.
 - 3 sections ONLY: hook (10-12s), revelation (30-35s), cta (8-10s)
 - Total narration must be 120-160 words maximum
 - NEVER name the section in the title field — title is INTERNAL only, not shown on screen
@@ -228,6 +302,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query_2": "explosion supernova nebula vivid",
       "image_query_3": "earth from space satellite view",
       "image_query_4": "black hole gravitational waves",
+      "visuals": [
+        {{"narration_cue": "exact words from the opening beat", "search_query": "specific video of the object or action introduced"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "specific video of the question being explained"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "specific video that leads into the next beat"}}
+      ],
       "bullet_points": [],
       "caption_text": "",
       "duration_seconds": 12
@@ -241,6 +320,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query_2": "laboratory science experiment glowing",
       "image_query_3": "futuristic technology neon abstract",
       "image_query_4": "human brain neuron synapse close up",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "literal video of the named scientific process"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage of the specific experiment or device"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage of the result or consequence"}}
+      ],
       "bullet_points": [],
       "caption_text": "",
       "duration_seconds": 35
@@ -254,6 +338,11 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "image_query_2": "galaxy spiral arms nebula purple",
       "image_query_3": "universe deep field stars",
       "image_query_4": "space telescope distant galaxies",
+      "visuals": [
+        {{"narration_cue": "exact words from the first spoken beat", "search_query": "real footage of the closing topic"}},
+        {{"narration_cue": "exact words from the next spoken beat", "search_query": "real footage of a person or team studying it"}},
+        {{"narration_cue": "exact words from the final spoken beat", "search_query": "real footage that echoes the opening"}}
+      ],
       "bullet_points": [],
       "caption_text": "",
       "duration_seconds": 10
@@ -264,7 +353,9 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
 IMPORTANT:
 - Total narration across ALL sections: 120-160 words maximum
 - Each section narration must be complete, broadcast-ready sentences
-- image_query and image_query_2/3/4 must all be DIFFERENT specific Pexels visual search strings
+- Each visual's narration_cue must be an exact 4–10 word quote from its narration, in spoken order.
+- Search queries must show the actual spoken subject or action, not unrelated stock filler.
+- image_query and image_query_2/3/4 must all be DIFFERENT specific image search strings
 - title fields are INTERNAL labels only — they are never shown on screen"""
 
     print("   → Writing Shorts script…")

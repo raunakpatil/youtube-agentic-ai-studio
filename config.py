@@ -58,7 +58,7 @@ PEXELS_API_KEY     = os.getenv("PEXELS_API_KEY",     "")   # pexels.com/api
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")   # optional, unused by default
 
 # Optional free keys — each one unlocks an extra provider
-PIXABAY_API_KEY    = os.getenv("PIXABAY_API_KEY",    "")   # pixabay.com/api/docs — more stock images
+PIXABAY_API_KEY    = os.getenv("PIXABAY_API_KEY",    "")   # pixabay.com/api/docs — stock photos + video
 GROQ_API_KEY       = os.getenv("GROQ_API_KEY",       "")   # console.groq.com — fast LLM fallback
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")   # openrouter.ai — free LLM fallback
 YOUTUBE_API_KEY    = os.getenv("YOUTUBE_API_KEY",    "")   # console.cloud.google.com — channel stats
@@ -102,6 +102,8 @@ Every video should explore the absolute limits of science, space, or tech, makin
 Target audience: highly curious thinkers who want their minds blown by deep scientific and philosophical dives.
 """.strip()
 CHANNEL_NAME = "My AI Channel"   # shown on-screen and in upload metadata
+# Optional ongoing series plan used when the AI chooses a topic.
+CHANNEL_SERIES = ""
 
 # On-video branding: the "▶ CHANNEL NAME" tag in the hook and on Shorts,
 # plus the channel line on thumbnails. Leave BRAND_TEXT empty to use CHANNEL_NAME.
@@ -242,7 +244,7 @@ IMAGES_DIR   = "output/images"
 # ─────────────────────────────────────────
 # Settings the GUI may save. Secrets are never stored here; they go to .env.
 USER_SETTINGS = (
-    "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
+    "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "CHANNEL_SERIES", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
     "THUMB_STYLE", "CREDIT_YAAS",
     "VOICE_ID", "VOICE_RATE", "VOICE_PITCH",
     "GEMINI_MODEL", "GROQ_MODEL", "OPENROUTER_MODEL",

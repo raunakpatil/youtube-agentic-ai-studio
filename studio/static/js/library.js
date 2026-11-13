@@ -10,6 +10,7 @@ async function loadLibrary() {
       <div class="thumb-frame ${shorts ? "tall" : ""}">${m.files.thumb ? `<img loading="lazy" src="/library/${m.id}/thumbnail.jpg" alt="">` : `<div class="empty">no thumbnail</div>`}
         <span class="badge tag ${m.yt_url ? "green" : ""}">${m.yt_url ? "published" : "not published"}</span></div>
       <h4>${esc(m.title.replace(/\s*#shorts\b/ig, ""))}</h4>
+      ${m.series_name ? `<div class="lib-meta"><span>${esc(m.series_name)}${Number.isInteger(m.series_episode) ? ` · Episode ${m.series_episode}` : ""}</span></div>` : ""}
       <div class="lib-meta"><span>${ago(m.created_at)}</span>${m.duration ? `<span>· ${clock(m.duration)}</span>` : ""}</div>
       <div class="lib-actions">
         <button class="btn btn-white btn-sm" onclick="openProject('${m.id}')">Open</button>

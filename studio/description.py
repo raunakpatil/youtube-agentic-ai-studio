@@ -30,6 +30,8 @@ def _credit_lines(credits, detailed=True):
             lines.append(f"• “{c.get('author','Unknown')}” — {c.get('license','CC')} — {c.get('link','')}")
     if any(c["source"] == "NASA" for c in credits):
         lines.append("Space imagery courtesy of NASA.")
+    if any(c.get("media_type") == "video" and c["source"] == "Pixabay" for c in credits):
+        lines.append("Stock video clips from Pixabay: https://pixabay.com/videos/")
     if any(c["source"] == "Pollinations AI" for c in credits):
         lines.append("Some visuals are AI-generated.")
     return lines

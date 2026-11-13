@@ -40,7 +40,7 @@ def _providers():
         P("pollinations_text", "Pollinations Text", "Keyless LLM fallback", "AI", getattr(config, "KEYLESS_LLM_FALLBACK", True), True, "https://pollinations.ai"),
         P("edge_tts", "Edge TTS", "Neural voiceover", "Media", True, True),
         P("pexels", "Pexels", "Stock photos", "Media", _real_key(config.PEXELS_API_KEY), False, "https://www.pexels.com/api/"),
-        P("pixabay", "Pixabay", "Stock photos", "Media", _real_key(getattr(config, "PIXABAY_API_KEY", "")) and "pixabay" in img, False, "https://pixabay.com/api/docs/"),
+        P("pixabay", "Pixabay", "Stock photos + video clips", "Media", _real_key(getattr(config, "PIXABAY_API_KEY", "")), False, "https://pixabay.com/api/docs/"),
         P("nasa", "NASA Images", "Public-domain space B-roll", "Media", "nasa" in img, True, "https://images.nasa.gov"),
         P("openverse", "Openverse", "CC-licensed images", "Media", "openverse" in img, True, "https://openverse.org"),
         P("pollinations_img", "Pollinations Image", "AI thumbnails + B-roll", "Media", "pollinations" in img, True, "https://pollinations.ai"),

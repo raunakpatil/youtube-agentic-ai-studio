@@ -7,7 +7,7 @@ from pathlib import Path
 
 import config
 from studio.description import build_description
-from studio.library import archive_project
+from studio.library import archive_project, series_context
 from studio.state import Capture, log, log_queue, stage, state, stop_event
 from studio.thumbs import make_thumbnail
 
@@ -34,6 +34,7 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
         from agents.scriptwriter import write_script
         from video.narrator      import generate_narration
         from video.stock         import download_images, section_images
+        from video.footage       import download_footage, load_footage
         from video.creator       import create_video
         from video.music         import mix_music_with_narration
 
@@ -52,6 +53,8 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
                 topic_override      = topic_override,
                 focus_angle         = focus_angle,
                 trend_context       = trend_context,
+                channel_series      = getattr(config, "CHANNEL_SERIES", ""),
+                episode_context     = series_context(getattr(config, "CHANNEL_SERIES", "")),
             )
             state["research"] = research
             state.update(library_id=None, thumb_text=None, thumb_bg_index=0)
@@ -96,6 +99,8 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
             stage("images", "running")
             image_map = download_images(script, config.OUTPUT_DIR)
             state["image_map"] = image_map
+            video_map = download_footage(script, config.OUTPUT_DIR)
+            state["video_map"] = video_map
             stage("images", "done")
         else:
             is_shorts = video_type == "shorts" or script.get("video_type") == "shorts"
@@ -104,6 +109,7 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
                 paths = section_images(config.IMAGES_DIR, s["id"])
                 image_map[s["id"]] = paths if (paths or is_shorts) else None
             state["image_map"] = image_map
+            state["video_map"] = load_footage(script, config.OUTPUT_DIR)
 
         _check_stop("images")
 
@@ -155,7 +161,7 @@ def run_pipeline_thread(steps: list, topic_override: str = "", video_type: str =
             image_map_int = {int(k): v for k, v in state["image_map"].items()}
             video_path = create_video(
                 script, final_audio_path, config.OUTPUT_DIR, image_map_int,
-                video_type=video_type
+                video_type=video_type, video_map=state.get("video_map") or {}
             )
             state["video_path"] = video_path
             stage("video", "done")

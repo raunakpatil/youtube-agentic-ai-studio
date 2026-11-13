@@ -93,6 +93,7 @@ def test_settings_page_writes_settings_json_not_config_py(settings_file, monkeyp
 
     r = gui.app.test_client().post("/api/save-settings", headers=LOCAL, json={
         "channel_name": "Space Facts", "music_volume": "0.25", "show_brand": False,
+        "channel_series": "A connected series about space exploration",
         "image_sources": "nasa, openverse",
         "channel_desc": '\n  Space videos with """quotes""" and a # hash\n',
     })
@@ -101,12 +102,14 @@ def test_settings_page_writes_settings_json_not_config_py(settings_file, monkeyp
     saved = json.loads(settings_file.read_text())
     assert saved == {
         "CHANNEL_NAME": "Space Facts", "MUSIC_VOLUME": 0.25, "SHOW_CHANNEL_BRAND": False,
+        "CHANNEL_SERIES": "A connected series about space exploration",
         "IMAGE_SOURCES": ["nasa", "openverse"],
         "CHANNEL_DESCRIPTION": 'Space videos with """quotes""" and a # hash',
     }
     assert config.CHANNEL_NAME == "Space Facts"
     got = gui.app.test_client().get("/api/settings", headers=LOCAL).get_json()
     assert got["channel_name"] == "Space Facts" and got["music_volume"] == 0.25
+    assert got["channel_series"] == "A connected series about space exploration"
 
 
 def test_api_keys_still_go_to_env_only(settings_file, monkeypatch, restore_config):
@@ -140,7 +143,7 @@ SHOW_CHANNEL_BRAND = "nope"              # wrong type → skipped
 def test_import_legacy_config_reads_values_without_running_it(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     old = tmp_path / "old_config.py"
-    old.write_text(OLD_CONFIG)
+    old.write_text(OLD_CONFIG, encoding="utf-8")
     assert config.import_legacy_config(str(old)) == {
         "CHANNEL_NAME": "Old Channel",
         "CHANNEL_DESCRIPTION": "My old description.",
@@ -152,7 +155,7 @@ def test_import_legacy_config_reads_values_without_running_it(tmp_path, monkeypa
 
 def test_import_settings_command(tmp_path, settings_file, capsys):
     old = tmp_path / "old_config.py"
-    old.write_text(OLD_CONFIG)
+    old.write_text(OLD_CONFIG, encoding="utf-8")
     studio_settings.import_settings(str(old))
     assert json.loads(settings_file.read_text())["CHANNEL_NAME"] == "Old Channel"
     assert "Imported 4 setting(s)" in capsys.readouterr().out

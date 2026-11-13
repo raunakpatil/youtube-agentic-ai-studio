@@ -77,6 +77,10 @@ def archive_project():
         "id":          pid,
         "title":       script.get("title", ""),
         "topic":       research.get("topic", ""),
+        "series_name": research.get("series_name", ""),
+        "series_episode": research.get("series_episode"),
+        "series_connection": research.get("series_connection", ""),
+        "next_episode_hint": research.get("next_episode_hint", ""),
         "video_type":  state.get("video_type", "normal"),
         "created_at":  datetime.now().isoformat(timespec="seconds"),
         "render_secs": int(time.time() - state["started_at"]) if state.get("started_at") else None,
@@ -129,6 +133,81 @@ def list_library():
             except Exception: continue
     items.sort(key=lambda m: m.get("created_at", ""), reverse=True)
     return items
+
+def series_context(series_name="", limit=8):
+    """Recent YAAS and YouTube history plus the next number for this saved series."""
+    items = list_library()
+    series_key = (series_name or "").strip().casefold()
+    series_items = [item for item in items
+                    if series_key and str(item.get("series_name") or "").strip().casefold() == series_key]
+    episode_numbers = [item["series_episode"] for item in series_items
+                       if isinstance(item.get("series_episode"), int) and item["series_episode"] > 0]
+
+    selected, seen = [], set()
+    for item in series_items[:limit] + items[:limit]:
+        key = item.get("id") or item.get("title") or item.get("topic") or f"item-{len(selected)}"
+        if key not in seen:
+            selected.append(item)
+            seen.add(key)
+    selected.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+
+    history = []
+    for item in selected:
+        research = {}
+        if item.get("id"):
+            try:
+                with open(lib_path(item["id"], "research.json"), encoding="utf-8") as f:
+                    research = json.load(f)
+            except (OSError, ValueError):
+                pass
+        episode = item.get("series_episode", research.get("series_episode"))
+        key_points = research.get("key_points") or []
+        if not isinstance(key_points, list):
+            key_points = []
+        history.append({
+            "title": (item.get("title") or research.get("video_title") or "").strip()[:160],
+            "topic": (item.get("topic") or research.get("topic") or item.get("title") or "").strip()[:200],
+            "key_points": [str(point).strip()[:180] for point in key_points[:2]],
+            "series_name": str(item.get("series_name") or research.get("series_name", ""))[:200],
+            "series_episode": episode,
+            "series_connection": str(item.get("series_connection") or research.get("series_connection", ""))[:240],
+            "next_episode_hint": str(item.get("next_episode_hint") or research.get("next_episode_hint", ""))[:240],
+            "published": bool(item.get("yt_url")),
+            "created_at": str(item.get("created_at") or ""),
+        })
+
+    # Include recent uploads made outside YAAS when the channel stats key is set.
+    # Titles still help prevent repeats even when no YAAS research notes exist.
+    try:
+        from apis import youtube_stats
+        if youtube_stats.configured():
+            uploads = youtube_stats.channel_stats().get("recent", [])
+            known_titles = {str(video["title"]).casefold() for video in history if video.get("title")}
+            for video in reversed(uploads[-16:]):
+                title = str(video.get("title") or "").strip()
+                if not title or title.casefold() in known_titles:
+                    continue
+                history.append({
+                    "title": title[:160], "topic": title[:200], "key_points": [],
+                    "series_name": "", "series_episode": None, "series_connection": "",
+                    "next_episode_hint": "", "published": True,
+                    "created_at": str(video.get("published") or ""),
+                })
+                known_titles.add(title.casefold())
+    except Exception as exc:
+        print(f"   ⚠ Could not load recent YouTube uploads for topic history: {exc}")
+
+    history.sort(key=lambda video: video.get("created_at", ""), reverse=True)
+    history = history[:16]
+
+    prior_series = next((video for video in history
+                         if series_key and str(video["series_name"]).strip().casefold() == series_key), {})
+    return {
+        "recent_videos": history,
+        "next_episode": max(episode_numbers, default=0) + 1 if series_key else None,
+        "previous_episode_title": prior_series.get("title", ""),
+        "previous_next_step": prior_series.get("next_episode_hint", ""),
+    }
 
 @bp.route("/api/library")
 def library_index():
