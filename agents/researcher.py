@@ -86,9 +86,20 @@ def _grounding(topic: str) -> dict:
 
 def _parse(raw: str) -> dict:
     data = extract_json(raw, "Researcher")
-    for field in ["topic", "video_title", "key_points", "tags"]:
-        if field not in data:
-            raise ValueError(f"Research JSON missing field: '{field}'")
+
+    if not isinstance(data, dict):
+        raise ValueError("Research response is not a JSON object")
+
+    data.setdefault("topic", "Tamil emotional life story")
+    data.setdefault("video_title", data["topic"])
+    data.setdefault("key_points", [])
+    data.setdefault("tags", [])
+
+    if not isinstance(data["key_points"], list):
+        data["key_points"] = []
+    if not isinstance(data["tags"], list):
+        data["tags"] = []
+
     return data
 
 
