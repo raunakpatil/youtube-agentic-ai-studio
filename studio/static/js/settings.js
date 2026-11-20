@@ -1,6 +1,7 @@
 /* ═══════════════════════════ settings ═══════════════════════════ */
 const KEYS = [
   ["gemini_key", "Google Gemini", "Writes much better scripts. Recommended, takes 1 minute.", "https://aistudio.google.com/apikey"],
+  ["unsplash_key", "Unsplash", "High-quality stock photos from Unsplash.", "https://unsplash.com/developers"],
   ["pexels_key", "Pexels", "High-quality stock photos for your scenes.", "https://www.pexels.com/api/"],
   ["pixabay_key", "Pixabay", "Even more stock photos.", "https://pixabay.com/api/docs/"],
   ["groq_key", "Groq", "Backup AI for when Gemini runs out of free quota.", "https://console.groq.com/keys"],

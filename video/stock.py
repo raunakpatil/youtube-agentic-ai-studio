@@ -17,6 +17,7 @@ import config
 from apis import images as image_apis
 
 PEXELS_SEARCH = "https://api.pexels.com/v1/search"
+UNSPLASH_SEARCH = "https://api.unsplash.com/search/photos"
 
 FALLBACK_QUERIES = [
     "space universe stars galaxy",
@@ -30,6 +31,62 @@ FALLBACK_QUERIES = [
 # Every image downloaded this run → credits.json
 _credits: list = []
 _used_urls: set = set()
+
+
+def _unsplash_ready() -> bool:
+    key = getattr(config, "UNSPLASH_ACCESS_KEY", "") or ""
+    return bool(key) and not key.upper().startswith("YOUR_")
+
+
+def _unsplash(query: str, orientation: str, count: int) -> list:
+    """Unsplash candidates in the same shape as apis.images providers."""
+    key = getattr(config, "UNSPLASH_ACCESS_KEY", "") or ""
+    if not key:
+        return []
+    per_page = min(max(count * 3, 15), 30)
+    page = random.randint(1, 2)
+    headers = {"Authorization": f"Client-ID {key}"}
+    params = {
+        "query": query,
+        "per_page": per_page,
+        "page": page,
+        "orientation": "portrait" if orientation == "portrait" else "landscape",
+    }
+    r = requests.get(UNSPLASH_SEARCH, headers=headers, params=params, timeout=15)
+    if r.status_code == 401:
+        print("   ⚠ Unsplash Access Key invalid — using free fallback sources")
+        config.UNSPLASH_ACCESS_KEY = ""
+        return []
+    r.raise_for_status()
+    results = r.json().get("results", [])
+    if not results and page > 1:
+        params["page"] = 1
+        r2 = requests.get(UNSPLASH_SEARCH, headers=headers, params=params, timeout=15)
+        results = r2.json().get("results", []) if r2.ok else []
+
+    results.sort(key=lambda p: p.get("width", 0) * p.get("height", 0), reverse=True)
+    pool = results[:max(count * 2, 6)]
+    random.shuffle(pool)
+    candidates = []
+    for p in pool:
+        urls = p.get("urls") or {}
+        user = p.get("user") or {}
+        links = p.get("links") or {}
+        img_url = urls.get("regular") or urls.get("full") or urls.get("raw")
+        if not img_url:
+            continue
+        candidates.append({
+            "url": img_url,
+            "fallback_url": urls.get("small") or img_url,
+            "download_location": links.get("download_location"),
+            "credit": {
+                "source": "Unsplash",
+                "author": user.get("name") or user.get("username") or "Unsplash Photographer",
+                "license": "Unsplash License",
+                "link": links.get("html") or f"https://unsplash.com/photos/{p.get('id', '')}",
+            },
+        })
+    return candidates
 
 
 def _pexels_ready() -> bool:
@@ -69,6 +126,13 @@ def _pexels(query: str, orientation: str, count: int) -> list:
 
 
 def _candidates(query: str, orientation: str, count: int) -> list:
+    if _unsplash_ready():
+        try:
+            c = [x for x in _unsplash(query, orientation, count) if x["url"] not in _used_urls]
+            if c:
+                return c
+        except Exception as e:
+            print(f"   ⚠ Unsplash search failed for '{query}': {e}")
     if _pexels_ready():
         try:
             c = [x for x in _pexels(query, orientation, count) if x["url"] not in _used_urls]
@@ -134,9 +198,9 @@ def download_images(script: dict, output_dir: str) -> dict:
     _credits.clear()
     _used_urls.clear()
 
-    if not _pexels_ready():
+    if not _unsplash_ready() and not _pexels_ready():
         order = " → ".join(getattr(config, "IMAGE_SOURCES", []))
-        print(f"   → No Pexels key — using free sources: {order}")
+        print(f"   → No Unsplash/Pexels key — using fallback sources: {order}")
 
     is_shorts        = script.get("video_type") == "shorts"
     orientation      = "portrait" if is_shorts else "landscape"

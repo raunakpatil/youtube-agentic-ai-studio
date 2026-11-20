@@ -35,7 +35,10 @@ def _get_audio_duration_ms(audio_path: str) -> float:
     Falls back to a rough file-size estimate only if MoviePy itself fails.
     """
     try:
-        from moviepy.editor import AudioFileClip
+        try:
+            from moviepy import AudioFileClip
+        except ImportError:
+            from moviepy.editor import AudioFileClip
         clip = AudioFileClip(audio_path)
         dur  = clip.duration          # seconds, same value creator.py gets
         clip.close()

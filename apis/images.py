@@ -1,7 +1,8 @@
 """
-Image sources beyond Pexels. Tried in the order set by config.IMAGE_SOURCES
-until one returns results, so videos still get B-roll with no Pexels key.
+Image sources beyond primary provider. Tried in the order set by config.IMAGE_SOURCES
+until one returns results, so videos still get B-roll.
 
+  unsplash      Unsplash API (Access Key)            — Unsplash License
   pixabay       Pixabay API (free key)               — Pixabay Content License
   nasa          NASA Image & Video Library (keyless)  — public domain, space topics only
   openverse     Openverse / WordPress (keyless)       — CC licences, attribution kept
@@ -21,6 +22,39 @@ _SPACE_WORDS = re.compile(
     r"\b(space|galax|star|planet|nebula|black hole|moon|mars|jupiter|saturn|"
     r"astronaut|rocket|cosm|universe|orbit|solar|sun\b|telescope|nasa|comet|"
     r"asteroid|earth from|supernova|eclipse|satellite)", re.I)
+
+
+def _unsplash(query: str, orientation: str, count: int) -> list:
+    key = getattr(config, "UNSPLASH_ACCESS_KEY", "")
+    if not key:
+        return []
+    headers = {"Authorization": f"Client-ID {key}"}
+    params = {
+        "query": query[:100],
+        "per_page": max(10, count * 3),
+        "orientation": "portrait" if orientation == "portrait" else "landscape",
+    }
+    d = get_json("https://api.unsplash.com/search/photos", headers=headers, params=params)
+    out = []
+    for p in d.get("results", []):
+        urls = p.get("urls") or {}
+        user = p.get("user") or {}
+        links = p.get("links") or {}
+        img_url = urls.get("regular") or urls.get("full") or urls.get("raw")
+        if not img_url:
+            continue
+        out.append({
+            "url": img_url,
+            "fallback_url": urls.get("small") or img_url,
+            "download_location": links.get("download_location"),
+            "credit": {
+                "source": "Unsplash",
+                "author": user.get("name") or user.get("username") or "Unsplash Photographer",
+                "license": "Unsplash License",
+                "link": links.get("html") or f"https://unsplash.com/photos/{p.get('id', '')}",
+            },
+        })
+    return out
 
 
 def _pixabay(query: str, orientation: str, count: int) -> list:
@@ -96,6 +130,7 @@ def _pollinations(query: str, orientation: str, count: int) -> list:
 
 
 PROVIDERS = {
+    "unsplash":     _unsplash,
     "pixabay":      _pixabay,
     "nasa":         _nasa,
     "openverse":    _openverse,
@@ -105,7 +140,7 @@ PROVIDERS = {
 
 def search(query: str, orientation: str = "landscape", count: int = 1,
            exclude_urls: set | None = None) -> list:
-    """First provider (in config order, Pexels excluded) that returns results."""
+    """First provider (in config order) that returns results."""
     order = [s for s in getattr(config, "IMAGE_SOURCES", list(PROVIDERS)) if s in PROVIDERS]
     exclude_urls = exclude_urls or set()
     for name in order:
@@ -151,6 +186,13 @@ def fetch(candidate: dict, path: str) -> bool:
                     f.write(chunk)
             if "pollinations" in url:
                 strip_pollinations_logo(path)
+            if candidate.get("download_location") and getattr(config, "UNSPLASH_ACCESS_KEY", ""):
+                try:
+                    get(candidate["download_location"],
+                        headers={"Authorization": f"Client-ID {config.UNSPLASH_ACCESS_KEY}"},
+                        timeout=5)
+                except Exception:
+                    pass
             return True
         except Exception:
             continue

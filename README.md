@@ -8,10 +8,10 @@
 
 YAAS researches a topic, checks the facts, writes the script, records a voiceover, finds visuals, renders the video, and helps you title, tag and publish it, all from one simple local app.
 
-[![Python](https://img.shields.io/badge/Python-3.10%E2%80%933.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Cost](https://img.shields.io/badge/Cost-$0%20per%20video-brightgreen?style=flat-square)](SETUP.md)
-[![Free APIs](https://img.shields.io/badge/Free%20APIs-19-ff70f3?style=flat-square)](#-the-free-api-stack)
+[![Free APIs](https://img.shields.io/badge/Free%20APIs-20-ff70f3?style=flat-square)](#-the-free-api-stack)
 [![Tests](https://github.com/raunakpatil/youtube-agentic-ai-studio/actions/workflows/tests.yml/badge.svg)](https://github.com/raunakpatil/youtube-agentic-ai-studio/actions/workflows/tests.yml)
 [![Stars](https://img.shields.io/github/stars/raunakpatil/youtube-agentic-ai-studio?style=flat-square)](https://github.com/raunakpatil/youtube-agentic-ai-studio/stargazers)
 
@@ -38,7 +38,7 @@ python gui.py          # opens http://localhost:7070
 
 Then type a topic on the Home screen and press **Make video**. That's it.
 
-Use **Python 3.10, 3.11 or 3.12**. Python 3.13+ isn't supported yet (the pinned `numpy<2` has no prebuilt wheels for it).
+Use **Python 3.10, 3.11, 3.12, 3.13 or 3.14**.
 
 No keys are required to try it. A free [Gemini key](https://aistudio.google.com/apikey) (1 minute to get) makes the scripts much better. Paste it in **Settings** and it's stored locally in `.env`. Uploading straight to YouTube needs a one-time Google setup, covered in the [Setup guide](SETUP.md). You can always download the MP4 and upload it yourself instead.
 
@@ -113,6 +113,7 @@ Everything below is free. **Keyless** ones work out of the box; the others need 
 | OpenRouter | Backup AI (free models) | free key, optional |
 | Pollinations (text) | Last-resort backup AI | keyless |
 | Edge TTS | Neural voiceover | keyless |
+| Unsplash | Stock photos | free key, optional |
 | Pexels | Stock photos | free key, optional |
 | Pixabay | Stock photos | free key, optional |
 | NASA Image Library | Public-domain space imagery | keyless |
@@ -246,9 +247,9 @@ No. The small semi-transparent watermark is part of every video YAAS renders, as
 </details>
 
 <details>
-<summary><b>Why is moviepy pinned to 1.0.3?</b></summary>
+<summary><b>What version of MoviePy and NumPy is used?</b></summary>
 
-MoviePy 2.x removed `moviepy.editor` and changed the API, and NumPy must stay below 2.0 for it. Don't upgrade either.
+MoviePy 2.x and NumPy 2.x are used with full support across Python 3.10 through Python 3.14.
 </details>
 
 <details>

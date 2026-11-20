@@ -54,6 +54,7 @@ _load_env()
 #  API Keys  (all free-tier — only Gemini is recommended; the rest are optional)
 # ─────────────────────────────────────────
 GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY",     "")   # aistudio.google.com/apikey
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "")   # unsplash.com/developers — stock images
 PEXELS_API_KEY     = os.getenv("PEXELS_API_KEY",     "")   # pexels.com/api
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")   # optional, unused by default
 
@@ -66,7 +67,7 @@ YOUTUBE_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "")   # UC… id or @handle
 
 # Settings the GUI stores in .env rather than in this file
 ENV_KEYS = [
-    "GEMINI_API_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY", "GROQ_API_KEY",
+    "GEMINI_API_KEY", "UNSPLASH_ACCESS_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY", "GROQ_API_KEY",
     "OPENROUTER_API_KEY", "YOUTUBE_API_KEY", "YOUTUBE_CHANNEL_ID",
 ]
 
@@ -82,9 +83,9 @@ KEYLESS_LLM_FALLBACK = True
 GROQ_MODEL           = "llama-3.3-70b-versatile"
 OPENROUTER_MODEL     = "meta-llama/llama-3.3-70b-instruct:free"
 
-# Image sources tried after Pexels, in order:
-#   pixabay (key) · nasa (public domain, space topics) · openverse (CC) · pollinations (AI)
-IMAGE_SOURCES = ["pixabay", "nasa", "openverse", "pollinations"]
+# Image sources tried in order:
+#   unsplash (key) · pixabay (key) · nasa (public domain, space topics) · openverse (CC) · pollinations (AI)
+IMAGE_SOURCES = ["unsplash", "pixabay", "nasa", "openverse", "pollinations"]
 
 # Trend Radar — Google Trends region and arXiv fields to watch
 TRENDS_GEO       = "US"

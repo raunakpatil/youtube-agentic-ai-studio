@@ -11,7 +11,22 @@ Runs fully offline: MoviePy 1.0.3 + Pillow + NumPy.
 import os, re, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from moviepy.editor import VideoClip, AudioFileClip, concatenate_videoclips
+try:
+    from moviepy import VideoClip, AudioFileClip, concatenate_videoclips
+except ImportError:
+    from moviepy.editor import VideoClip, AudioFileClip, concatenate_videoclips
+
+
+def _clip_with_audio(clip, audio):
+    if hasattr(clip, "with_audio"):
+        return clip.with_audio(audio)
+    return clip.set_audio(audio)
+
+
+def _clip_subclip(clip, t_start, t_end=None):
+    if hasattr(clip, "subclipped"):
+        return clip.subclipped(t_start, t_end)
+    return clip.subclip(t_start, t_end)
 
 import config
 
@@ -802,7 +817,11 @@ def _apply_watermark(clip, w: int, h: int):
         return out
 
     print(f"   → Watermark: {WATERMARK_TEXT}")
-    return clip.fl_image(stamp)
+    if hasattr(clip, "image_transform"):
+        return clip.image_transform(stamp)
+    elif hasattr(clip, "fl_image"):
+        return clip.fl_image(stamp)
+    return clip
 
 
 def create_video(script: dict, audio_path: str, output_dir: str,
@@ -872,7 +891,7 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         print(f"   → Audio duration: {total_dur:.1f}s")
 
         final = _build_shorts_clip(all_images, total_dur, captions)
-        final = final.set_audio(audio)
+        final = _clip_with_audio(final, audio)
 
         output_path = os.path.join(output_dir, "final_short.mp4")
 
@@ -927,10 +946,10 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         print("   → Attaching narration…")
         audio = AudioFileClip(audio_path)
         if audio.duration > final.duration:
-            audio = audio.subclip(0, final.duration)
+            audio = _clip_subclip(audio, 0, final.duration)
         else:
-            final = final.subclip(0, audio.duration)
-        final = final.set_audio(audio)
+            final = _clip_subclip(final, 0, audio.duration)
+        final = _clip_with_audio(final, audio)
 
         output_path = os.path.join(output_dir, "final_video.mp4")
 
@@ -949,7 +968,6 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         audio_codec="aac",
         threads=4,
         preset=getattr(config, "RENDER_PRESET", "ultrafast"),
-        verbose=False,
         logger=None,
     )
 

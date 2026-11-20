@@ -17,6 +17,7 @@ def _mask(v):
 # settings.json (config.save_settings). config.py is never written.
 _SETTINGS = {
     "gemini_key":       ("GEMINI_API_KEY",     "env"),
+    "unsplash_key":    ("UNSPLASH_ACCESS_KEY", "env"),
     "pexels_key":       ("PEXELS_API_KEY",     "env"),
     "pixabay_key":      ("PIXABAY_API_KEY",    "env"),
     "groq_key":         ("GROQ_API_KEY",       "env"),
