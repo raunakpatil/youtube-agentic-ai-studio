@@ -67,7 +67,10 @@ def archive_project():
             json.dump(obj, f, indent=2)
 
     try:
-        from moviepy.editor import VideoFileClip
+        try:
+            from moviepy import VideoFileClip
+        except ImportError:
+            from moviepy.editor import VideoFileClip
         with VideoFileClip(state["video_path"]) as clip:
             duration = round(clip.duration, 1)
     except Exception:

@@ -8,10 +8,10 @@ LLM Client — shared across all agents.
    (keyless), so generation always has somewhere to go.
 
 Free-tier daily limits (approximate):
-  gemini-2.5-flash      → 500 req/day
-  gemini-2.0-flash      → 1,500 req/day
-  gemini-2.0-flash-lite → 1,500 req/day
-  gemma-4-31b-it        → 500 req/day
+  gemini-2.5-flash      → 20 req/day
+  gemini-2.5-flash-lite → 20 req/day
+  gemini-3.1-flash-lite → 500 req/day
+  gemini-3.8-flash → 20 req/day
 """
 import time
 import config
@@ -22,12 +22,8 @@ import config
 _ALL_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
-    "gemma-4-31b-it",        # Gemma 4 31B dense — strong reasoning, free tier
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemma-3-27b-it",
-    "gemini-1.5-flash-001",
-    "gemini-1.5-pro-001",
+    "gemini-3.1-flash-lite",
+    "gemini-3.8-flash",
 ]
 
 # Which provider answered the last call — shown in the GUI

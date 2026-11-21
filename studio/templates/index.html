@@ -388,7 +388,7 @@
   <article class="card s12">
     <div class="card-label"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Music &amp; publishing</div>
     <label class="toggle first"><span><b>Background music</b><small>Drop MP3s into the <span class="mono">music library</span> folder</small></span><input type="checkbox" id="s-music_enabled"><span class="switch"></span></label>
-    <label class="toggle"><span><b>Credit YAAS in descriptions</b><small>Adds “Made with YAAS by Raunak Patil · raunakpatil.com”</small></span><input type="checkbox" id="s-credit_yaas"><span class="switch"></span></label>
+    <label class="toggle"><span><b>Credit YAAS in descriptions</b><small>Adds “Made with YAAS”</small></span><input type="checkbox" id="s-credit_yaas"><span class="switch"></span></label>
     <div class="field"><div class="label">Music volume</div><div class="range-row"><input type="range" id="r-music_volume" min="0" max="100"><span id="v-music_volume"></span></div></div>
     <div class="field"><div class="label">Default visibility</div>
       <select id="s-privacy"><option value="public">Everyone (public)</option><option value="unlisted">Anyone with the link (unlisted)</option><option value="private">Only me (private)</option></select></div>
@@ -409,8 +409,9 @@
         <label class="toggle first"><span><b>Free backup AI</b><small>If every other AI fails, Pollinations writes the script (no key)</small></span><input type="checkbox" id="s-keyless_llm"><span class="switch"></span></label>
         <label class="toggle"><span><b>Check facts</b><small>Wikipedia + arXiv lookups before writing</small></span><input type="checkbox" id="s-fact_grounding"><span class="switch"></span></label>
         <div class="field" style="margin-top:12px">
-          <div class="label">Image sources after Pexels <small>tried in this order</small></div>
+          <div class="label">Image sources <small>tried in this order</small></div>
           <div class="chips" id="img-sources">
+            <label class="chip"><input type="checkbox" value="unsplash">Unsplash</label>
             <label class="chip"><input type="checkbox" value="pixabay">Pixabay</label>
             <label class="chip"><input type="checkbox" value="nasa">NASA</label>
             <label class="chip"><input type="checkbox" value="openverse">Openverse (CC)</label>
@@ -419,12 +420,10 @@
         </div>
         <div class="field"><div class="label">Gemini model to try first</div>
           <select id="s-gemini_model">
-            <option value="gemini-2.5-flash">gemini-2.5-flash — best quality</option>
-            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — fast + smart</option>
-            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
-            <option value="gemini-2.0-flash">gemini-2.0-flash — most free quota</option>
-            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite — fastest</option>
-            <option value="gemma-3-27b-it">gemma-3-27b-it</option>
+            <option value="gemini-2.5-flash">Gemini-2.5-flash — best quality</option>
+            <option value="gemini-2.5-flash-lite">Gemini-2.5-flash-lite — fast + smart</option>
+            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
           </select></div>
         <div class="field"><div class="label">Groq model</div><input type="text" id="s-groq_model"></div>
         <div class="field"><div class="label">OpenRouter model</div><input type="text" id="s-openrouter_model"></div>

@@ -91,8 +91,9 @@ def test_settings_page_writes_settings_json_not_config_py(settings_file, monkeyp
     cfg = os.path.join(ROOT, "config.py")
     before = open(cfg, encoding="utf-8").read()
 
+    diff_brand = not config.DEFAULTS["SHOW_CHANNEL_BRAND"]
     r = gui.app.test_client().post("/api/save-settings", headers=LOCAL, json={
-        "channel_name": "Space Facts", "music_volume": "0.25", "show_brand": False,
+        "channel_name": "Space Facts", "music_volume": "0.25", "show_brand": diff_brand,
         "image_sources": "nasa, openverse",
         "channel_desc": '\n  Space videos with """quotes""" and a # hash\n',
     })
@@ -100,7 +101,7 @@ def test_settings_page_writes_settings_json_not_config_py(settings_file, monkeyp
     assert open(cfg, encoding="utf-8").read() == before
     saved = json.loads(settings_file.read_text())
     assert saved == {
-        "CHANNEL_NAME": "Space Facts", "MUSIC_VOLUME": 0.25, "SHOW_CHANNEL_BRAND": False,
+        "CHANNEL_NAME": "Space Facts", "MUSIC_VOLUME": 0.25, "SHOW_CHANNEL_BRAND": diff_brand,
         "IMAGE_SOURCES": ["nasa", "openverse"],
         "CHANNEL_DESCRIPTION": 'Space videos with """quotes""" and a # hash',
     }

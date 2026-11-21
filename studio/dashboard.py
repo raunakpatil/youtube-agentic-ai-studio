@@ -39,6 +39,7 @@ def _providers():
         P("openrouter", "OpenRouter", "Free-model fallback", "AI", _real_key(getattr(config, "OPENROUTER_API_KEY", "")), False, "https://openrouter.ai/keys"),
         P("pollinations_text", "Pollinations Text", "Keyless LLM fallback", "AI", getattr(config, "KEYLESS_LLM_FALLBACK", True), True, "https://pollinations.ai"),
         P("edge_tts", "Edge TTS", "Neural voiceover", "Media", True, True),
+        P("unsplash", "Unsplash", "Stock photos", "Media", _real_key(getattr(config, "UNSPLASH_ACCESS_KEY", "")), False, "https://unsplash.com/developers"),
         P("pexels", "Pexels", "Stock photos", "Media", _real_key(config.PEXELS_API_KEY), False, "https://www.pexels.com/api/"),
         P("pixabay", "Pixabay", "Stock photos", "Media", _real_key(getattr(config, "PIXABAY_API_KEY", "")) and "pixabay" in img, False, "https://pixabay.com/api/docs/"),
         P("nasa", "NASA Images", "Public-domain space B-roll", "Media", "nasa" in img, True, "https://images.nasa.gov"),

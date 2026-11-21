@@ -32,7 +32,9 @@ def test_description_has_chapters_sources_and_credit(monkeypatch):
     d = description.build_description(SCRIPT, RESEARCH, "normal")
     assert "⏱ CHAPTERS" in d and "\n0:00 Part 1" in d
     assert "https://en.wikipedia.org/wiki/Moon" in d
-    assert "https://raunakpatil.com" in d
+    assert "Made with YAAS" in d
+    assert "raunakpatil.com" not in d
+    assert "Raunak Patil" not in d
     assert d.rstrip().endswith("#moon #space #physics")     # hashtags stay last
     assert len(d) <= 4900
 
@@ -45,6 +47,7 @@ def test_shorts_description_has_no_chapters():
 
 def test_credit_can_be_turned_off(monkeypatch):
     monkeypatch.setattr(config, "CREDIT_YAAS", False, raising=False)
+    assert "Made with YAAS" not in description.build_description(SCRIPT, RESEARCH, "normal")
     assert "raunakpatil.com" not in description.build_description(SCRIPT, RESEARCH, "normal")
 
 
@@ -57,13 +60,14 @@ def test_old_descriptions_get_the_credit(monkeypatch):
 
 @pytest.mark.parametrize("w, h", [(1920, 1080), (1080, 1920)])
 def test_watermark_fits_inside_frame_and_is_semi_transparent(w, h):
-    x, y, rgb, alpha = creator._watermark_patch(w, h)
+    x, y, rgb, alpha = creator._watermark_patch(w, h, text="sample.com")
     ph, pw = alpha.shape[:2]
     assert 0 <= x and x + pw <= w and 0 <= y and y + ph <= h
     assert 0 < alpha.max() <= creator.WATERMARK_OPACITY + 1e-6
 
 
-def test_watermark_is_burned_into_frames():
+def test_watermark_is_burned_into_frames(monkeypatch):
+    monkeypatch.setattr(creator, "WATERMARK_TEXT", "sample.com")
     class FakeClip:
         def fl_image(self, fn):
             self.fn = fn
@@ -75,9 +79,20 @@ def test_watermark_is_burned_into_frames():
     assert frame.sum() == 0                               # original frame untouched
 
 
-def test_watermark_text_is_not_a_setting():
-    assert creator.WATERMARK_TEXT == "raunakpatil.com"
-    assert not any("WATERMARK" in k for k, _ in settings._SETTINGS.values())
+def test_watermark_skipped_when_empty(monkeypatch):
+    monkeypatch.setattr(creator, "WATERMARK_TEXT", "")
+    class FakeClip:
+        def fl_image(self, fn):
+            self.fn = fn
+            return self
+    clip = FakeClip()
+    assert creator._apply_watermark(clip, 1280, 720) is clip
+
+
+def test_watermark_defaults_to_empty_and_no_raunak():
+    assert creator.WATERMARK_TEXT == ""
+    assert "raunak" not in creator.WATERMARK_TEXT.lower()
+    assert "raunak" not in description.CREDIT_LINE.lower()
 
 
 def test_save_env_updates_in_place(tmp_path):
@@ -97,8 +112,9 @@ def test_keys_are_masked_for_the_browser():
 
 
 def test_model_chain_starts_at_preference():
-    chain = gemini_client.build_chain("gemini-2.0-flash")
-    assert chain[0] == "gemini-2.0-flash" and len(chain) == len(set(chain))
+    pref = gemini_client._ALL_MODELS[1]
+    chain = gemini_client.build_chain(pref)
+    assert chain[0] == pref and len(chain) == len(set(chain))
     assert gemini_client.build_chain("not-a-model")[0] == gemini_client._ALL_MODELS[0]
 
 

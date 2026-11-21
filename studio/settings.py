@@ -17,6 +17,7 @@ def _mask(v):
 # settings.json (config.save_settings). config.py is never written.
 _SETTINGS = {
     "gemini_key":       ("GEMINI_API_KEY",     "env"),
+    "unsplash_key":    ("UNSPLASH_ACCESS_KEY", "env"),
     "pexels_key":       ("PEXELS_API_KEY",     "env"),
     "pixabay_key":      ("PIXABAY_API_KEY",    "env"),
     "groq_key":         ("GROQ_API_KEY",       "env"),
@@ -29,9 +30,11 @@ _SETTINGS = {
     "show_brand":       ("SHOW_CHANNEL_BRAND", bool),
     "thumb_style":      ("THUMB_STYLE",        str),
     "brand_text":       ("BRAND_TEXT",         str),
-    "voice_id":         ("VOICE_ID",           str),
-    "voice_rate":       ("VOICE_RATE",         str),
-    "voice_pitch":      ("VOICE_PITCH",        str),
+    "watermark_text":   ("WATERMARK_TEXT",     str),
+    "voice_id":           ("VOICE_ID",           str),
+    "voice_rate":         ("VOICE_RATE",         str),
+    "shorts_voice_rate":  ("SHORTS_VOICE_RATE",  str),
+    "voice_pitch":        ("VOICE_PITCH",        str),
     "gemini_model":     ("GEMINI_MODEL",       str),
     "overlay":          ("OVERLAY_OPACITY",    float),
     "kb_start":         ("KB_ZOOM_START",      float),

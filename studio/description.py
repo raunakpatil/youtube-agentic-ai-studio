@@ -34,11 +34,11 @@ def _credit_lines(credits, detailed=True):
         lines.append("Some visuals are AI-generated.")
     return lines
 
-CREDIT_LINE = "🎬 Made with YAAS by Raunak Patil · https://raunakpatil.com"
+CREDIT_LINE = "🎬 Made with YAAS"
 
 def with_credit(desc):
     """Add the credit to descriptions written before it existed."""
-    if getattr(config, "CREDIT_YAAS", True) and "raunakpatil.com" not in (desc or ""):
+    if getattr(config, "CREDIT_YAAS", False) and CREDIT_LINE not in (desc or ""):
         return (desc or "").rstrip() + "\n\n" + CREDIT_LINE
     return desc
 
@@ -90,7 +90,7 @@ def build_description(script, research, video_type: str = "normal"):
     tags = script.get("tags", [])
     if tags: tail.append(" ".join(f"#{t.replace(' ','')}" for t in tags[:8]))
     if is_shorts: tail.append("#Shorts #YouTubeShorts")
-    if getattr(config, "CREDIT_YAAS", True):
+    if getattr(config, "CREDIT_YAAS", False):
         tail.insert(0, CREDIT_LINE + "\n")
 
     credits = load_credits()

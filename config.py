@@ -54,6 +54,7 @@ _load_env()
 #  API Keys  (all free-tier — only Gemini is recommended; the rest are optional)
 # ─────────────────────────────────────────
 GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY",     "")   # aistudio.google.com/apikey
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "")   # unsplash.com/developers — stock images
 PEXELS_API_KEY     = os.getenv("PEXELS_API_KEY",     "")   # pexels.com/api
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")   # optional, unused by default
 
@@ -66,7 +67,7 @@ YOUTUBE_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "")   # UC… id or @handle
 
 # Settings the GUI stores in .env rather than in this file
 ENV_KEYS = [
-    "GEMINI_API_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY", "GROQ_API_KEY",
+    "GEMINI_API_KEY", "UNSPLASH_ACCESS_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY", "GROQ_API_KEY",
     "OPENROUTER_API_KEY", "YOUTUBE_API_KEY", "YOUTUBE_CHANNEL_ID",
 ]
 
@@ -79,12 +80,12 @@ FACT_GROUNDING = True
 # When Gemini has no key or runs out of quota: Groq → OpenRouter → Pollinations
 # (Pollinations is keyless, so the pipeline never dead-ends)
 KEYLESS_LLM_FALLBACK = True
-GROQ_MODEL           = "llama-3.3-70b-versatile"
-OPENROUTER_MODEL     = "meta-llama/llama-3.3-70b-instruct:free"
+GROQ_MODEL           = "openai/gpt-oss-120b"
+OPENROUTER_MODEL     = "openrouter/free"
 
-# Image sources tried after Pexels, in order:
-#   pixabay (key) · nasa (public domain, space topics) · openverse (CC) · pollinations (AI)
-IMAGE_SOURCES = ["pixabay", "nasa", "openverse", "pollinations"]
+# Image sources tried in order:
+#   unsplash (key) · pixabay (key) · nasa (public domain, space topics) · openverse (CC) · pollinations (AI)
+IMAGE_SOURCES = ["unsplash", "pixabay", "nasa", "openverse", "pollinations"]
 
 # Trend Radar — Google Trends region and arXiv fields to watch
 TRENDS_GEO       = "US"
@@ -105,15 +106,18 @@ CHANNEL_NAME = "My AI Channel"   # shown on-screen and in upload metadata
 
 # On-video branding: the "▶ CHANNEL NAME" tag in the hook and on Shorts,
 # plus the channel line on thumbnails. Leave BRAND_TEXT empty to use CHANNEL_NAME.
-SHOW_CHANNEL_BRAND = True
+SHOW_CHANNEL_BRAND = False
 BRAND_TEXT         = ""
 
 # Default thumbnail style: "impact" | "cinematic" | "split" | "studio"
 # (you can switch per video on the Review page)
 THUMB_STYLE        = "impact"
 
-# Adds "Made with YAAS by Raunak Patil · https://raunakpatil.com" to descriptions
-CREDIT_YAAS        = True
+# Adds "Made with YAAS" to descriptions
+CREDIT_YAAS        = False
+
+# Watermark burned into video frames (leave empty "" for no watermark)
+WATERMARK_TEXT     = ""
 
 
 def brand_text() -> str:
@@ -130,9 +134,10 @@ def brand_text() -> str:
 #    en-US-BrianNeural    — US, calm, documentary
 #    en-US-GuyNeural      — US, clear, neutral
 # ─────────────────────────────────────────
-VOICE_ID    = "en-US-AndrewNeural"
-VOICE_RATE  = "-5%"     # slow down slightly for narration feel
-VOICE_PITCH = "-3Hz"    # slightly deeper = more cinematic
+VOICE_ID           = "en-US-AndrewNeural"
+VOICE_RATE         = "-5%"     # slow down slightly for narration feel (normal videos)
+SHORTS_VOICE_RATE  = "+15%"    # energetic, punchy pacing for vertical Shorts
+VOICE_PITCH        = "-3Hz"    # slightly deeper = more cinematic
 
 # ─────────────────────────────────────────
 #  AI Model
@@ -146,7 +151,7 @@ VOICE_PITCH = "-3Hz"    # slightly deeper = more cinematic
 #    gemini-2.0-flash-lite   — fastest           (1500 req/day)
 #    gemini-1.5-flash-001    — reliable fallback (1500 req/day)
 # ─────────────────────────────────────────
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # ─────────────────────────────────────────
 #  Video Dimensions
@@ -155,10 +160,12 @@ VIDEO_WIDTH  = 1920
 VIDEO_HEIGHT = 1080
 VIDEO_FPS    = 24
 
-# YouTube Shorts dimensions (9:16 vertical)
-SHORTS_WIDTH  = 1080
-SHORTS_HEIGHT = 1920
-SHORTS_FPS    = 30
+# YouTube Shorts dimensions (9:16 vertical) and timing (20-30 seconds)
+SHORTS_WIDTH       = 1080
+SHORTS_HEIGHT      = 1920
+SHORTS_FPS         = 30
+SHORTS_TARGET_MIN  = 20.0
+SHORTS_TARGET_MAX  = 30.0
 
 # ─── Visual Style ───────────────────────
 # Ken Burns effect: how much to zoom/pan each image
@@ -243,8 +250,8 @@ IMAGES_DIR   = "output/images"
 # Settings the GUI may save. Secrets are never stored here; they go to .env.
 USER_SETTINGS = (
     "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
-    "THUMB_STYLE", "CREDIT_YAAS",
-    "VOICE_ID", "VOICE_RATE", "VOICE_PITCH",
+    "THUMB_STYLE", "CREDIT_YAAS", "WATERMARK_TEXT",
+    "VOICE_ID", "VOICE_RATE", "SHORTS_VOICE_RATE", "VOICE_PITCH",
     "GEMINI_MODEL", "GROQ_MODEL", "OPENROUTER_MODEL",
     "FACT_GROUNDING", "KEYLESS_LLM_FALLBACK", "IMAGE_SOURCES", "TRENDS_GEO",
     "MUSIC_ENABLED", "MUSIC_VOLUME",

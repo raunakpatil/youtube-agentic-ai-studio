@@ -11,9 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Every version the README promises. 3.13+ is unsupported until the
-        # numpy<2 / moviepy 1.x pins are lifted (no numpy<2 wheels for 3.13).
-        python-version: ["3.10", "3.11", "3.12"]
+        # Every supported Python version (3.10–3.14)
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

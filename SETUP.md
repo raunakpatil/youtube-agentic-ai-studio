@@ -8,11 +8,10 @@ Complete step-by-step instructions to get YAAS (youtube-agentic-ai-studio) runni
 
 ## Prerequisites
 
-- Python **3.10, 3.11 or 3.12** — [python.org/downloads](https://www.python.org/downloads/)
-  (3.13+ is not supported yet: the pinned `numpy<2` has no prebuilt wheels for it, so `pip install` tries to compile numpy and usually fails)
+- Python **3.10 through 3.14** — [python.org/downloads](https://www.python.org/downloads/)
 - `ffmpeg` installed and on your PATH (see [Step 1b](#1b-install-ffmpeg))
 - A Google account (for Gemini + YouTube)
-- A Pexels account (free image API)
+- An Unsplash or Pexels account (free image API)
 
 ---
 
@@ -43,20 +42,24 @@ Verify: `ffmpeg -version` should print version info.
 pip install -r requirements.txt
 ```
 
-> ⚠️ **Do not upgrade** `moviepy` or `numpy` — they are pinned intentionally. See [FAQ in README](README.md#-faq).
-
 ---
 
 ## Step 2 — Get your API keys
 
-### 2a. Google Gemini API Key (required — free)
+### 2a. Google Gemini API Key (recommended — free)
 
 1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 2. Sign in with your Google account
 3. Click **Create API Key**
 4. Copy the key
 
-### 2b. Pexels API Key (required — free)
+### 2b. Unsplash Access Key (free stock photos)
+
+1. Go to [unsplash.com/developers](https://unsplash.com/developers)
+2. Create a free account and register a new application
+3. Copy your **Access Key** and add it as `UNSPLASH_ACCESS_KEY` in Settings or `.env`
+
+### 2c. Pexels API Key (optional — free)
 
 1. Go to [pexels.com/api](https://www.pexels.com/api/)
 2. Create a free account and click **Your API Key**

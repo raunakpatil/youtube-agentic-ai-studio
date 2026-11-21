@@ -63,7 +63,15 @@ def _build_music_clip(tracks: list[str], target_duration: float):
     Returns a MoviePy AudioClip trimmed to exactly target_duration seconds.
     Raises RuntimeError if no tracks can be loaded.
     """
-    from moviepy.editor import AudioFileClip, concatenate_audioclips
+    try:
+        from moviepy import AudioFileClip, concatenate_audioclips
+    except ImportError:
+        from moviepy.editor import AudioFileClip, concatenate_audioclips
+
+    def _subclip(c, start, end=None):
+        if hasattr(c, "subclipped"):
+            return c.subclipped(start, end)
+        return c.subclip(start, end)
 
     segments   = []
     total_so_far = 0.0
@@ -86,7 +94,7 @@ def _build_music_clip(tracks: list[str], target_duration: float):
                 print(f"      + {os.path.basename(path)}  ({clip.duration:.1f}s)")
             else:
                 # This track alone covers the remainder — trim it
-                segments.append(clip.subclip(0, needed))
+                segments.append(_subclip(clip, 0, needed))
                 total_so_far += needed
                 print(f"      + {os.path.basename(path)}  (trimmed to {needed:.1f}s)")
                 break
@@ -109,7 +117,7 @@ def _build_music_clip(tracks: list[str], target_duration: float):
 
     music = concatenate_audioclips(segments)
     # Guarantee exact length (floating-point rounding can drift by a few ms)
-    return music.subclip(0, min(music.duration, target_duration))
+    return _subclip(music, 0, min(music.duration, target_duration))
 
 
 # ══════════════════════════════════════════════════════════════
@@ -136,7 +144,10 @@ def mix_music_with_narration(narration_path: str,
     pipeline always has a valid audio file to use).
     """
     import shutil
-    from moviepy.editor import AudioFileClip, CompositeAudioClip
+    try:
+        from moviepy import AudioFileClip, CompositeAudioClip
+    except ImportError:
+        from moviepy.editor import AudioFileClip, CompositeAudioClip
 
     # ── Load narration ───────────────────────────────────────
     narr          = AudioFileClip(narration_path)
@@ -163,15 +174,19 @@ def mix_music_with_narration(narration_path: str,
     # ── Apply volume + fades ─────────────────────────────────
     fade_in  = min(3.0, target_dur * 0.05)
     fade_out = min(4.0, target_dur * 0.08)
-    music    = (music
-                .volumex(music_volume)
-                .audio_fadein(fade_in)
-                .audio_fadeout(fade_out))
+    try:
+        from moviepy.audio.fx import AudioFadeIn, AudioFadeOut, MultiplyVolume
+        music = music.with_effects([MultiplyVolume(music_volume), AudioFadeIn(fade_in), AudioFadeOut(fade_out)])
+    except (ImportError, AttributeError):
+        music = (music
+                 .volumex(music_volume)
+                 .audio_fadein(fade_in)
+                 .audio_fadeout(fade_out))
 
     # ── Composite and write ──────────────────────────────────
     try:
         CompositeAudioClip([narr, music]).write_audiofile(
-            output_path, fps=44100, verbose=False, logger=None,
+            output_path, fps=44100, logger=None,
         )
         narr.close()
         music.close()
