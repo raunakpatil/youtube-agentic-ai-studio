@@ -106,15 +106,18 @@ CHANNEL_NAME = "My AI Channel"   # shown on-screen and in upload metadata
 
 # On-video branding: the "▶ CHANNEL NAME" tag in the hook and on Shorts,
 # plus the channel line on thumbnails. Leave BRAND_TEXT empty to use CHANNEL_NAME.
-SHOW_CHANNEL_BRAND = True
+SHOW_CHANNEL_BRAND = False
 BRAND_TEXT         = ""
 
 # Default thumbnail style: "impact" | "cinematic" | "split" | "studio"
 # (you can switch per video on the Review page)
 THUMB_STYLE        = "impact"
 
-# Adds "Made with YAAS by Raunak Patil · https://raunakpatil.com" to descriptions
-CREDIT_YAAS        = True
+# Adds "Made with YAAS" to descriptions
+CREDIT_YAAS        = False
+
+# Watermark burned into video frames (leave empty "" for no watermark)
+WATERMARK_TEXT     = ""
 
 
 def brand_text() -> str:
@@ -147,7 +150,7 @@ VOICE_PITCH = "-3Hz"    # slightly deeper = more cinematic
 #    gemini-2.0-flash-lite   — fastest           (1500 req/day)
 #    gemini-1.5-flash-001    — reliable fallback (1500 req/day)
 # ─────────────────────────────────────────
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # ─────────────────────────────────────────
 #  Video Dimensions
@@ -156,10 +159,12 @@ VIDEO_WIDTH  = 1920
 VIDEO_HEIGHT = 1080
 VIDEO_FPS    = 24
 
-# YouTube Shorts dimensions (9:16 vertical)
-SHORTS_WIDTH  = 1080
-SHORTS_HEIGHT = 1920
-SHORTS_FPS    = 30
+# YouTube Shorts dimensions (9:16 vertical) and timing (20-30 seconds)
+SHORTS_WIDTH       = 1080
+SHORTS_HEIGHT      = 1920
+SHORTS_FPS         = 30
+SHORTS_TARGET_MIN  = 20.0
+SHORTS_TARGET_MAX  = 30.0
 
 # ─── Visual Style ───────────────────────
 # Ken Burns effect: how much to zoom/pan each image
@@ -244,7 +249,7 @@ IMAGES_DIR   = "output/images"
 # Settings the GUI may save. Secrets are never stored here; they go to .env.
 USER_SETTINGS = (
     "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
-    "THUMB_STYLE", "CREDIT_YAAS",
+    "THUMB_STYLE", "CREDIT_YAAS", "WATERMARK_TEXT",
     "VOICE_ID", "VOICE_RATE", "VOICE_PITCH",
     "GEMINI_MODEL", "GROQ_MODEL", "OPENROUTER_MODEL",
     "FACT_GROUNDING", "KEYLESS_LLM_FALLBACK", "IMAGE_SOURCES", "TRENDS_GEO",

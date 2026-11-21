@@ -30,6 +30,7 @@ _SETTINGS = {
     "show_brand":       ("SHOW_CHANNEL_BRAND", bool),
     "thumb_style":      ("THUMB_STYLE",        str),
     "brand_text":       ("BRAND_TEXT",         str),
+    "watermark_text":   ("WATERMARK_TEXT",     str),
     "voice_id":         ("VOICE_ID",           str),
     "voice_rate":       ("VOICE_RATE",         str),
     "voice_pitch":      ("VOICE_PITCH",        str),

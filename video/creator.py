@@ -611,10 +611,11 @@ def _zoom_pulse(base: np.ndarray, img_t: float, img_index: int = 0) -> np.ndarra
     return np.array(Image.fromarray(cropped).resize((W, H), Image.LANCZOS), dtype=np.uint8)
 
 
-def _draw_shorts_caption(frame_img: Image.Image, text: str) -> Image.Image:
+def _draw_shorts_caption(frame_img: Image.Image, text: str, is_twist: bool = False) -> Image.Image:
     """
     Burnt-in caption bar: bold text centred in the lower third,
     on a semi-transparent dark pill background.
+    When is_twist=True, subtitles render with an electric gold accent color.
 
     FIX: All compositing is done in RGBA throughout; a single .convert("RGB")
     happens at the very end — removes the redundant double-conversion from
@@ -635,6 +636,7 @@ def _draw_shorts_caption(frame_img: Image.Image, text: str) -> Image.Image:
     line_h  = CAP_FONT_SIZE + 12
     block_y = int(H * 0.72)     # sit in lower quarter of 9:16 frame
     pad     = 20
+    fg_col  = (255, 218, 50) if is_twist else CAP_FG
 
     # Build pill-background overlay
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -660,7 +662,7 @@ def _draw_shorts_caption(frame_img: Image.Image, text: str) -> Image.Image:
         lx   = (W - lw) // 2
         ly   = block_y + i * line_h
         _shadow_text(draw2, (lx, ly), line, font,
-                     fill=CAP_FG, shadow_color=(0, 0, 0), shadow_offset=4)
+                     fill=fg_col, shadow_color=(0, 0, 0), shadow_offset=4)
 
     # Single conversion to RGB at the very end
     return composited.convert("RGB")
@@ -675,67 +677,78 @@ def _get_caption_at(captions: list, t_global: float) -> str:
 
 
 def _build_shorts_clip(all_images: list, total_duration: float,
-                       captions: list) -> VideoClip:
+                       captions: list, section_acts: list = None) -> VideoClip:
     """
-    Builds the full Shorts video as one VideoClip with smooth crossfades
-    between images instead of hard cuts.
-
-    How crossfading works inside a single VideoClip make_frame():
-      Each image occupies a slot of SHORTS_IMG_DURATION seconds.
-      During the last CROSSFADE_DURATION seconds of a slot, we linearly
-      blend the current image (zoomed) with the next image (zoomed from t=0)
-      using alpha = (img_t - crossfade_start) / CROSSFADE_DURATION.
-      This is equivalent to what moviepy's crossfadein/crossfadeout do,
-      but computed inline so we stay in a single VideoClip (much faster
-      to render than concatenating dozens of small clips with transitions).
+    Builds the full Shorts video as one VideoClip with smooth crossfades,
+    structured according to the Hook → Story → Twist viral format.
     """
     n_imgs    = len(all_images) if all_images else 0
     xfade_dur = float(getattr(config, "CROSSFADE_DURATION", 0.7))
-    # Clamp so fade never exceeds half the image slot (avoids triple-blend)
-    xfade_dur = min(xfade_dur, SHORTS_IMG_DURATION * 0.45)
 
     def make_frame(t):
-        # ── Which image slot are we in? ──────────────────────
-        if n_imgs > 0:
-            slot      = t / SHORTS_IMG_DURATION          # float slot index
-            cur_idx   = int(slot) % n_imgs
-            img_t     = t % SHORTS_IMG_DURATION          # time within slot
+        # ── Determine active act (Hook, Story, Twist) ────────
+        current_act = None
+        is_twist    = False
+        if section_acts:
+            for act in section_acts:
+                if act["start"] <= t < act["end"]:
+                    current_act = act
+                    break
+            if not current_act and section_acts:
+                current_act = section_acts[-1]
+            if current_act and current_act.get("type") == "twist":
+                is_twist = True
 
-            # Ken Burns uses time since this image's slot START (global anchor).
-            # This keeps zoom continuous across the slot boundary — the incoming
-            # image's zoom progresses from wherever the xfade left off, so there
-            # is no snap back to scale=1.0 on the first frame of the new slot.
-            cur_slot_start = int(slot) * SHORTS_IMG_DURATION
-            cur_kb_t  = t - cur_slot_start               # same as img_t, 0-based
+        # Prioritize images designated for the current act
+        act_imgs    = current_act.get("images") if current_act else None
+        active_imgs = act_imgs if act_imgs else all_images
 
-            # Render current image with Ken Burns anchored to slot start
-            cur_frame = _zoom_pulse(all_images[cur_idx], cur_kb_t, cur_idx)
+        if active_imgs:
+            n_active = len(active_imgs)
+            if current_act and act_imgs:
+                act_start = current_act["start"]
+                act_dur   = max(0.1, current_act["end"] - act_start)
+                t_in_act  = max(0.0, t - act_start)
+                # Pacing: Hook is punchy (1.8s), Twist is fast (1.9s), Story is cinematic (2.4s)
+                base_slot = 1.8 if current_act.get("type") == "hook" else (1.9 if is_twist else SHORTS_IMG_DURATION)
+                slot_dur  = max(1.2, min(base_slot, act_dur / max(1, n_active)))
+                slot      = t_in_act / slot_dur
+                cur_idx   = int(slot) % n_active
+                img_t     = t_in_act % slot_dur
+                cur_slot_start = int(slot) * slot_dur
+                cur_kb_t  = t_in_act - cur_slot_start
+            else:
+                slot_dur  = SHORTS_IMG_DURATION
+                slot      = t / slot_dur
+                cur_idx   = int(slot) % n_active
+                img_t     = t % slot_dur
+                cur_slot_start = int(slot) * slot_dur
+                cur_kb_t  = t - cur_slot_start
+
+            cur_frame = _zoom_pulse(active_imgs[cur_idx], cur_kb_t, cur_idx)
             cur_frame = _apply_overlay(cur_frame, opacity=0.45)
             cur_frame = _apply_vignette(cur_frame)
 
+            # Twist entrance: subtle contrast flash in first 0.35s of twist
+            if is_twist and current_act and (t - current_act["start"]) < 0.35:
+                flash = (0.35 - (t - current_act["start"])) / 0.35
+                cur_frame = np.clip(cur_frame.astype(np.float32) + 35.0 * flash, 0, 255).astype(np.uint8)
+
             # ── Crossfade zone: blend into next image ────────
-            xfade_start = SHORTS_IMG_DURATION - xfade_dur
-            if img_t >= xfade_start and n_imgs > 1:
-                # alpha: 0.0 at xfade_start → 1.0 at end of slot
-                raw_alpha = (img_t - xfade_start) / xfade_dur
-                # Smoothstep for a more cinematic S-curve blend
-                alpha = raw_alpha * raw_alpha * (3.0 - 2.0 * raw_alpha)
-
-                next_idx      = (cur_idx + 1) % n_imgs
-                next_slot_start = (int(slot) + 1) * SHORTS_IMG_DURATION
-                # next image's Ken Burns time: how far past its slot start are we?
-                # At xfade_start this is negative (pre-roll), clamp to 0.
-                # This means the next image's zoom starts gently before its slot
-                # begins, so by the time alpha=1 its zoom matches where it will
-                # be at t=0 of its own slot — zero discontinuity.
-                next_kb_t = max(0.0, t - next_slot_start)
-                nxt_frame = _zoom_pulse(all_images[next_idx], next_kb_t, next_idx)
-                nxt_frame  = _apply_overlay(nxt_frame, opacity=0.45)
-                nxt_frame  = _apply_vignette(nxt_frame)
-
-                # Blend
-                frame_np = (cur_frame.astype(np.float32) * (1.0 - alpha) +
-                            nxt_frame.astype(np.float32) * alpha).astype(np.uint8)
+            cur_xfade   = min(xfade_dur, slot_dur * 0.45)
+            xfade_start = slot_dur - cur_xfade
+            if img_t >= xfade_start and n_active > 1:
+                raw_alpha = (img_t - xfade_start) / cur_xfade
+                alpha     = raw_alpha * raw_alpha * (3.0 - 2.0 * raw_alpha)
+                next_idx  = (cur_idx + 1) % n_active
+                next_slot_start = (int(slot) + 1) * slot_dur
+                t_rel     = (t - current_act["start"]) if (current_act and act_imgs) else t
+                next_kb_t = max(0.0, t_rel - next_slot_start)
+                nxt_frame = _zoom_pulse(active_imgs[next_idx], next_kb_t, next_idx)
+                nxt_frame = _apply_overlay(nxt_frame, opacity=0.45)
+                nxt_frame = _apply_vignette(nxt_frame)
+                frame_np  = (cur_frame.astype(np.float32) * (1.0 - alpha) +
+                             nxt_frame.astype(np.float32) * alpha).astype(np.uint8)
             else:
                 frame_np = cur_frame
         else:
@@ -743,21 +756,19 @@ def _build_shorts_clip(all_images: list, total_duration: float,
 
         frame = Image.fromarray(frame_np)
 
-        # ── Captions ─────────────────────────────────────────
+        # ── Captions (with electric gold highlight for twist) ─
         cap_text = _get_caption_at(captions, t)
-        frame    = _draw_shorts_caption(frame, cap_text)
+        frame    = _draw_shorts_caption(frame, cap_text, is_twist=is_twist)
 
         # ── Top brand strip ───────────────────────────────────
-        draw       = ImageDraw.Draw(frame)
         if config.brand_text():
+            draw       = ImageDraw.Draw(frame)
             font_brand = _load_font("bold", 30)
             brand      = f"▶ {config.brand_text().upper()}"
             bbox       = draw.textbbox((0, 0), brand, font=font_brand)
             bw         = bbox[2] - bbox[0]
             draw.text(((W - bw) // 2, 50), brand, font=font_brand,
                       fill=(255, 255, 255, 160))
-
-        # NOTE: Flash cut indicator removed — crossfades replace hard cuts.
 
         return np.array(frame)
 
@@ -770,32 +781,42 @@ def _build_shorts_clip(all_images: list, total_duration: float,
 # ══════════════════════════════════════════════════════════════
 
 # ══════════════════════════════════════════════════════════════
-#  WATERMARK — burned into every frame of every video.
-#  Deliberately not a setting: YAAS credits its author on all output.
+#  WATERMARK — optional burnt-in label on output frames.
+#  Defaults to empty (no watermark). Set config.WATERMARK_TEXT to enable.
 # ══════════════════════════════════════════════════════════════
 
-WATERMARK_TEXT    = "raunakpatil.com"
-WATERMARK_OPACITY = 0.55
+WATERMARK_TEXT    = getattr(config, "WATERMARK_TEXT", "")
+WATERMARK_OPACITY = float(getattr(config, "WATERMARK_OPACITY", 0.55))
 
 
-def _watermark_patch(w: int, h: int):
+def _watermark_patch(w: int, h: int, text: str = None):
     """Pre-rendered watermark: (x, y, rgb float array, alpha float array)."""
     from video import fonts
+    if text is not None:
+        wm_text = text
+    elif WATERMARK_TEXT:
+        wm_text = WATERMARK_TEXT
+    else:
+        wm_text = getattr(config, "WATERMARK_TEXT", "")
+    wm_text = (wm_text or "").strip()
+    if not wm_text:
+        return 0, 0, np.zeros((1, 1, 3), dtype=np.float32), np.zeros((1, 1, 1), dtype=np.float32)
+
     portrait = h > w
     size = max(18, int((h * 0.017) if portrait else (h * 0.024)))
     font = fonts.get("inter", size, 600)
     pad = size // 2
-    tw = int(font.getlength(WATERMARK_TEXT))
+    tw = int(font.getlength(wm_text))
     pw, ph = tw + pad * 2, int(size * 1.5) + pad
     patch = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
     d = ImageDraw.Draw(patch)
     # soft dark halo keeps it legible on bright footage
     halo = Image.new("L", (pw, ph), 0)
-    ImageDraw.Draw(halo).text((pad, pad // 2), WATERMARK_TEXT, font=font, fill=255,
+    ImageDraw.Draw(halo).text((pad, pad // 2), wm_text, font=font, fill=255,
                               stroke_width=max(2, size // 8), stroke_fill=255)
     halo = halo.filter(ImageFilter.GaussianBlur(max(2, size // 6)))
     patch.paste((0, 0, 0, 255), (0, 0), halo.point(lambda v: int(v * .55)))
-    d.text((pad, pad // 2), WATERMARK_TEXT, font=font, fill=(255, 255, 255, 255))
+    d.text((pad, pad // 2), wm_text, font=font, fill=(255, 255, 255, 255))
 
     arr = np.asarray(patch, dtype=np.float32) / 255.0
     rgb, alpha = arr[..., :3] * 255.0, arr[..., 3:4] * WATERMARK_OPACITY
@@ -806,8 +827,18 @@ def _watermark_patch(w: int, h: int):
     return x, y, rgb, alpha
 
 
-def _apply_watermark(clip, w: int, h: int):
-    x, y, rgb, alpha = _watermark_patch(w, h)
+def _apply_watermark(clip, w: int, h: int, text: str = None):
+    if text is not None:
+        wm_text = text
+    elif WATERMARK_TEXT:
+        wm_text = WATERMARK_TEXT
+    else:
+        wm_text = getattr(config, "WATERMARK_TEXT", "")
+    wm_text = (wm_text or "").strip()
+    if not wm_text:
+        return clip
+
+    x, y, rgb, alpha = _watermark_patch(w, h, text=wm_text)
     ph, pw = alpha.shape[:2]
 
     def stamp(frame):
@@ -816,7 +847,7 @@ def _apply_watermark(clip, w: int, h: int):
         out[y:y + ph, x:x + pw] = (region * (1 - alpha) + rgb * alpha).astype(np.uint8)
         return out
 
-    print(f"   → Watermark: {WATERMARK_TEXT}")
+    print(f"   → Watermark: {wm_text}")
     if hasattr(clip, "image_transform"):
         return clip.image_transform(stamp)
     elif hasattr(clip, "fl_image"):
@@ -852,19 +883,62 @@ def create_video(script: dict, audio_path: str, output_dir: str,
 
     # ── SHORTS PATH ────────────────────────────────────────────
     if is_shorts:
-        print(f"\n   Building Shorts ({W}×{H}, {FPS} fps) …")
+        print(f"\n   Building Shorts ({W}×{H}, {FPS} fps) — Hook → Story → Twist …")
 
-        # Flatten all section image lists into one ordered list
+        # Attach audio first to know true duration and enforce 20-30s bounds
+        audio      = AudioFileClip(audio_path)
+        total_dur  = audio.duration
+        max_shorts = float(getattr(config, "SHORTS_TARGET_MAX", 30.0))
+        if total_dur > max_shorts:
+            print(f"   ⚠ Audio duration ({total_dur:.1f}s) exceeds {max_shorts:.0f}s limit for Shorts — capping to {max_shorts:.1f}s")
+            audio = _clip_subclip(audio, 0, max_shorts)
+            total_dur = max_shorts
+        print(f"   → Audio duration: {total_dur:.1f}s")
+
+        # Structure sections into Hook → Story → Twist acts
+        sections = script.get("sections", [])
+        total_target_sec = sum(max(1.0, float(s.get("duration_seconds", 10.0))) for s in sections)
+        if total_target_sec <= 0:
+            total_target_sec = total_dur
+
+        section_acts = []
         all_images = []
-        for section in script["sections"]:
-            sid   = section["id"]
+        current_t = 0.0
+        for i, section in enumerate(sections):
+            sid   = section.get("id", i + 1)
+            stype = str(section.get("section_type", "")).lower()
+            if not stype:
+                stype = "hook" if i == 0 else ("twist" if i == len(sections) - 1 else "story")
+
+            raw_target = max(1.0, float(section.get("duration_seconds", 10.0)))
+            act_dur = (raw_target / total_target_sec) * total_dur
+            act_start = current_t
+            act_end = current_t + act_dur if i < len(sections) - 1 else total_dur
+            current_t = act_end
+
             paths = (image_map or {}).get(sid, [])
             if isinstance(paths, str):
-                paths = [paths]   # handle single-path fallback
+                paths = [paths]
+            act_imgs = []
             for p in paths:
                 arr = _load_bg_image(p)
                 if arr is not None:
+                    act_imgs.append(arr)
                     all_images.append(arr)
+
+            section_acts.append({
+                "id": sid,
+                "type": stype,
+                "title": section.get("title", ""),
+                "start": act_start,
+                "end": act_end,
+                "duration": act_end - act_start,
+                "images": act_imgs,
+            })
+
+        print(f"   → Structured acts (Hook → Story → Twist):")
+        for act in section_acts:
+            print(f"      • {act['type'].upper():<6} [{act['start']:.1f}s → {act['end']:.1f}s]: {len(act['images'])} images")
 
         if not all_images:
             print("   ⚠ No images loaded — using animated gradient")
@@ -874,23 +948,12 @@ def create_video(script: dict, audio_path: str, output_dir: str,
         captions = _parse_srt(srt_path)
         if captions:
             print(f"   → {len(captions)} caption cues loaded  ✓")
-            # Sanity check: do timecodes fit within likely audio duration?
             last_end = max(c["end"] for c in captions)
             print(f"   → Caption range: 0.0s → {last_end:.1f}s")
         else:
             print("   ⚠ 0 caption cues — Shorts will render WITHOUT captions.")
-            print("      To fix: delete narration.mp3 + narration.srt and re-run")
-            print("      the Narration step, then re-run Video.")
 
-        print(f"   → {len(all_images)} images → "
-              f"~{len(all_images) * SHORTS_IMG_DURATION:.0f}s slideshow material")
-
-        # Attach audio first to know true duration
-        audio      = AudioFileClip(audio_path)
-        total_dur  = audio.duration
-        print(f"   → Audio duration: {total_dur:.1f}s")
-
-        final = _build_shorts_clip(all_images, total_dur, captions)
+        final = _build_shorts_clip(all_images, total_dur, captions, section_acts=section_acts)
         final = _clip_with_audio(final, audio)
 
         output_path = os.path.join(output_dir, "final_short.mp4")

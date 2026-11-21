@@ -14,7 +14,7 @@ except ImportError:
 
 
 def test_watermark_patch_generation():
-    x, y, rgb, alpha = _watermark_patch(1280, 720)
+    x, y, rgb, alpha = _watermark_patch(1280, 720, text="sample")
     assert rgb.shape[2] == 3
     assert alpha.shape[2] == 1
     assert 0 <= x < 1280
@@ -26,7 +26,7 @@ def test_video_clip_watermark_and_export():
         return np.zeros((240, 320, 3), dtype=np.uint8)
 
     clip = VideoClip(make_frame, duration=0.5)
-    clip_wm = _apply_watermark(clip, 320, 240)
+    clip_wm = _apply_watermark(clip, 320, 240, text="sample")
     frame = clip_wm.get_frame(0)
     assert frame.shape == (240, 320, 3)
 

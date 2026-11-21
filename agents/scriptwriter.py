@@ -21,7 +21,7 @@ def _facts_block(research: dict, limit: int = 4000) -> str:
 def write_script(research: dict, video_type: str = "normal") -> dict:
     """
     Generates a narrated script for a YouTube video or YouTube Short.
-    video_type: "normal" (6-8 min, 9 sections) | "shorts" (50-60 sec, 3 sections)
+    video_type: "normal" (6-8 min, 9 sections) | "shorts" (20-30 sec, 3 sections: Hook → Story → Twist)
     Returns structured JSON with sections, each containing narration + image_query.
     """
     if video_type == "shorts":
@@ -191,11 +191,11 @@ IMPORTANT:
 
 def _write_shorts_script(research: dict) -> dict:
     """
-    Generates a tight 50-60 second YouTube Shorts script (3 sections, vertical format).
+    Generates a tight 20-30 second YouTube Shorts script following the Hook → Story → Twist format (3 sections, vertical format).
     """
     key_points_str = "\n".join(f"  {i+1}. {p}" for i, p in enumerate(research["key_points"][:3]))
 
-    prompt = f"""You are a viral YouTube Shorts scriptwriter. You write punchy, addictive 50-60 second vertical videos.
+    prompt = f"""You are an elite viral YouTube Shorts scriptwriter. You write punchy, addictive 20-30 second vertical videos following the proven 3-act viral formula: Hook → Story → Twist.
 
 Video topic: {research["topic"]}
 Title: {research["video_title"]}
@@ -203,14 +203,20 @@ Hook question: {research.get("hook_question", "")}
 Key points:
 {key_points_str}
 {_facts_block(research, 2000)}
-Write a GRIPPING 50-60 second Shorts script. Rules:
-- Hooks in the FIRST 3 words — no slow intros
-- Short, punchy sentences. Every second counts.
-- Vertical video style: one idea per second
-- End with a cliffhanger or question that forces them to follow/subscribe
-- 3 sections ONLY: hook (10-12s), revelation (30-35s), cta (8-10s)
-- Total narration must be 120-160 words maximum
-- NEVER name the section in the title field — title is INTERNAL only, not shown on screen
+Write a GRIPPING 20-30 second Shorts script strictly adhering to Hook → Story → Twist:
+1. HOOK (Act 1: 4-6 seconds, ~10-14 words):
+   - Hook in the FIRST 3 WORDS. Stop the scroll dead with a high-stakes paradox, jarring statement, or shocking question. Zero greetings.
+2. STORY (Act 2: 10-14 seconds, ~25-35 words):
+   - Rapid narrative buildup. Establish the context, progression, or what everyone assumes happened. Concrete, high-speed storytelling without fluff.
+3. TWIST (Act 3: 6-10 seconds, ~15-20 words):
+   - The unexpected reversal, shocking revelation, or counterintuitive twist that flips the entire story upside down.
+   - End with a sharp cliffhanger or 1-line CTA ("Follow for more", "Comment your theory").
+
+Rules:
+- 3 sections ONLY: Hook (id: 1, section_type: "hook"), Story (id: 2, section_type: "story"), Twist (id: 3, section_type: "twist")
+- Section types MUST be exactly: "hook", "story", "twist"
+- Total narration across ALL 3 sections must be 50-70 words maximum (STRICTLY 20-30 seconds spoken audio)
+- NEVER put "Hook", "Story", or "Twist" in the title field — title is INTERNAL only, not shown on screen
 
 Respond with ONLY a valid JSON object. No markdown fences, no extra text:
 
@@ -223,51 +229,52 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "id": 1,
       "section_type": "hook",
       "title": "hook_internal",
-      "narration": "Open with a jaw-dropping 1-sentence statement. Then the question. 2-3 punchy sentences MAX. About 30-35 words.",
+      "narration": "Open with an irresistible paradox or question in the first 3 words. 1-2 punchy sentences MAX. About 10-14 words.",
       "image_query": "dramatic space cosmos universe dark",
       "image_query_2": "explosion supernova nebula vivid",
       "image_query_3": "earth from space satellite view",
       "image_query_4": "black hole gravitational waves",
       "bullet_points": [],
       "caption_text": "",
-      "duration_seconds": 12
+      "duration_seconds": 5
     }},
     {{
       "id": 2,
-      "section_type": "content",
-      "title": "content_internal",
-      "narration": "The core mind-blowing fact, explained in 3-4 punchy sentences. No fluff. Drive home the ONE key insight. About 80-90 words.",
+      "section_type": "story",
+      "title": "story_internal",
+      "narration": "The rapid story setup and buildup. What happened or what everyone believed, told in 2-3 fast sentences. About 25-35 words.",
       "image_query": "relevant scientific dramatic image cinematic",
       "image_query_2": "laboratory science experiment glowing",
       "image_query_3": "futuristic technology neon abstract",
       "image_query_4": "human brain neuron synapse close up",
       "bullet_points": [],
       "caption_text": "",
-      "duration_seconds": 35
+      "duration_seconds": 13
     }},
     {{
       "id": 3,
-      "section_type": "cta",
-      "title": "cta_internal",
-      "narration": "Drop one final mind-bending teaser, then tell them to follow for more facts that break their brain. 15-20 words.",
+      "section_type": "twist",
+      "title": "twist_internal",
+      "narration": "The mind-bending twist that flips the story upside down, followed by a punchy 1-line teaser to follow. About 15-20 words.",
       "image_query": "stars infinite cosmos night sky milky way",
       "image_query_2": "galaxy spiral arms nebula purple",
       "image_query_3": "universe deep field stars",
       "image_query_4": "space telescope distant galaxies",
       "bullet_points": [],
       "caption_text": "",
-      "duration_seconds": 10
+      "duration_seconds": 8
     }}
   ]
 }}
 
 IMPORTANT:
-- Total narration across ALL sections: 120-160 words maximum
+- Total narration across ALL sections: 50-70 words maximum (STRICTLY 20-30 seconds total)
+- Must follow the Hook → Story → Twist narrative structure
 - Each section narration must be complete, broadcast-ready sentences
-- image_query and image_query_2/3/4 must all be DIFFERENT specific Pexels visual search strings
+- image_query and image_query_2/3/4 must all be DIFFERENT specific visual search strings
 - title fields are INTERNAL labels only — they are never shown on screen"""
 
-    print("   → Writing Shorts script…")
+    print("   → Writing Shorts script (Hook → Story → Twist)…")
     script = extract_json(generate(prompt), "Shorts scriptwriter")
 
     if "sections" not in script or len(script["sections"]) < 2:
