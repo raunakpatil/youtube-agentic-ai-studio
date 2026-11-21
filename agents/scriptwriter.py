@@ -203,19 +203,19 @@ Hook question: {research.get("hook_question", "")}
 Key points:
 {key_points_str}
 {_facts_block(research, 2000)}
-Write a GRIPPING 20-30 second Shorts script strictly adhering to Hook → Story → Twist:
-1. HOOK (Act 1: 4-6 seconds, ~10-14 words):
+Write a GRIPPING 20-25 second Shorts script strictly adhering to Hook → Story → Twist:
+1. HOOK (Act 1: 3-5 seconds, 8-11 words):
    - Hook in the FIRST 3 WORDS. Stop the scroll dead with a high-stakes paradox, jarring statement, or shocking question. Zero greetings.
-2. STORY (Act 2: 10-14 seconds, ~25-35 words):
+2. STORY (Act 2: 9-12 seconds, 18-24 words):
    - Rapid narrative buildup. Establish the context, progression, or what everyone assumes happened. Concrete, high-speed storytelling without fluff.
-3. TWIST (Act 3: 6-10 seconds, ~15-20 words):
+3. TWIST (Act 3: 5-7 seconds, 12-15 words):
    - The unexpected reversal, shocking revelation, or counterintuitive twist that flips the entire story upside down.
    - End with a sharp cliffhanger or 1-line CTA ("Follow for more", "Comment your theory").
 
 Rules:
 - 3 sections ONLY: Hook (id: 1, section_type: "hook"), Story (id: 2, section_type: "story"), Twist (id: 3, section_type: "twist")
 - Section types MUST be exactly: "hook", "story", "twist"
-- Total narration across ALL 3 sections must be 50-70 words maximum (STRICTLY 20-30 seconds spoken audio)
+- Total narration across ALL 3 sections must be 40-50 words maximum (STRICTLY 20-25 seconds spoken audio to prevent time exhaustion)
 - NEVER put "Hook", "Story", or "Twist" in the title field — title is INTERNAL only, not shown on screen
 
 Respond with ONLY a valid JSON object. No markdown fences, no extra text:
@@ -229,46 +229,46 @@ Respond with ONLY a valid JSON object. No markdown fences, no extra text:
       "id": 1,
       "section_type": "hook",
       "title": "hook_internal",
-      "narration": "Open with an irresistible paradox or question in the first 3 words. 1-2 punchy sentences MAX. About 10-14 words.",
+      "narration": "Open with an irresistible paradox or question in the first 3 words. 1 punchy sentence. About 8-10 words.",
       "image_query": "dramatic space cosmos universe dark",
       "image_query_2": "explosion supernova nebula vivid",
       "image_query_3": "earth from space satellite view",
       "image_query_4": "black hole gravitational waves",
       "bullet_points": [],
       "caption_text": "",
-      "duration_seconds": 5
+      "duration_seconds": 4
     }},
     {{
       "id": 2,
       "section_type": "story",
       "title": "story_internal",
-      "narration": "The rapid story setup and buildup. What happened or what everyone believed, told in 2-3 fast sentences. About 25-35 words.",
+      "narration": "The rapid story setup and buildup. What happened or what everyone believed, in 2 fast sentences. About 20-24 words.",
       "image_query": "relevant scientific dramatic image cinematic",
       "image_query_2": "laboratory science experiment glowing",
       "image_query_3": "futuristic technology neon abstract",
       "image_query_4": "human brain neuron synapse close up",
       "bullet_points": [],
       "caption_text": "",
-      "duration_seconds": 13
+      "duration_seconds": 12
     }},
     {{
       "id": 3,
       "section_type": "twist",
       "title": "twist_internal",
-      "narration": "The mind-bending twist that flips the story upside down, followed by a punchy 1-line teaser to follow. About 15-20 words.",
+      "narration": "The mind-bending twist that flips the story upside down, followed by a punchy 1-line teaser to follow. About 12-15 words.",
       "image_query": "stars infinite cosmos night sky milky way",
       "image_query_2": "galaxy spiral arms nebula purple",
       "image_query_3": "universe deep field stars",
       "image_query_4": "space telescope distant galaxies",
       "bullet_points": [],
       "caption_text": "",
-      "duration_seconds": 8
+      "duration_seconds": 6
     }}
   ]
 }}
 
 IMPORTANT:
-- Total narration across ALL sections: 50-70 words maximum (STRICTLY 20-30 seconds total)
+- Total narration across ALL sections: 40-50 words maximum (STRICTLY 20-25 seconds total)
 - Must follow the Hook → Story → Twist narrative structure
 - Each section narration must be complete, broadcast-ready sentences
 - image_query and image_query_2/3/4 must all be DIFFERENT specific visual search strings

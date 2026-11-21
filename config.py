@@ -80,8 +80,8 @@ FACT_GROUNDING = True
 # When Gemini has no key or runs out of quota: Groq → OpenRouter → Pollinations
 # (Pollinations is keyless, so the pipeline never dead-ends)
 KEYLESS_LLM_FALLBACK = True
-GROQ_MODEL           = "llama-3.3-70b-versatile"
-OPENROUTER_MODEL     = "meta-llama/llama-3.3-70b-instruct:free"
+GROQ_MODEL           = "openai/gpt-oss-120b"
+OPENROUTER_MODEL     = "openrouter/free"
 
 # Image sources tried in order:
 #   unsplash (key) · pixabay (key) · nasa (public domain, space topics) · openverse (CC) · pollinations (AI)
@@ -134,9 +134,10 @@ def brand_text() -> str:
 #    en-US-BrianNeural    — US, calm, documentary
 #    en-US-GuyNeural      — US, clear, neutral
 # ─────────────────────────────────────────
-VOICE_ID    = "en-US-AndrewNeural"
-VOICE_RATE  = "-5%"     # slow down slightly for narration feel
-VOICE_PITCH = "-3Hz"    # slightly deeper = more cinematic
+VOICE_ID           = "en-US-AndrewNeural"
+VOICE_RATE         = "-5%"     # slow down slightly for narration feel (normal videos)
+SHORTS_VOICE_RATE  = "+15%"    # energetic, punchy pacing for vertical Shorts
+VOICE_PITCH        = "-3Hz"    # slightly deeper = more cinematic
 
 # ─────────────────────────────────────────
 #  AI Model
@@ -250,7 +251,7 @@ IMAGES_DIR   = "output/images"
 USER_SETTINGS = (
     "CHANNEL_NAME", "CHANNEL_DESCRIPTION", "SHOW_CHANNEL_BRAND", "BRAND_TEXT",
     "THUMB_STYLE", "CREDIT_YAAS", "WATERMARK_TEXT",
-    "VOICE_ID", "VOICE_RATE", "VOICE_PITCH",
+    "VOICE_ID", "VOICE_RATE", "SHORTS_VOICE_RATE", "VOICE_PITCH",
     "GEMINI_MODEL", "GROQ_MODEL", "OPENROUTER_MODEL",
     "FACT_GROUNDING", "KEYLESS_LLM_FALLBACK", "IMAGE_SOURCES", "TRENDS_GEO",
     "MUSIC_ENABLED", "MUSIC_VOLUME",

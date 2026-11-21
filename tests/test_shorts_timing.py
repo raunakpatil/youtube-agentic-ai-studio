@@ -62,9 +62,9 @@ def test_shorts_scriptwriter_prompt_specifies_20_30_seconds():
     assert len(captured_prompt) == 1
     prompt_text = captured_prompt[0]
 
-    # Verify prompt instructs 20-30 seconds, 50-70 words, and Hook → Story → Twist
+    # Verify prompt instructs 20-30 seconds, 40-50 words, and Hook → Story → Twist
     assert "20-30 second" in prompt_text
-    assert "50-70 words" in prompt_text
+    assert "40-50 words" in prompt_text
     assert "Hook → Story → Twist" in prompt_text
     assert "50-60" not in prompt_text
     assert "120-160" not in prompt_text
@@ -110,3 +110,84 @@ def test_shorts_video_hook_story_twist_acts():
     assert hook_frame.shape == (creator.H, creator.W, 3)
     assert story_frame.shape == (creator.H, creator.W, 3)
     assert twist_frame.shape == (creator.H, creator.W, 3)
+
+
+def test_shorts_voice_rate_settings():
+    from studio import settings
+    assert "shorts_voice_rate" in settings._SETTINGS
+    assert settings._SETTINGS["shorts_voice_rate"] == ("SHORTS_VOICE_RATE", str)
+    assert "SHORTS_VOICE_RATE" in config.USER_SETTINGS
+    assert getattr(config, "SHORTS_VOICE_RATE", None) == "+15%"
+
+
+def test_narrator_shorts_joiner_and_voice_rate(tmp_path):
+    from video import narrator
+
+    script = {
+        "video_type": "shorts",
+        "sections": [
+            {"id": 1, "narration": "What if the sun turned blue right now?"},
+            {"id": 2, "narration": "The sudden ultraviolet radiation would vaporize our ozone layer within minutes."},
+            {"id": 3, "narration": "Earth would freeze in absolute darkness. Subscribe for more cosmic questions."},
+        ],
+    }
+
+    synthesised_args = []
+
+    async def mock_synth(text, audio_p, srt_p, rate="+0%"):
+        synthesised_args.append((text, rate))
+        with open(audio_p, "wb") as f:
+            f.write(b"fake audio data")
+        with open(srt_p, "w", encoding="utf-8") as f:
+            f.write("1\n00:00:00,000 --> 00:00:05,000\nWhat if the sun turned blue right now?\n\n")
+        return 1
+
+    with patch.object(narrator, "_synthesise", side_effect=mock_synth):
+        with patch.object(narrator, "_get_audio_duration_ms", return_value=22000):
+            out_dir = str(tmp_path)
+            narrator.generate_narration(script, out_dir)
+
+    assert len(synthesised_args) == 1
+    synth_text, synth_rate = synthesised_args[0]
+    # Verify single space joiner was used instead of "  ...  "
+    assert "  ...  " not in synth_text
+    assert synth_text == (
+        "What if the sun turned blue right now? "
+        "The sudden ultraviolet radiation would vaporize our ozone layer within minutes. "
+        "Earth would freeze in absolute darkness. Subscribe for more cosmic questions."
+    )
+    assert synth_rate == "+15%"
+
+
+def test_creator_retime_audio_and_srt(tmp_path):
+    import subprocess
+    import imageio_ffmpeg
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+
+    audio_path = str(tmp_path / "narration.mp3")
+    srt_path = str(tmp_path / "narration.srt")
+
+    # Generate a 35s dummy mp3
+    subprocess.run([
+        ffmpeg, "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=35",
+        "-c:a", "libmp3lame", audio_path
+    ], check=True, capture_output=True)
+
+    # Write a test SRT up to 35s
+    srt_text = (
+        "1\n00:00:00,000 --> 00:00:10,000\nHook line here.\n\n"
+        "2\n00:00:10,000 --> 00:00:25,000\nStory line here.\n\n"
+        "3\n00:00:25,000 --> 00:00:35,000\nTwist line here.\n\n"
+    )
+    with open(srt_path, "w", encoding="utf-8") as f:
+        f.write(srt_text)
+
+    final_dur = creator.retime_audio_and_srt(audio_path, srt_path, max_duration=30.0)
+
+    assert final_dur <= 30.0
+    assert 28.0 <= final_dur <= 30.0
+
+    # Verify SRT was scaled proportionally
+    new_srt = open(srt_path, encoding="utf-8").read()
+    assert "00:00:35,000" not in new_srt
+

@@ -208,7 +208,7 @@ def _build_sentence_srt(text: str, audio_path: str, srt_path: str) -> int:
 #  TTS SYNTHESIS
 # ══════════════════════════════════════════════════════════════
 
-async def _synthesise(text: str, audio_path: str, srt_path: str) -> int:
+async def _synthesise(text: str, audio_path: str, srt_path: str, rate: str = None) -> int:
     """
     Stream edge-tts audio + word-boundary events.
     Tries SubMaker → raw WordBoundary events → sentence fallback.
@@ -217,7 +217,7 @@ async def _synthesise(text: str, audio_path: str, srt_path: str) -> int:
     communicate = edge_tts.Communicate(
         text,
         config.VOICE_ID,
-        rate=config.VOICE_RATE,
+        rate=rate or config.VOICE_RATE,
         pitch=config.VOICE_PITCH,
     )
 
@@ -327,13 +327,17 @@ def generate_narration(script: dict, output_dir: str) -> str:
             continue
         parts.append(narration)
 
-    full_text  = "  ...  ".join(parts)
+    is_shorts  = script.get("video_type") == "shorts"
+    joiner     = " " if is_shorts else "  ...  "
+    full_text  = joiner.join(parts)
     audio_path = os.path.join(output_dir, "narration.mp3")
     srt_path   = os.path.join(output_dir, "narration.srt")
 
-    print(f"   → Synthesising {len(full_text.split())} words via Edge TTS…")
+    base_rate  = getattr(config, "SHORTS_VOICE_RATE", "+15%") if is_shorts else getattr(config, "VOICE_RATE", "-5%")
+    pace_desc  = f"Shorts rate {base_rate}" if is_shorts else f"rate {base_rate}"
+    print(f"   → Synthesising {len(full_text.split())} words via Edge TTS ({pace_desc})…")
     try:
-        asyncio.run(_synthesise(full_text, audio_path, srt_path))
+        asyncio.run(_synthesise(full_text, audio_path, srt_path, rate=base_rate))
     except Exception as e:
         if "403" in str(e):
             raise RuntimeError(
@@ -342,9 +346,25 @@ def generate_narration(script: dict, output_dir: str) -> str:
             ) from e
         raise
 
-    # ── Post-run report ──────────────────────────────────────────────────────
+    # ── Post-run report & Shorts auto-speed guard ────────────────────────────
     size_kb     = os.path.getsize(audio_path) // 1024
     audio_dur_s = _get_audio_duration_ms(audio_path) / 1000
+
+    # Auto-adjust pace if Shorts audio drifts past 27 seconds to guarantee 20-30s bounds
+    if is_shorts and audio_dur_s > 27.0:
+        target_s = 25.0
+        speed_factor = audio_dur_s / target_s
+        m = re.search(r"([+-]?\d+)", base_rate)
+        cur_pct = int(m.group(1)) if m else 15
+        needed_pct = min(45, int((cur_pct + 100) * speed_factor - 100))
+        adjusted_rate = f"+{needed_pct}%"
+        print(f"   ⚠ Shorts audio duration ({audio_dur_s:.1f}s) > 27s — auto-adjusting pace to {adjusted_rate}…")
+        try:
+            asyncio.run(_synthesise(full_text, audio_path, srt_path, rate=adjusted_rate))
+            audio_dur_s = _get_audio_duration_ms(audio_path) / 1000
+            print(f"   ✓ Adjusted duration: {audio_dur_s:.1f}s")
+        except Exception as e:
+            print(f"   ⚠ Auto-speed adjustment failed ({e}); retaining original audio.")
 
     if not os.path.exists(srt_path):
         print(f"   ⚠ ERROR: SRT file missing at {srt_path}")

@@ -112,8 +112,9 @@ def test_keys_are_masked_for_the_browser():
 
 
 def test_model_chain_starts_at_preference():
-    chain = gemini_client.build_chain("gemini-2.0-flash")
-    assert chain[0] == "gemini-2.0-flash" and len(chain) == len(set(chain))
+    pref = gemini_client._ALL_MODELS[1]
+    chain = gemini_client.build_chain(pref)
+    assert chain[0] == pref and len(chain) == len(set(chain))
     assert gemini_client.build_chain("not-a-model")[0] == gemini_client._ALL_MODELS[0]
 
 

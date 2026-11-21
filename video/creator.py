@@ -855,6 +855,63 @@ def _apply_watermark(clip, w: int, h: int, text: str = None):
     return clip
 
 
+def retime_audio_and_srt(audio_path: str, srt_path: str, max_duration: float = 30.0) -> float:
+    """
+    If audio duration exceeds max_duration, smoothly speeds up audio with FFmpeg atempo
+    without pitch shifting, and scales SRT timestamps proportionally so that 100% of the
+    script is delivered without mid-sentence truncation.
+    """
+    try:
+        try:
+            from moviepy import AudioFileClip
+        except ImportError:
+            from moviepy.editor import AudioFileClip
+
+        clip = AudioFileClip(audio_path)
+        dur  = clip.duration
+        clip.close()
+
+        if dur <= max_duration:
+            return dur
+
+        target_dur = max_duration - 1.0  # leave 1s safety headroom
+        ratio      = min(2.0, dur / target_dur)
+        print(f"   ⚡ Retiming Shorts audio ({dur:.1f}s → {target_dur:.1f}s, {ratio:.2f}x speedup) to fit time limit without truncation…")
+
+        import imageio_ffmpeg
+        import subprocess
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        tmp_audio = audio_path + ".retimed.mp3"
+        cmd = [ffmpeg, "-y", "-i", audio_path, "-filter:a", f"atempo={ratio:.3f}", tmp_audio]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode == 0 and os.path.exists(tmp_audio):
+            os.replace(tmp_audio, audio_path)
+
+            if srt_path and os.path.exists(srt_path):
+                content = open(srt_path, encoding="utf-8").read()
+                def _scale_ts(match):
+                    h, m, s, ms = int(match.group(1)), int(match.group(2)), int(match.group(3)), int(match.group(4))
+                    total_ms = h * 3_600_000 + m * 60_000 + s * 1_000 + ms
+                    new_ms = int(total_ms / ratio)
+                    nh = new_ms // 3_600_000; new_ms %= 3_600_000
+                    nm = new_ms // 60_000;    new_ms %= 60_000
+                    ns = new_ms // 1_000;     new_ms %= 1_000
+                    return f"{nh:02d}:{nm:02d}:{ns:02d},{new_ms:03d}"
+
+                scaled_content = re.sub(r"(\d{2}):(\d{2}):(\d{2}),(\d{3})", _scale_ts, content)
+                with open(srt_path, "w", encoding="utf-8") as f:
+                    f.write(scaled_content)
+
+            new_clip = AudioFileClip(audio_path)
+            new_dur  = new_clip.duration
+            new_clip.close()
+            print(f"   ✓ Audio retimed successfully to {new_dur:.1f}s (captions synchronized)")
+            return new_dur
+    except Exception as e:
+        print(f"   ⚠ Retiming audio failed ({e}); retaining original audio.")
+    return dur
+
+
 def create_video(script: dict, audio_path: str, output_dir: str,
                  image_map: dict = None, video_type: str = "normal") -> str:
     """
@@ -885,14 +942,19 @@ def create_video(script: dict, audio_path: str, output_dir: str,
     if is_shorts:
         print(f"\n   Building Shorts ({W}×{H}, {FPS} fps) — Hook → Story → Twist …")
 
-        # Attach audio first to know true duration and enforce 20-30s bounds
+        srt_path   = os.path.join(output_dir, "narration.srt")
+        max_shorts = float(getattr(config, "SHORTS_TARGET_MAX", 30.0))
+
+        # Check audio duration and retime if it exceeds maximum limit
+        audio = AudioFileClip(audio_path)
+        total_dur = audio.duration
+        audio.close()
+
+        if total_dur > max_shorts:
+            total_dur = retime_audio_and_srt(audio_path, srt_path, max_duration=max_shorts)
+
         audio      = AudioFileClip(audio_path)
         total_dur  = audio.duration
-        max_shorts = float(getattr(config, "SHORTS_TARGET_MAX", 30.0))
-        if total_dur > max_shorts:
-            print(f"   ⚠ Audio duration ({total_dur:.1f}s) exceeds {max_shorts:.0f}s limit for Shorts — capping to {max_shorts:.1f}s")
-            audio = _clip_subclip(audio, 0, max_shorts)
-            total_dur = max_shorts
         print(f"   → Audio duration: {total_dur:.1f}s")
 
         # Structure sections into Hook → Story → Twist acts
